@@ -201,19 +201,10 @@ function drawAccuracyCircle(center, radius) {
 // Считает круг радиусом radius метров вокруг точки center
 function makeCircle(center, radius) {
   const points = [];
-  const lng = center[0];
-  const lat = center[1];
-  // Сколько градусов в одном метре (примерно).
-  // По широте: 1 градус ≈ 111 320 м. По долготе меньше — зависит от широты.
-  const metersPerDegreeLat = 111320;
-  const metersPerDegreeLng = 111320 * Math.cos(lat * Math.PI / 180);
-
   for (let i = 0; i <= 64; i++) {
     const angle = (i / 64) * 2 * Math.PI; // угол от 0 до полного круга
-    points.push([
-      lng + (radius * Math.cos(angle)) / metersPerDegreeLng,
-      lat + (radius * Math.sin(angle)) / metersPerDegreeLat
-    ]);
+    // offsetPosition из logic.js: точка в radius метрах в сторону angle
+    points.push(offsetPosition(center, radius, angle));
   }
 
   return {
@@ -275,18 +266,8 @@ function movePlayer(lngLat, accuracy) {
 function spawnCapsules(center) {
   capsulesPlaced = true;
   for (let i = 0; i < CAPSULE_COUNT; i++) {
-    // Случайное направление и случайное расстояние от игрока
-    const angle = Math.random() * 2 * Math.PI;
-    const distance = CAPSULE_MIN_DISTANCE +
-      Math.random() * (CAPSULE_MAX_DISTANCE - CAPSULE_MIN_DISTANCE);
-    // Переводим «метры в сторону» в координаты — так же, как в makeCircle
-    const lat = center[1];
-    const lng = center[0];
-    const position = [
-      lng + (distance * Math.cos(angle)) / (111320 * Math.cos(lat * Math.PI / 180)),
-      lat + (distance * Math.sin(angle)) / 111320
-    ];
-    addCapsule(position);
+    // Случайное место в 30–150 м от игрока (функция из logic.js)
+    addCapsule(randomCapsulePosition(center, CAPSULE_MIN_DISTANCE, CAPSULE_MAX_DISTANCE, Math.random));
   }
 }
 

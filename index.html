@@ -44,6 +44,9 @@
 
   <!-- Сначала подключаем MapLibre, потом наш код, который им пользуется -->
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+  <!-- logic.js — расчёты (расстояния, редкость, правила). Он нужен game.js,
+       поэтому подключается раньше -->
+  <script src="logic.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

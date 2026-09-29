@@ -15,9 +15,19 @@ MewMo (МяуМо) — детская игра для детей 9–12 лет �
 - Только чистый **HTML, CSS и JavaScript**.
 - **Без** сборщиков (webpack, Vite и т. п.), без npm-зависимостей и без
   фреймворков (React, Vue и т. п.).
-- Карта — библиотека **Leaflet** с картами **OpenStreetMap**.
+- Карта — библиотека **MapLibre GL JS** (версия 5.x, подключается обычным
+  `<script>` с CDN jsDelivr) с бесплатными картами **OpenFreeMap**
+  (стиль `https://tiles.openfreemap.org/styles/liberty`, API-ключ не нужен).
+- В MapLibre координаты пишутся как **[долгота, широта]** — наоборот,
+  чем в Leaflet.
+- Камера как в Pokémon GO: наклон 60°, объёмные здания, зум 17–18.
+- Игрок и капсулы — HTML-маркеры MapLibre (`maplibregl.Marker`), их вид
+  задаётся в `style.css`. Не задавать маркерам в CSS `position` и
+  `transform` — ими MapLibre двигает маркер.
+- **Подпись об авторах карты (OpenFreeMap, OpenMapTiles, OpenStreetMap)
+  убирать нельзя** — это обязательное условие использования карт.
 - Внешние библиотеки подключаются через `<script>` / `<link>` с CDN
-  (как Leaflet в `index.html`).
+  с точно указанной версией (как MapLibre в `index.html`).
 
 ## Файлы
 

@@ -136,11 +136,12 @@ button:focus-visible {
 }
 
 /* ===== Значок игрока на карте ===== */
+/* MapLibre сам ставит маркер так, чтобы его центр был в точке игрока.
+   Важно: не задаём маркерам position и transform — ими MapLibre
+   передвигает маркер по карте, и наши правила бы ему помешали. */
 .player-dot {
-  position: relative;
   width: 22px;
   height: 22px;
-  margin: 7px;
   border: 4px solid var(--fur);
   border-radius: 50%;
   background: var(--nose);
@@ -167,11 +168,50 @@ button:focus-visible {
   .player-dot::after { animation: none; opacity: 0.5; }
 }
 
-/* Круг точности GPS */
-.accuracy-circle {
-  fill: var(--nose);
-  fill-opacity: 0.12;
-  stroke: var(--nose);
-  stroke-opacity: 0.5;
-  stroke-width: 1;
+/* Круг точности GPS рисует сама карта — его цвет задан в game.js */
+
+/* ===== Капсула с котом на карте ===== */
+/* Это кнопка: на неё нажимают, чтобы открыть капсулу */
+.capsule {
+  width: 34px;
+  height: 46px;
+  padding: 0;
+  border: 3px solid var(--fur);
+  border-radius: 17px 17px 14px 14px; /* форма капсулы: сверху круглее */
+  background: linear-gradient(var(--star) 0 55%, var(--space-2) 55% 100%);
+  box-shadow: 0 0 14px var(--star); /* свечение, чтобы капсулу было видно */
+  cursor: pointer;
+  animation: bob 2.4s ease-in-out infinite;
+}
+
+/* Окошко капсулы, через которое «виден» кот */
+.capsule::before {
+  content: '';
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  border-radius: 50%;
+  background: var(--mint);
+}
+
+/* Капсула слегка покачивается вверх-вниз.
+   Используем свойство translate, а не transform — transform занят MapLibre. */
+@keyframes bob {
+  0%, 100% { translate: 0 0; }
+  50%      { translate: 0 -5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .capsule { animation: none; }
+}
+
+/* ===== Подпись об авторах карты ===== */
+/* Обязательна по условиям OpenFreeMap и OpenStreetMap. Сужаем её,
+   чтобы она не залезала под кнопку «Где я?» справа. */
+.maplibregl-ctrl-bottom-left .maplibregl-ctrl-attrib {
+  max-width: calc(100vw - 120px);
+  font-size: 11px;
 }

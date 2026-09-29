@@ -11,15 +11,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
 
-  <!-- Leaflet: библиотека, которая рисует карту -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+  <!-- MapLibre GL JS: библиотека, которая рисует объёмную карту.
+       Версия записана точно (5.24.0), чтобы игра не сломалась от обновлений. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css">
 
   <!-- Наши собственные стили -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Карта. Leaflet сам нарисует её внутри этого блока -->
+  <!-- Карта. MapLibre сам нарисует её внутри этого блока -->
   <div id="map"></div>
 
   <!-- Строка состояния сверху -->
@@ -41,8 +42,8 @@
     <button id="start-button" class="big-button">Начать поиск</button>
   </section>
 
-  <!-- Сначала подключаем Leaflet, потом наш код, который им пользуется -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <!-- Сначала подключаем MapLibre, потом наш код, который им пользуется -->
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

@@ -1,0 +1,177 @@
+/* ===== Цвета игры =====
+   Переменные: меняешь цвет в одном месте, и он меняется везде. */
+:root {
+  --space: #1E1747;    /* ночное небо */
+  --space-2: #2E2468;  /* небо посветлее */
+  --nose: #FF8FB1;     /* розовый кошачий нос */
+  --star: #FFD447;     /* звёздный жёлтый */
+  --mint: #6EE7C8;     /* мятный, для хороших новостей */
+  --fur: #F7F3FF;      /* светлый текст */
+  --font: 'Baloo 2', 'Trebuchet MS', 'Segoe UI', sans-serif;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: var(--font);
+  background: var(--space);
+  color: var(--fur);
+}
+
+/* Карта растягивается на весь экран */
+#map {
+  position: absolute;
+  inset: 0;
+}
+
+/* ===== Стартовый экран ===== */
+.start-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;              /* поверх карты */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 32px 24px calc(32px + env(safe-area-inset-bottom, 0px));
+  text-align: center;
+  background:
+    radial-gradient(circle at 20% 15%, var(--space-2) 0, transparent 45%),
+    radial-gradient(circle at 85% 80%, var(--space-2) 0, transparent 40%),
+    var(--space);
+}
+
+.start-screen.hidden {
+  display: none;
+}
+
+/* Логотип с кошачьими ушками над буквой M */
+.logo {
+  position: relative;
+  margin: 0;
+  font-size: clamp(64px, 20vw, 120px);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--star);
+}
+
+.logo::before,
+.logo::after {
+  content: '';
+  position: absolute;
+  top: -0.22em;
+  width: 0;
+  height: 0;
+  border-left: 0.14em solid transparent;
+  border-right: 0.14em solid transparent;
+  border-bottom: 0.24em solid var(--nose);
+}
+.logo::before { left: 0.04em; }
+.logo::after  { left: 0.46em; }
+
+.story {
+  max-width: 30ch;
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.4;
+}
+
+.safety {
+  max-width: 30ch;
+  padding: 12px 18px;
+  border: 2px dashed var(--mint);
+  border-radius: 18px;
+  font-size: 16px;
+  line-height: 1.35;
+}
+.safety p { margin: 4px 0; }
+
+.big-button {
+  padding: 14px 36px;
+  border: none;
+  border-radius: 999px;
+  background: var(--nose);
+  color: var(--space);
+  font-family: var(--font);
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ===== Интерфейс поверх карты ===== */
+.status {
+  position: absolute;
+  z-index: 900;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  left: 12px;
+  right: 12px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: var(--space);
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.round-button {
+  position: absolute;
+  z-index: 900;
+  right: 16px;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  width: 72px;
+  height: 72px;
+  border: 3px solid var(--fur);
+  border-radius: 50%;
+  background: var(--star);
+  color: var(--space);
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:focus-visible {
+  outline: 3px solid var(--mint);
+  outline-offset: 3px;
+}
+
+/* ===== Значок игрока на карте ===== */
+.player-dot {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  margin: 7px;
+  border: 4px solid var(--fur);
+  border-radius: 50%;
+  background: var(--nose);
+  box-sizing: border-box;
+}
+
+/* Пульсирующее кольцо вокруг игрока */
+.player-dot::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border: 3px solid var(--nose);
+  border-radius: 50%;
+  animation: pulse 1.8s ease-out infinite;
+}
+
+@keyframes pulse {
+  from { transform: scale(0.5); opacity: 1; }
+  to   { transform: scale(1.4); opacity: 0; }
+}
+
+/* Если в телефоне включено «уменьшить движение» — не пульсируем */
+@media (prefers-reduced-motion: reduce) {
+  .player-dot::after { animation: none; opacity: 0.5; }
+}
+
+/* Круг точности GPS */
+.accuracy-circle {
+  fill: var(--nose);
+  fill-opacity: 0.12;
+  stroke: var(--nose);
+  stroke-opacity: 0.5;
+  stroke-width: 1;
+}

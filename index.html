@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <!-- Говорим телефону: страница должна занимать ровно ширину экрана -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>MewMo</title>
+
+  <!-- Шрифт Baloo 2: круглый и дружелюбный, поддерживает русский -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <!-- Leaflet: библиотека, которая рисует карту -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+
+  <!-- Наши собственные стили -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Карта. Leaflet сам нарисует её внутри этого блока -->
+  <div id="map"></div>
+
+  <!-- Строка состояния сверху -->
+  <div id="status" class="status">Загрузка…</div>
+
+  <!-- Кнопка «вернуть карту ко мне» -->
+  <button id="center-button" class="round-button" aria-label="Показать, где я">Где я?</button>
+
+  <!-- Стартовый экран, который закрывает карту, пока не нажмёшь «Начать» -->
+  <section id="start-screen" class="start-screen">
+    <h1 class="logo">MewMo</h1>
+    <p class="story">Коты-пришельцы потерпели крушение и разбежались по городу. Найди их и помоги вернуться домой.</p>
+
+    <div class="safety">
+      <p>Когда гуляешь, смотри по сторонам, а не в телефон.</p>
+      <p>Играй на улице вместе со взрослым.</p>
+    </div>
+
+    <button id="start-button" class="big-button">Начать поиск</button>
+  </section>
+
+  <!-- Сначала подключаем Leaflet, потом наш код, который им пользуется -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

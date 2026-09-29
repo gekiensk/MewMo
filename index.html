@@ -33,6 +33,80 @@
   <!-- Кнопка «вернуть карту ко мне» -->
   <button id="center-button" class="round-button" aria-label="Показать, где я">Где я?</button>
 
+  <!-- ===== Окно «Знакомство с котом» =====
+       Появляется поверх карты, когда нажимаешь на капсулу рядом.
+       Внутри несколько «экранов» (screen), показываем по одному. -->
+  <section id="encounter" class="encounter hidden" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+    <div class="encounter-card">
+      <!-- Кнопка закрытия есть всегда -->
+      <button id="encounter-close" class="close-button" aria-label="Закрыть окно">✕</button>
+
+      <!-- Экран 1: «Кот рядом!» -->
+      <div id="screen-intro" class="screen">
+        <h2 id="intro-title" class="screen-title">Кот рядом!</h2>
+        <div id="intro-circle" class="cat-circle">😺</div>
+        <p id="intro-name" class="cat-name"></p>
+        <p id="intro-stars" class="stars"></p>
+        <button id="intro-next" class="big-button">Познакомиться</button>
+      </div>
+
+      <!-- Экран 2: «Поймай сигнал» -->
+      <div id="screen-signal" class="screen hidden">
+        <h2 class="screen-title">Поймай сигнал</h2>
+        <p class="screen-text">Нажми «Поймать!», когда огонёк будет в зелёной зоне. Попытка одна!</p>
+        <!-- Шкала: зелёная зона и бегущий огонёк -->
+        <div class="signal-bar">
+          <div id="signal-zone" class="signal-zone"></div>
+          <div id="signal-light" class="signal-light"></div>
+        </div>
+        <button id="signal-button" class="big-button">Поймать!</button>
+        <p id="signal-result" class="result-text" aria-live="polite"></p>
+        <button id="signal-next" class="big-button hidden">Дальше</button>
+      </div>
+
+      <!-- Экран 3: «Лапка, Коготь, Клубок» -->
+      <div id="screen-rps" class="screen hidden">
+        <h2 class="screen-title">Лапка, Коготь, Клубок</h2>
+        <p class="screen-text rules">
+          🐾 Лапка прижимает Коготь.<br>
+          ✂️ Коготь режет нитку Клубка.<br>
+          🧶 В Клубке запутывается Лапка.<br>
+          Играем до двух побед!
+        </p>
+        <p id="rps-hint" class="hint hidden"></p>
+        <p id="rps-score" class="score"></p>
+        <p id="rps-round" class="result-text" aria-live="polite"></p>
+        <div class="gesture-buttons">
+          <button class="gesture-button" data-gesture="Лапка">🐾<br>Лапка</button>
+          <button class="gesture-button" data-gesture="Коготь">✂️<br>Коготь</button>
+          <button class="gesture-button" data-gesture="Клубок">🧶<br>Клубок</button>
+        </div>
+      </div>
+
+      <!-- Экран 4: победа — «Кот найден!» -->
+      <div id="screen-win" class="screen hidden">
+        <h2 class="screen-title">Кот найден!</h2>
+        <div id="win-circle" class="cat-circle">😺</div>
+        <p id="win-name" class="cat-name"></p>
+        <p id="win-stars" class="stars"></p>
+        <p id="win-info" class="screen-text"></p>
+        <div class="fact">
+          <p class="fact-title">А ты знал?</p>
+          <p id="win-fact"></p>
+        </div>
+        <button id="win-take" class="big-button">Забрать в экипаж</button>
+      </div>
+
+      <!-- Экран 5: проигрыш — без наказания -->
+      <div id="screen-lose" class="screen hidden">
+        <h2 class="screen-title">Ой!</h2>
+        <div id="lose-circle" class="cat-circle shy">🙈</div>
+        <p class="screen-text">Кот смутился и спрятался. Попробуй ещё раз через минуту!</p>
+        <button id="lose-ok" class="big-button">Хорошо</button>
+      </div>
+    </div>
+  </section>
+
   <!-- Стартовый экран, который закрывает карту, пока не нажмёшь «Начать» -->
   <section id="start-screen" class="start-screen">
     <h1 class="logo">MewMo</h1>
@@ -53,6 +127,8 @@
   <script src="logic.js"></script>
   <!-- cats.js — каталог котов -->
   <script src="cats.js"></script>
+  <!-- encounter.js — окно «Знакомство с котом» (мини-игры) -->
+  <script src="encounter.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

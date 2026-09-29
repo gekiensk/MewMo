@@ -25,6 +25,7 @@ const CAPSULE_MAX_DISTANCE = 150; // дальше этого (в метрах) �
 const DESPAWN_DISTANCE = 250;     // если игрок ушёл дальше (в метрах) — капсула исчезает
 const OPEN_DISTANCE = 40;         // с какого расстояния (в метрах) можно открыть капсулу
 const TOAST_TIME = 3000;          // сколько миллисекунд висит подсказка (3 секунды)
+const SHY_TIME = 60000;           // сколько миллисекунд кот смущается после проигрыша (1 минута)
 
 // Цвет круга точности GPS. Это тот же розовый, что --nose в style.css.
 // Круг рисует сама карта, а она не умеет читать переменные из CSS,
@@ -73,6 +74,10 @@ centerButton.addEventListener('click', function () {
 function startGame() {
   startScreen.classList.add('hidden'); // прячем стартовый экран
   createMap(DEFAULT_POSITION);
+
+  // Раз в секунду обновляем вид капсул: например, смущённый кот
+  // через минуту снова становится обычным
+  setInterval(updateCapsuleLooks, 1000);
 
   if ('geolocation' in navigator) {
     setStatus('Ищем тебя на карте…');
@@ -271,9 +276,10 @@ function playerPosition() {
 // Капсулы с котами
 // =============================================================
 // Каждая капсула — это объект:
-//   marker  — HTML-маркер на карте;
-//   element — сама кнопка-капсула (чтобы менять ей CSS-классы);
-//   cat     — кот из каталога cats.js, который сидит внутри.
+//   marker   — HTML-маркер на карте;
+//   element  — сама кнопка-капсула (чтобы менять ей CSS-классы);
+//   cat      — кот из каталога cats.js, который сидит внутри;
+//   shyUntil — до какого времени кот смущается (0 — не смущается).
 
 // Главная функция капсул. Вызывается каждый раз, когда игрок сдвинулся.
 function refreshCapsules(center) {
@@ -281,7 +287,9 @@ function refreshCapsules(center) {
   const stillNear = [];
   for (let i = 0; i < capsules.length; i++) {
     const capsule = capsules[i];
-    if (distanceMeters(center, capsulePosition(capsule)) > DESPAWN_DISTANCE) {
+    // Капсулу, с котом из которой сейчас идёт знакомство, не трогаем
+    const isInEncounter = activeEncounter && activeEncounter.capsule === capsule;
+    if (!isInEncounter && distanceMeters(center, capsulePosition(capsule)) > DESPAWN_DISTANCE) {
       capsule.marker.remove(); // игрок ушёл далеко — убираем с карты
     } else {
       stillNear.push(capsule);
@@ -311,7 +319,8 @@ function addCapsule(position) {
   const capsule = {
     marker: marker,
     element: element,
-    cat: pickCat(CATS, Math.random) // кот выбирается с учётом редкости
+    cat: pickCat(CATS, Math.random), // кот выбирается с учётом редкости
+    shyUntil: 0
   };
   capsules.push(capsule);
 
@@ -331,30 +340,57 @@ function distanceToCapsule(capsule) {
   return distanceMeters(playerPosition(), capsulePosition(capsule));
 }
 
-// Капсулы, до которых можно дотянуться, получают класс capsule-near
+// Смущается ли кот в капсуле прямо сейчас
+function isShy(capsule) {
+  return Date.now() < capsule.shyUntil; // Date.now() — текущее время в мс
+}
+
+// Обновляет вид капсул:
+// capsule-near — до капсулы можно дотянуться, она светится ярче;
+// capsule-shy  — кот смутился, капсула тусклая и минуту не открывается.
 function updateCapsuleLooks() {
+  if (!playerMarker) return;
   for (let i = 0; i < capsules.length; i++) {
     const capsule = capsules[i];
-    const isNear = distanceToCapsule(capsule) <= OPEN_DISTANCE;
+    const shy = isShy(capsule);
+    const isNear = !shy && distanceToCapsule(capsule) <= OPEN_DISTANCE;
     // toggle(класс, true) добавляет класс, toggle(класс, false) — убирает
     capsule.element.classList.toggle('capsule-near', isNear);
+    capsule.element.classList.toggle('capsule-shy', shy);
   }
 }
 
 function openCapsule(capsule) {
   const distance = distanceToCapsule(capsule);
 
+  if (isShy(capsule)) {
+    const secondsLeft = Math.ceil((capsule.shyUntil - Date.now()) / 1000);
+    showToast('Кот ещё смущается. Попробуй через ' + secondsLeft + ' с.');
+    return;
+  }
+
   if (distance > OPEN_DISTANCE) {
     showToast('Подойди ближе! До капсулы ' + Math.round(distance) + ' м.');
     return;
   }
 
-  // Кот найден: убираем капсулу, на её место появится новая
-  removeCapsule(capsule);
+  // Капсула рядом — открываем окно знакомства (encounter.js)
+  openEncounter(capsule);
+}
+
+// Игрок выиграл и нажал «Забрать в экипаж» (вызывается из encounter.js)
+function catchCat(capsule) {
+  removeCapsule(capsule); // на её место появится новая
   foundCats = foundCats + 1;
-  showToast('Ты нашёл кота! Это ' + capsule.cat.name + '.');
+  showToast(capsule.cat.name + ' теперь в твоём экипаже!');
   updateStatus();
   refreshCapsules(playerPosition());
+}
+
+// Игрок проиграл: кот смущается, капсула минуту тусклая (вызывается из encounter.js)
+function makeCatShy(capsule) {
+  capsule.shyUntil = Date.now() + SHY_TIME;
+  updateCapsuleLooks();
 }
 
 // Убирает одну капсулу с карты и из списка

@@ -211,6 +211,14 @@ button:focus-visible {
   scale: 1.2;
 }
 
+/* Кот смутился: капсула тусклая, серая и не покачивается */
+.capsule.capsule-shy {
+  opacity: 0.45;
+  filter: grayscale(1);
+  box-shadow: none;
+  animation: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .capsule { animation: none; }
 }
@@ -249,4 +257,225 @@ button:focus-visible {
   /* Тёмный текст: иначе подпись берёт светлый цвет страницы (--fur)
      и слова «Data from» не видно на светлом фоне подписи */
   color: #333;
+}
+
+/* ===== Окно «Знакомство с котом» ===== */
+/* Тёмная подложка на весь экран, поверх карты и строки состояния */
+.encounter {
+  position: absolute;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  background: rgba(30, 23, 71, 0.85); /* это --space, но полупрозрачный */
+  overflow-y: auto; /* на маленьком экране окно можно прокрутить */
+  box-sizing: border-box;
+}
+
+.encounter.hidden {
+  display: none;
+}
+
+/* Сама карточка окна */
+.encounter-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 24px 20px;
+  border: 3px solid var(--star);
+  border-radius: 28px;
+  background: var(--space-2);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* Кнопка ✕ в правом верхнем углу. 64×64 — удобно попасть пальцем */
+.close-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 64px;
+  height: 64px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fur);
+  font-family: var(--font);
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.screen.hidden {
+  display: none;
+}
+
+.screen-title {
+  margin: 8px 56px 12px; /* по бокам место, чтобы заголовок не залез под ✕ */
+  color: var(--star);
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.screen-text {
+  margin: 12px 0;
+  font-size: 19px;
+  line-height: 1.4;
+}
+
+.rules {
+  font-size: 17px;
+}
+
+/* Все большие кнопки — не ниже 64 px */
+.big-button {
+  min-height: 64px;
+}
+
+.encounter .big-button {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.big-button.hidden {
+  display: none;
+}
+
+/* Цветной круг с котом */
+.cat-circle {
+  width: 130px;
+  height: 130px;
+  margin: 8px auto;
+  border: 4px solid var(--fur);
+  border-radius: 50%;
+  font-size: 72px;
+  line-height: 122px; /* ставит смайлик по центру круга */
+}
+.circle-water     { background: #7CC8FF; } /* водный — голубой */
+.circle-forest    { background: #7EDC8A; } /* лесной — зелёный */
+.circle-city      { background: var(--star); } /* городской — жёлтый */
+.circle-legendary { background: var(--nose); } /* легендарный — розовый */
+.cat-circle.shy   { background: var(--space); }
+
+.cat-name {
+  margin: 4px 0;
+  font-size: 32px;
+  font-weight: 800;
+}
+
+/* Звёздочки редкости */
+.stars {
+  margin: 0;
+  color: var(--star);
+  font-size: 26px;
+  letter-spacing: 2px;
+}
+
+/* ----- «Поймай сигнал» ----- */
+.signal-bar {
+  position: relative;
+  height: 48px;
+  margin: 20px 0 8px;
+  border: 3px solid var(--fur);
+  border-radius: 24px;
+  background: var(--space);
+  overflow: hidden;
+}
+
+/* Зелёная зона: left и width задаёт encounter.js */
+.signal-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--mint);
+}
+
+/* Огонёк: left задаёт encounter.js (от 0% до 100%).
+   margin-left сдвигает его на половину ширины, чтобы центр огонька
+   был ровно в точке, которую считает игра. */
+.signal-light {
+  position: absolute;
+  top: 6px;
+  width: 30px;
+  height: 30px;
+  margin-left: -15px;
+  border: 3px solid var(--fur);
+  border-radius: 50%;
+  background: var(--star);
+  box-sizing: border-box;
+  box-shadow: 0 0 12px var(--star);
+}
+
+.result-text {
+  min-height: 1.4em;
+  margin: 12px 0;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+/* ----- «Лапка, Коготь, Клубок» ----- */
+.hint {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border: 2px dashed var(--mint);
+  border-radius: 14px;
+  font-size: 18px;
+}
+.hint.hidden {
+  display: none;
+}
+
+.score {
+  margin: 8px 0;
+  color: var(--star);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.gesture-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.gesture-button {
+  flex: 1;
+  min-height: 96px;
+  padding: 8px 4px;
+  border: 3px solid var(--fur);
+  border-radius: 20px;
+  background: var(--nose);
+  color: var(--space);
+  font-family: var(--font);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.gesture-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ----- «Кот найден!» ----- */
+.fact {
+  margin: 12px 0;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: var(--space);
+  font-size: 18px;
+  line-height: 1.4;
+  text-align: left;
+}
+.fact p {
+  margin: 4px 0;
+}
+.fact-title {
+  color: var(--mint);
+  font-weight: 800;
 }

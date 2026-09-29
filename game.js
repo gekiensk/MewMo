@@ -19,10 +19,12 @@ const MAX_ZOOM = 18;     // ближе приблизить нельзя
 const CAMERA_PITCH = 60; // наклон камеры в градусах (0 — смотрим сверху)
 
 // Капсулы с котами
-const CAPSULE_COUNT = 5;        // сколько капсул появится вокруг игрока
-const CAPSULE_MIN_DISTANCE = 30;  // ближе этого (в метрах) капсулы не появляются
-const CAPSULE_MAX_DISTANCE = 150; // дальше этого (в метрах) капсулы не появляются
-const OPEN_DISTANCE = 40;       // с какого расстояния (в метрах) можно открыть капсулу
+const CAPSULE_COUNT = 5;           // сколько капсул всегда лежит вокруг игрока
+const CAPSULE_MIN_DISTANCE = 30;  // ближе этого (в метрах) новые капсулы не появляются
+const CAPSULE_MAX_DISTANCE = 150; // дальше этого (в метрах) новые капсулы не появляются
+const DESPAWN_DISTANCE = 250;     // если игрок ушёл дальше (в метрах) — капсула исчезает
+const OPEN_DISTANCE = 40;         // с какого расстояния (в метрах) можно открыть капсулу
+const TOAST_TIME = 3000;          // сколько миллисекунд висит подсказка (3 секунды)
 
 // Цвет круга точности GPS. Это тот же розовый, что --nose в style.css.
 // Круг рисует сама карта, а она не умеет читать переменные из CSS,
@@ -34,10 +36,11 @@ let map;                 // сама карта
 let playerMarker;        // значок игрока
 let followPlayer = true; // двигается ли карта вслед за игроком
 let demoMode = false;    // true, когда GPS не работает
-let capsules = [];       // список капсул, которые ещё лежат на карте
-let capsulesPlaced = false; // разложили ли уже капсулы вокруг игрока
+let capsules = [];       // список капсул, которые лежат на карте
 let foundCats = 0;       // сколько котов уже нашли
 let hasGps = false;      // приходил ли уже хоть раз ответ от GPS
+let statusMessage = '';  // текст строки состояния (без счётчика котов)
+let toastTimer = null;   // таймер, который прячет подсказку
 
 // Пока карта грузит свой стиль, рисовать круг точности нельзя.
 // Поэтому запоминаем последний круг и нарисуем его, когда карта будет готова.
@@ -49,6 +52,7 @@ const startScreen = document.getElementById('start-screen');
 const startButton = document.getElementById('start-button');
 const statusText = document.getElementById('status');
 const centerButton = document.getElementById('center-button');
+const toast = document.getElementById('toast');
 
 // ----- Что происходит при нажатии кнопок -----
 startButton.addEventListener('click', startGame);
@@ -228,8 +232,7 @@ function onPosition(pos) {
 
   const lngLat = [pos.coords.longitude, pos.coords.latitude]; // сначала долгота!
   movePlayer(lngLat, pos.coords.accuracy);
-  setStatus('Ты здесь. Точность: ' + Math.round(pos.coords.accuracy) + ' м. ' +
-    'Найдено котов: ' + foundCats);
+  setStatus('Ты здесь. Точность: ' + Math.round(pos.coords.accuracy) + ' м.');
 }
 
 // GPS не смог определить местоположение
@@ -250,29 +253,53 @@ function movePlayer(lngLat, accuracy) {
   playerMarker.setLngLat(lngLat);
   drawAccuracyCircle(lngLat, accuracy || 0);
 
-  // Когда игрок впервые появился на карте, раскладываем вокруг него капсулы
-  if (!capsulesPlaced) {
-    spawnCapsules(lngLat);
-  }
+  // Убираем далёкие капсулы, добавляем новые и обновляем их свечение
+  refreshCapsules(lngLat);
 
   if (followPlayer) {
     map.easeTo({ center: lngLat }); // плавно двигаем карту за игроком
   }
 }
 
+// Где сейчас игрок, в виде [долгота, широта]
+function playerPosition() {
+  const lngLat = playerMarker.getLngLat();
+  return [lngLat.lng, lngLat.lat];
+}
+
 // =============================================================
 // Капсулы с котами
 // =============================================================
-function spawnCapsules(center) {
-  capsulesPlaced = true;
-  for (let i = 0; i < CAPSULE_COUNT; i++) {
-    // Случайное место в 30–150 м от игрока (функция из logic.js)
+// Каждая капсула — это объект:
+//   marker  — HTML-маркер на карте;
+//   element — сама кнопка-капсула (чтобы менять ей CSS-классы);
+//   cat     — кот из каталога cats.js, который сидит внутри.
+
+// Главная функция капсул. Вызывается каждый раз, когда игрок сдвинулся.
+function refreshCapsules(center) {
+  // 1. Капсулы дальше DESPAWN_DISTANCE исчезают
+  const stillNear = [];
+  for (let i = 0; i < capsules.length; i++) {
+    const capsule = capsules[i];
+    if (distanceMeters(center, capsulePosition(capsule)) > DESPAWN_DISTANCE) {
+      capsule.marker.remove(); // игрок ушёл далеко — убираем с карты
+    } else {
+      stillNear.push(capsule);
+    }
+  }
+  capsules = stillNear;
+
+  // 2. Добавляем новые, пока вокруг игрока не станет CAPSULE_COUNT капсул
+  while (capsules.length < CAPSULE_COUNT) {
     addCapsule(randomCapsulePosition(center, CAPSULE_MIN_DISTANCE, CAPSULE_MAX_DISTANCE, Math.random));
   }
+
+  // 3. Близкие капсулы светятся ярче
+  updateCapsuleLooks();
 }
 
 function addCapsule(position) {
-  // Капсула — тоже HTML-маркер, её вид задан в style.css (.capsule)
+  // Капсула — HTML-маркер, её вид задан в style.css (.capsule)
   const element = document.createElement('button');
   element.className = 'capsule';
   element.setAttribute('aria-label', 'Капсула с котом');
@@ -281,40 +308,67 @@ function addCapsule(position) {
     .setLngLat(position)
     .addTo(map);
 
-  capsules.push(marker);
+  const capsule = {
+    marker: marker,
+    element: element,
+    cat: pickCat(CATS, Math.random) // кот выбирается с учётом редкости
+  };
+  capsules.push(capsule);
 
   element.addEventListener('click', function () {
-    openCapsule(marker);
+    openCapsule(capsule);
   });
 }
 
-function openCapsule(marker) {
-  // distanceTo считает расстояние между двумя точками в метрах
-  const distance = playerMarker.getLngLat().distanceTo(marker.getLngLat());
+// Координаты капсулы в виде [долгота, широта]
+function capsulePosition(capsule) {
+  const lngLat = capsule.marker.getLngLat();
+  return [lngLat.lng, lngLat.lat];
+}
+
+// Сколько метров от игрока до капсулы
+function distanceToCapsule(capsule) {
+  return distanceMeters(playerPosition(), capsulePosition(capsule));
+}
+
+// Капсулы, до которых можно дотянуться, получают класс capsule-near
+function updateCapsuleLooks() {
+  for (let i = 0; i < capsules.length; i++) {
+    const capsule = capsules[i];
+    const isNear = distanceToCapsule(capsule) <= OPEN_DISTANCE;
+    // toggle(класс, true) добавляет класс, toggle(класс, false) — убирает
+    capsule.element.classList.toggle('capsule-near', isNear);
+  }
+}
+
+function openCapsule(capsule) {
+  const distance = distanceToCapsule(capsule);
 
   if (distance > OPEN_DISTANCE) {
-    setStatus('Подойди ближе! До капсулы ' + Math.round(distance) + ' м.');
+    showToast('Подойди ближе! До капсулы ' + Math.round(distance) + ' м.');
     return;
   }
 
-  marker.remove(); // убираем капсулу с карты
-  capsules = capsules.filter(function (m) { return m !== marker; });
+  // Кот найден: убираем капсулу, на её место появится новая
+  removeCapsule(capsule);
   foundCats = foundCats + 1;
+  showToast('Ты нашёл кота! Это ' + capsule.cat.name + '.');
+  updateStatus();
+  refreshCapsules(playerPosition());
+}
 
-  if (capsules.length === 0) {
-    setStatus('Ура! Ты нашёл всех котов: ' + foundCats + '!');
-  } else {
-    setStatus('Ты нашёл кота! Найдено: ' + foundCats + '. Осталось капсул: ' + capsules.length + '.');
-  }
+// Убирает одну капсулу с карты и из списка
+function removeCapsule(capsule) {
+  capsule.marker.remove();
+  capsules = capsules.filter(function (c) { return c !== capsule; });
 }
 
 // Убирает с карты все капсулы (например, чтобы разложить их заново)
 function removeAllCapsules() {
   for (let i = 0; i < capsules.length; i++) {
-    capsules[i].remove();
+    capsules[i].marker.remove();
   }
   capsules = [];
-  capsulesPlaced = false;
 }
 
 // =============================================================
@@ -323,10 +377,8 @@ function removeAllCapsules() {
 function startDemoMode(reason) {
   demoMode = true;
   setStatus(reason + ' Демо-режим: нажми на карту, чтобы переместиться.');
-  // Без GPS игрок стоит в стартовой точке — раскладываем капсулы вокруг неё
-  if (!capsulesPlaced) {
-    spawnCapsules(DEFAULT_POSITION);
-  }
+  // Без GPS игрок стоит там, где стоит, — раскладываем капсулы вокруг него
+  refreshCapsules(playerPosition());
 }
 
 function onMapClick(event) {
@@ -336,7 +388,29 @@ function onMapClick(event) {
   movePlayer([event.lngLat.lng, event.lngLat.lat], 0);
 }
 
-// ----- Маленький помощник: написать текст в строке состояния -----
+// =============================================================
+// Строка состояния и всплывающая подсказка
+// =============================================================
+// Строка состояния сверху: сообщение + счётчик найденных котов.
+// GPS обновляет её часто, поэтому важные короткие сообщения
+// («Подойди ближе!») показываем отдельно — всплывающей подсказкой.
 function setStatus(text) {
-  statusText.textContent = text;
+  statusMessage = text;
+  updateStatus();
+}
+
+function updateStatus() {
+  statusText.textContent = statusMessage + ' Найдено котов: ' + foundCats + '.';
+}
+
+// Всплывающая подсказка внизу экрана. Держится TOAST_TIME и исчезает.
+function showToast(text) {
+  toast.textContent = text;
+  toast.classList.add('visible');
+  // Если прошлая подсказка ещё не спряталась — отменяем её таймер,
+  // чтобы новая провисела свои полные 3 секунды
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () {
+    toast.classList.remove('visible');
+  }, TOAST_TIME);
 }

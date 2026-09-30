@@ -21,20 +21,22 @@ let captainMarker = null;
 let captainElement = null;
 let captainTimer = null;
 let captainPosition = null;
-const gameStartTime = Date.now();
+let captainWatchStart = 0; // когда игра начала следить за капитанами (0 — ещё не начала)
 
 // Раз в секунду (из game.js): убрать капитана, если его час прошёл,
 // позвать нового, если можно, и обновить его вид
 function updateCaptain() {
   const now = Date.now();
   const inBattle = activeEncounter && activeEncounter.kind === 'captain';
+  // Первый вызов — сразу после «Начать поиск»: запоминаем время
+  if (captainWatchStart === 0) captainWatchStart = now;
 
   // Час прошёл — капитан улетает (но не посреди боя)
   if (captainState && !isCaptainActive(captainState, now) && !inBattle) {
     removeCaptain();
   }
 
-  if (!captainState && now - gameStartTime > CAPTAIN_START_PAUSE) {
+  if (!captainState && now - captainWatchStart > CAPTAIN_START_PAUSE) {
     maybeSpawnCaptain(now);
   }
   updateCaptainLook(now);

@@ -338,7 +338,8 @@ function addCapsule(position) {
   const capsule = {
     marker: marker,
     element: element,
-    cat: pickCat(CATS, Math.random), // кот выбирается с учётом редкости
+    // кот выбирается с учётом редкости и того, что рядом на карте
+    cat: pickCatForPlace(CATS, { terrain: readTerrain(position) }, Math.random),
     shyUntil: 0
   };
   capsules.push(capsule);
@@ -346,6 +347,31 @@ function addCapsule(position) {
   element.addEventListener('click', function () {
     openCapsule(capsule);
   });
+}
+
+// Что рядом с точкой на карте: 'вода', 'зелень', 'город'
+// или null, если данных карты нет (тогда кот выбирается как обычно).
+// Здесь мы только достаём фигуры из карты, а решает terrainNear из logic.js.
+function readTerrain(position) {
+  const layers = ['water', 'waterway', 'landcover', 'park'];
+  const features = [];
+  let total = 0; // сколько фигур этих слоёв вообще загружено
+  try {
+    for (let i = 0; i < layers.length; i++) {
+      const found = map.querySourceFeatures('openmaptiles', { sourceLayer: layers[i] });
+      total = total + found.length;
+      for (let j = 0; j < found.length; j++) {
+        const kind = terrainKind(layers[i], found[j].properties);
+        if (kind !== '') {
+          features.push({ kind: kind, geometry: found[j].geometry });
+        }
+      }
+    }
+  } catch (error) {
+    return null; // карта ещё не готова
+  }
+  if (total === 0) return null; // данных карты нет
+  return terrainNear(position, features, TERRAIN_RADIUS);
 }
 
 // Координаты капсулы в виде [долгота, широта]

@@ -512,6 +512,186 @@ function formatTimeLeft(ms) {
   return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
 }
 
+// =============================================================
+// Что рядом на карте: вода, зелень или город
+// =============================================================
+// Данные карты приходят в формате GeoJSON: у каждой фигуры есть
+// geometry.type ('Point', 'LineString', 'Polygon' и «мульти»-версии)
+// и geometry.coordinates — точки [долгота, широта].
+
+const TERRAIN_RADIUS = 100;     // смотрим, что есть в 100 м от капсулы
+const PLACE_TYPE_CHANCE = 0.6;  // «чаще» = 60% кот подходящего к месту типа
+
+// Какой тип кота «живёт» в каждой местности
+const TERRAIN_CAT_TYPE = {
+  'вода': 'водный',
+  'зелень': 'лесной',
+  'город': 'городской'
+};
+
+// Что это за фигура на карте: 'вода', 'зелень' или '' (не важно для нас).
+// sourceLayer — слой данных OpenMapTiles, properties — свойства фигуры.
+function terrainKind(sourceLayer, properties) {
+  const placeClass = (properties && properties.class) || '';
+  if (sourceLayer === 'water') {
+    // бассейн — это не пруд
+    return placeClass === 'swimming_pool' ? '' : 'вода';
+  }
+  if (sourceLayer === 'waterway') {
+    // реки, ручьи и каналы (канавы не считаем)
+    return ['river', 'stream', 'canal'].includes(placeClass) ? 'вода' : '';
+  }
+  if (sourceLayer === 'landcover') {
+    // лес, трава (в том числе газоны парков) и поля
+    return ['wood', 'grass', 'farmland'].includes(placeClass) ? 'зелень' : '';
+  }
+  if (sourceLayer === 'park') {
+    return 'зелень'; // национальные парки и заповедники
+  }
+  return '';
+}
+
+// Переводит точку [долгота, широта] в метры относительно origin
+// (x — на восток, y — на север). На расстояниях в сотни метров
+// Землю можно считать плоской — ошибка крошечная.
+function toLocalMeters(point, origin) {
+  const metersPerDegreeLng = METERS_PER_DEGREE * Math.cos(origin[1] * Math.PI / 180);
+  return {
+    x: (point[0] - origin[0]) * metersPerDegreeLng,
+    y: (point[1] - origin[1]) * METERS_PER_DEGREE
+  };
+}
+
+// Расстояние (в метрах) от начала координат до отрезка a–b.
+// Точка игрока — это (0, 0), а a и b уже в метрах.
+function distanceToSegment(a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lengthSquared = dx * dx + dy * dy;
+  // t — где на отрезке ближайшая к (0, 0) точка: 0 — в a, 1 — в b
+  let t = 0;
+  if (lengthSquared > 0) {
+    t = -(a.x * dx + a.y * dy) / lengthSquared;
+    t = Math.max(0, Math.min(1, t));
+  }
+  const x = a.x + t * dx;
+  const y = a.y + t * dy;
+  return Math.sqrt(x * x + y * y);
+}
+
+// Лежит ли (0, 0) внутри кольца (замкнутой ломаной) — «метод луча»:
+// пускаем луч вправо и считаем, сколько раз он пересёк границу.
+// Нечётное число — точка внутри.
+function isInsideRing(ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i = i + 1) {
+    const a = ring[i];
+    const b = ring[j];
+    const crosses = (a.y > 0) !== (b.y > 0) &&
+      0 < (b.x - a.x) * (0 - a.y) / (b.y - a.y) + a.x;
+    if (crosses) inside = !inside;
+  }
+  return inside;
+}
+
+// Самое маленькое расстояние от (0, 0) до ломаной (цепочки отрезков)
+function distanceToLine(points) {
+  if (points.length === 1) {
+    return Math.sqrt(points[0].x * points[0].x + points[0].y * points[0].y);
+  }
+  let best = Infinity;
+  for (let i = 0; i + 1 < points.length; i++) {
+    best = Math.min(best, distanceToSegment(points[i], points[i + 1]));
+  }
+  return best;
+}
+
+// Расстояние от многоугольника: 0, если точка внутри (и не в «дырке»),
+// иначе — до ближайшей границы. rings[0] — внешняя граница, остальные — дырки.
+function distanceToPolygon(rings) {
+  if (rings.length === 0) return Infinity;
+  let inside = isInsideRing(rings[0]);
+  for (let i = 1; i < rings.length; i++) {
+    if (isInsideRing(rings[i])) inside = false; // точка в «дырке»
+  }
+  if (inside) return 0;
+  let best = Infinity;
+  for (let i = 0; i < rings.length; i++) {
+    best = Math.min(best, distanceToLine(rings[i]));
+  }
+  return best;
+}
+
+// Расстояние в метрах от точки до фигуры GeoJSON любого вида.
+// Если фигура непонятная — Infinity («очень далеко»).
+function distanceToGeometry(point, geometry) {
+  if (!geometry || !geometry.coordinates) return Infinity;
+  // Переводим список точек в метры относительно point
+  function toMeters(list) {
+    return list.map(function (p) { return toLocalMeters(p, point); });
+  }
+  const c = geometry.coordinates;
+  let best = Infinity;
+  if (geometry.type === 'Point') {
+    return distanceToLine(toMeters([c]));
+  } else if (geometry.type === 'MultiPoint' || geometry.type === 'LineString') {
+    return c.length > 0 ? distanceToLine(toMeters(c)) : Infinity;
+  } else if (geometry.type === 'MultiLineString') {
+    for (let i = 0; i < c.length; i++) {
+      if (c[i].length > 0) best = Math.min(best, distanceToLine(toMeters(c[i])));
+    }
+  } else if (geometry.type === 'Polygon') {
+    return distanceToPolygon(c.map(toMeters));
+  } else if (geometry.type === 'MultiPolygon') {
+    for (let i = 0; i < c.length; i++) {
+      best = Math.min(best, distanceToPolygon(c[i].map(toMeters)));
+    }
+  }
+  return best;
+}
+
+// Что рядом с точкой: 'вода', 'зелень' или 'город'.
+// features — [{ kind: 'вода' | 'зелень', geometry }].
+// Побеждает то, что ближе. Если вода и зелень одинаково близко
+// (например, пруд в парке) — вода.
+function terrainNear(point, features, radius) {
+  let waterDistance = Infinity;
+  let greenDistance = Infinity;
+  for (let i = 0; i < features.length; i++) {
+    const d = distanceToGeometry(point, features[i].geometry);
+    if (features[i].kind === 'вода') waterDistance = Math.min(waterDistance, d);
+    if (features[i].kind === 'зелень') greenDistance = Math.min(greenDistance, d);
+  }
+  if (waterDistance <= radius && waterDistance <= greenDistance) return 'вода';
+  if (greenDistance <= radius) return 'зелень';
+  return 'город';
+}
+
+// Выбирает кота с учётом места.
+// options.terrain — 'вода', 'зелень', 'город' или null (данных карты нет).
+// Сначала, как и раньше, редкость. Потом в 60% случаев — кот подходящего
+// типа этой редкости, иначе — любой кот этой редкости.
+// Легендарная Комета выпадает где угодно с обычным шансом.
+function pickCatForPlace(cats, options, random) {
+  const rarity = pickRarity(random);
+  const sameRarity = cats.filter(function (cat) { return cat.rarity === rarity; });
+  let choices = sameRarity.length > 0 ? sameRarity : cats;
+
+  const wantedType = options && options.terrain ? TERRAIN_CAT_TYPE[options.terrain] : '';
+  if (wantedType && rarity !== 'легендарный' && random() < PLACE_TYPE_CHANCE) {
+    // Коты нужного типа этой редкости, а если таких нет — нужного типа любой
+    // (не легендарной) редкости
+    let placeCats = sameRarity.filter(function (cat) { return cat.type === wantedType; });
+    if (placeCats.length === 0) {
+      placeCats = cats.filter(function (cat) {
+        return cat.type === wantedType && cat.rarity !== 'легендарный';
+      });
+    }
+    if (placeCats.length > 0) choices = placeCats;
+  }
+  return choices[Math.floor(random() * choices.length)];
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -528,6 +708,8 @@ if (typeof module !== 'undefined') {
     VIRTUAL_BEACON_COUNT, BEACON_COOLDOWN, BEACON_PART_CHANCE,
     isBeaconPlace, beaconKind, selectBeacons, beaconsNear, makeVirtualBeacons,
     beaconTitle, beaconReward, beaconCooldownLeft, startBeaconCooldown,
-    applyBeaconReward, formatTimeLeft
+    applyBeaconReward, formatTimeLeft,
+    TERRAIN_RADIUS, PLACE_TYPE_CHANCE, TERRAIN_CAT_TYPE, terrainKind,
+    distanceToGeometry, terrainNear, pickCatForPlace
   };
 }

@@ -45,4 +45,5 @@ test('неизвестный кот не ломает игру', function () {
 test('иконки капсулы и маяка — SVG', function () {
   assert.ok(looksLikeSvg(art.capsuleIcon()));
   assert.ok(looksLikeSvg(art.beaconIcon()));
+  assert.ok(looksLikeSvg(art.shelterScene()));
 });

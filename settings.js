@@ -3,9 +3,10 @@
 // =============================================================
 // Маленькая кнопка ⚙️ открывает окно «Настройки»:
 //   • звук вкл/выкл, вибрация вкл/выкл;
+//   • переключение режима: прогулка ↔ «Дом»;
 //   • внизу — «Для взрослых»: вход через «родительский замок»
-//     (пример на умножение), внутри — ограничение времени игры в день
-//     и рассказ о том, какие данные хранит игра.
+//     (пример на умножение), внутри — ограничение времени игры в день,
+//     «Только режим „Дом“» и рассказ о том, какие данные хранит игра.
 //
 // Здесь же «часы игры»: раз в секунду, пока игра открыта и видна
 // на экране, прибавляем секунду к времени игры за сегодня.
@@ -42,6 +43,20 @@ document.getElementById('toggle-vibration').addEventListener('click', function (
   vibrate(40); // показать, как это ощущается (если включили)
 });
 document.getElementById('open-adult').addEventListener('click', openParentLock);
+document.getElementById('toggle-mode').addEventListener('click', function () {
+  closeSettings();
+  switchMode(); // home.js
+});
+document.getElementById('toggle-home-only').addEventListener('click', function () {
+  save.settings.homeOnly = !save.settings.homeOnly;
+  saveGame();
+  renderAdult();
+  renderStartScreen(); // home.js
+  // Если сейчас идёт прогулка — сразу переходим домой
+  if (save.settings.homeOnly && gameMode === 'walk') {
+    startHome();
+  }
+});
 document.getElementById('time-up-adult').addEventListener('click', function () {
   openSettings();
   openParentLock();
@@ -137,6 +152,14 @@ function renderSettings() {
   setToggle(document.getElementById('toggle-vibration'), '📳 Вибрация', save.settings.vibration);
   // Если телефон не умеет вибрировать — честно пишем об этом
   document.getElementById('vibration-note').classList.toggle('hidden', !!navigator.vibrate);
+
+  // Кнопка переключения режима: дома — «Пойти гулять», на прогулке — «Играть дома».
+  // Если прогулку выключил взрослый, из дома уйти нельзя.
+  const modeButton = document.getElementById('toggle-mode');
+  const walkLocked = gameMode === 'home' && save.settings.homeOnly;
+  modeButton.textContent = gameMode === 'home' ? '🗺️ Пойти гулять' : '🏠 Играть дома';
+  modeButton.classList.toggle('hidden', walkLocked);
+  document.getElementById('mode-note').classList.toggle('hidden', !walkLocked);
 }
 
 // =============================================================
@@ -184,6 +207,7 @@ function renderAdult() {
     text = text + ' Осталось: ' + Math.ceil(state.secondsLeft / 60) + ' мин.';
   }
   document.getElementById('adult-played').textContent = text;
+  setToggle(document.getElementById('toggle-home-only'), '🏠 Только режим «Дом»', save.settings.homeOnly);
   // «Добавить 15 минут» имеет смысл, только если ограничение включено
   document.getElementById('adult-bonus').classList.toggle('hidden', !save.settings.dailyLimit);
 }

@@ -42,6 +42,8 @@ let hasGps = false;      // приходил ли уже хоть раз отв�
 let statusMessage = '';  // текст строки состояния (без счётчика котов)
 let toastTimer = null;   // таймер, который прячет подсказку
 let wasTwilight = false; // были ли сумерки при прошлой проверке
+let gameMode = '';       // '' — стартовый экран, 'walk' — прогулка, 'home' — режим «Дом»
+let watchId = null;      // номер слежения за GPS (чтобы его остановить)
 
 // ----- Сохранение -----
 // Хранилище браузера (localStorage). В некоторых браузерах (например,
@@ -64,7 +66,7 @@ const centerButton = document.getElementById('center-button');
 const toast = document.getElementById('toast');
 
 // ----- Что происходит при нажатии кнопок -----
-startButton.addEventListener('click', startGame);
+startButton.addEventListener('click', startWalk);
 
 centerButton.addEventListener('click', function () {
   followPlayer = true;
@@ -77,28 +79,50 @@ centerButton.addEventListener('click', function () {
 });
 
 // =============================================================
-// Запуск игры
+// Запуск прогулки
 // =============================================================
-function startGame() {
+// Кнопка «Гулять» (и переключение режима в настройках)
+function startWalk() {
+  // Взрослый включил «Только режим „Дом“» — прогулка недоступна
+  if (save.settings.homeOnly) {
+    startHome(); // home.js
+    return;
+  }
   initSound(); // звук можно включить только по нажатию (sound.js)
   startPlayClock(); // часы игры и ограничение времени (settings.js)
   startScreen.classList.add('hidden'); // прячем стартовый экран
-  createMap(DEFAULT_POSITION);
+  hideHome(); // если были дома — прячем убежище (home.js)
+  gameMode = 'walk';
 
-  // Раз в секунду обновляем вид капсул и маяков: например, смущённый
-  // кот через минуту снова становится обычным, а у маяка тикает таймер
-  setInterval(everySecond, 1000);
+  if (!map) {
+    // Первая прогулка: создаём карту
+    createMap(DEFAULT_POSITION);
+    // Раз в секунду обновляем вид капсул и маяков: например, смущённый
+    // кот через минуту снова становится обычным, а у маяка тикает таймер
+    setInterval(everySecond, 1000);
+  } else {
+    // Карта уже есть (вернулись из дома) — пусть заново измерит экран
+    map.resize();
+  }
 
   if ('geolocation' in navigator) {
     setStatus('Ищем тебя на карте…');
     // watchPosition вызывает onPosition каждый раз, когда игрок сдвинулся
-    navigator.geolocation.watchPosition(onPosition, onPositionError, {
+    watchId = navigator.geolocation.watchPosition(onPosition, onPositionError, {
       enableHighAccuracy: true, // просим точный GPS
       maximumAge: 5000,         // можно взять данные не старше 5 секунд
       timeout: 15000            // ждём ответа не дольше 15 секунд
     });
   } else {
     startDemoMode('Этот браузер не умеет определять местоположение.');
+  }
+}
+
+// Закончить прогулку (переходим в режим «Дом»): перестаём следить за GPS
+function stopWalk() {
+  if (watchId !== null) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
   }
 }
 
@@ -236,6 +260,7 @@ function makeCircle(center, radius) {
 // GPS прислал новое местоположение
 // =============================================================
 function onPosition(pos) {
+  if (gameMode !== 'walk') return; // дома координаты не нужны
   demoMode = false; // GPS заработал — выходим из демо-режима
 
   // Первый ответ GPS: если капсулы уже лежат вокруг демо-точки,
@@ -252,6 +277,7 @@ function onPosition(pos) {
 
 // GPS не смог определить местоположение
 function onPositionError(error) {
+  if (gameMode !== 'walk') return;
   const permissionDenied = error.code === error.PERMISSION_DENIED;
   // gpsErrorAction из logic.js решает, что делать: демо-режим или
   // «слабый сигнал» (если GPS уже работал — игрок остаётся на месте)
@@ -505,8 +531,9 @@ function removeTwilightCapsules() {
   }
 }
 
-// То, что делаем раз в секунду
+// То, что делаем раз в секунду (только на прогулке)
 function everySecond() {
+  if (gameMode !== 'walk') return;
   checkTwilight();
   updateCapsuleLooks();
   updateBeaconLooks();   // таймеры перезарядки (beacons.js)
@@ -534,9 +561,15 @@ function saveGame() {
 
 // «Начать заново» из альбома: весь прогресс стирается
 function resetProgress() {
+  // Настройки и время игры — это решения взрослого, их не стираем
+  const keepSettings = save.settings;
+  const keepPlayTime = save.playTime;
   save = emptySave();
+  save.settings = keepSettings;
+  save.playTime = keepPlayTime;
   saveGame();
   removeCaptain(); // экипажа больше нет — капитан улетает (captains.js)
+  if (gameMode === 'home') renderHome(); // home.js
   updateStatus();
 }
 
@@ -586,3 +619,9 @@ function showToast(text) {
     toast.classList.remove('visible');
   }, TOAST_TIME);
 }
+
+// =============================================================
+// При загрузке страницы
+// =============================================================
+// Стартовый экран зависит от настроек (например, «Только режим „Дом“»)
+renderStartScreen(); // home.js

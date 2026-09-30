@@ -29,7 +29,14 @@ test('записанное сохранение читается обратно 
     fish: 12, parts: 3, beaconCooldowns: { 'poi-5': 1700000000000 },
     nextCaptainAt: 1700000000000,
     settings: { sound: false, vibration: true, dailyLimit: 60, homeOnly: true },
-    playTime: { day: '2026-09-30', seconds: 125, bonusMinutes: 15 }
+    playTime: { day: '2026-09-30', seconds: 125, bonusMinutes: 15 },
+    guests: { list: ['bul', 'sumrak'], nextAt: 1700000000000 },
+    friendship: { bul: 7 },
+    quests: { day: '2026-09-30', list: [
+      { id: 'catch2', progress: 1, done: false },
+      { id: 'treat1', progress: 1, done: true },
+      { id: 'beacon1', progress: 0, done: false }
+    ] }
   };
   assert.strictEqual(logic.writeSave(storage, save), true);
   assert.ok(logic.SAVE_KEY in storage.data, 'ключ ' + logic.SAVE_KEY);

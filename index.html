@@ -39,6 +39,33 @@
   <!-- Кнопка «Экипаж»: открывает альбом найденных котов -->
   <button id="crew-button" class="round-button crew-button" aria-label="Открыть альбом экипажа">🐱<br>Экипаж</button>
 
+  <!-- ===== Режим «Дом»: убежище корабля =====
+       Картинку отсека рисует art.js, котов расставляет home.js -->
+  <section id="home" class="home hidden" aria-label="Убежище корабля">
+    <div id="home-scene" class="home-scene"></div>
+    <div id="home-cats" class="home-cats"></div>
+    <p id="home-empty" class="home-empty hidden">Пока в убежище пусто. Скоро прилетит гость — или погуляй и найди котов!</p>
+  </section>
+
+  <!-- Окно «Забота»: карточка кота из экипажа и угощение -->
+  <section id="care" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="care-name">
+    <div class="overlay-card">
+      <button id="care-close" class="close-button" aria-label="Закрыть">✕</button>
+      <div id="care-celebrate" class="celebrate">
+        <div id="care-circle" class="cat-circle sway"></div>
+        <span class="celebrate-star">♥</span><span class="celebrate-star">♥</span>
+        <span class="celebrate-star">♥</span><span class="celebrate-star">♥</span>
+        <span class="celebrate-star">♥</span><span class="celebrate-star">♥</span>
+      </div>
+      <p id="care-name" class="cat-name"></p>
+      <p id="care-hearts" class="hearts"></p>
+      <p id="care-info" class="screen-text small-text"></p>
+      <p id="care-character" class="screen-text small-text"></p>
+      <p id="care-fish" class="album-fish"></p>
+      <button id="care-feed" class="big-button">Угостить рыбкой 🐟</button>
+    </div>
+  </section>
+
   <!-- ===== Окно «Знакомство с котом» =====
        Появляется поверх карты, когда нажимаешь на капсулу рядом.
        Внутри несколько «экранов» (screen), показываем по одному. -->
@@ -146,6 +173,9 @@
           <p id="album-repair-text" class="repair-text"></p>
           <div class="repair-bar"><div id="album-repair-fill" class="repair-fill"></div></div>
         </div>
+        <!-- Ежедневные задания (quests.js) -->
+        <h3 class="album-subtitle">Задания на сегодня</h3>
+        <ul id="album-quests" class="quests"></ul>
         <div id="album-grid" class="album-grid"></div>
         <!-- Отдельный ряд «Капитаны» -->
         <h3 id="album-captains-title" class="album-subtitle">Капитаны</h3>
@@ -197,6 +227,8 @@
         <button id="toggle-sound" class="big-button toggle-button" aria-pressed="true">🔊 Звук: вкл</button>
         <button id="toggle-vibration" class="big-button toggle-button" aria-pressed="true">📳 Вибрация: вкл</button>
         <p id="vibration-note" class="screen-text small-text hidden">Этот телефон не умеет вибрировать.</p>
+        <button id="toggle-mode" class="big-button">🏠 Играть дома</button>
+        <p id="mode-note" class="screen-text small-text hidden">Прогулку выключил взрослый — играем дома.</p>
         <button id="open-adult" class="small-button">Для взрослых</button>
       </div>
 
@@ -223,6 +255,8 @@
           <button class="limit-button" data-limit="90">90 мин</button>
         </div>
         <p id="adult-played" class="screen-text small-text"></p>
+        <button id="toggle-home-only" class="big-button toggle-button" aria-pressed="false">🏠 Только режим «Дом»: выкл</button>
+        <p class="screen-text small-text">Когда включено, прогулка с картой недоступна: геолокация не запрашивается.</p>
         <button id="adult-bonus" class="small-button">Добавить 15 минут на сегодня</button>
         <div class="fact data-info">
           <p class="fact-title">Какие данные хранит игра</p>
@@ -250,7 +284,12 @@
       <p>Играй на улице вместе со взрослым.</p>
     </div>
 
-    <button id="start-button" class="big-button">Начать поиск</button>
+    <!-- Две большие кнопки: прогулка с картой или игра дома без карты -->
+    <div class="start-buttons">
+      <button id="start-button" class="big-button">🗺️ Гулять</button>
+      <button id="home-button" class="big-button home-start">🏠 Играть дома</button>
+    </div>
+    <p id="home-only-note" class="home-only-note hidden">Прогулку выключил взрослый — играем дома.</p>
   </section>
 
   <!-- Сначала подключаем MapLibre, потом наш код, который им пользуется -->
@@ -268,8 +307,12 @@
   <script src="encounter.js"></script>
   <!-- album.js — альбом экипажа (пользуется помощниками из encounter.js) -->
   <script src="album.js"></script>
+  <!-- quests.js — ежедневные задания -->
+  <script src="quests.js"></script>
   <!-- settings.js — настройки, «Для взрослых», время игры -->
   <script src="settings.js"></script>
+  <!-- home.js — режим «Дом»: убежище, гости, забота -->
+  <script src="home.js"></script>
   <!-- beacons.js — маяки у реальных мест -->
   <script src="beacons.js"></script>
   <!-- captains.js — потерявшиеся капитаны у маяков -->

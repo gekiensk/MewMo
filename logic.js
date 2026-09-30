@@ -202,7 +202,10 @@ function gpsErrorAction(gpsWorked, permissionDenied) {
 //   beaconCooldowns: { … },     // маяки на перезарядке: id → до какого времени (мс)
 //   nextCaptainAt: 0,           // раньше этого времени (мс) новый капитан не появится
 //   settings: { … },            // настройки (см. DEFAULT_SETTINGS)
-//   playTime: { day, seconds, bonusMinutes } // сколько сыграно сегодня
+//   playTime: { day, seconds, bonusMinutes }, // сколько сыграно сегодня
+//   guests: { list: ['bul'], nextAt: 0 },     // гости в убежище и когда прилетит следующий
+//   friendship: { bul: 7 },                   // сколько раз угостили каждого кота
+//   quests: { day, list: [{ id, progress, done }] } // задания на сегодня
 // }
 //
 // Старые сохранения (без новых полей) продолжают работать: cleanSave
@@ -227,7 +230,10 @@ function emptySave() {
   return {
     crew: {}, captains: {}, fish: 0, parts: 0, beaconCooldowns: {}, nextCaptainAt: 0,
     settings: Object.assign({}, DEFAULT_SETTINGS),
-    playTime: { day: '', seconds: 0, bonusMinutes: 0 }
+    playTime: { day: '', seconds: 0, bonusMinutes: 0 },
+    guests: { list: [], nextAt: 0 },
+    friendship: {},
+    quests: { day: '', list: [] }
   };
 }
 
@@ -290,6 +296,9 @@ function cleanSave(data) {
   save.nextCaptainAt = isCount(data.nextCaptainAt) ? data.nextCaptainAt : 0;
   save.settings = cleanSettings(data.settings);
   save.playTime = cleanPlayTime(data.playTime);
+  save.guests = cleanGuests(data.guests);
+  save.friendship = cleanCounts(data.friendship, 0);
+  save.quests = cleanQuests(data.quests);
   return save;
 }
 
@@ -1068,6 +1077,204 @@ function checkParentAnswer(question, text) {
   return Number(clean) === question.answer;
 }
 
+// =============================================================
+// Режим «Дом»: гости в убежище
+// =============================================================
+// Раз в 3 часа в убежище прилетает кот-гость. Гостей копится не больше 3.
+// Время прилёта следующего гостя (nextAt) хранится в сохранении.
+// Гость выбирается по редкости, как в капсулах. С 17:00 до 22:00 по
+// местному времени гостями бывают и сумеречные коты (дома координат нет,
+// поэтому смотрим просто на часы).
+
+const GUEST_INTERVAL = 3 * 60 * 60 * 1000; // гость прилетает раз в 3 часа
+const MAX_GUESTS = 3;                      // больше трёх гостей не копится
+const TWILIGHT_HOUR_FROM = 17;             // сумеречные гости — с 17:00…
+const TWILIGHT_HOUR_TO = 22;               // …до 22:00
+
+// Проверяет гостей из сохранения
+function cleanGuests(data) {
+  const guests = { list: [], nextAt: 0 };
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return guests;
+  if (Array.isArray(data.list)) {
+    guests.list = data.list.filter(function (id) { return typeof id === 'string'; }).slice(0, MAX_GUESTS);
+  }
+  if (isCount(data.nextAt)) guests.nextAt = data.nextAt;
+  return guests;
+}
+
+// Сумеречный час для гостей? hour — час по местному времени (0–23)
+function isTwilightHour(hour) {
+  return hour >= TWILIGHT_HOUR_FROM && hour < TWILIGHT_HOUR_TO;
+}
+
+// Выбор гостя: по редкости, как в капсулах; сумеречные — только в 17–22
+function pickGuest(cats, hour, random) {
+  return pickCatForPlace(cats, { terrain: null, twilight: isTwilightHour(hour) }, random);
+}
+
+// Обновляет гостей к моменту now. Возвращает новый объект guests.
+//   cats   — каталог котов;
+//   hourOf — функция: время (мс) → час по местному времени (0–23);
+//   random — случайные числа.
+// Первый раз (nextAt = 0) гость прилетает сразу. Потом — каждые 3 часа.
+// Если в убежище уже 3 гостя, новый не прилетает (его прилёт пропадает).
+function updateGuests(guests, now, cats, hourOf, random) {
+  const result = { list: guests.list.slice(), nextAt: guests.nextAt };
+  if (result.nextAt === 0) result.nextAt = now; // самый первый гость — сразу
+  if (now < result.nextAt) return result;
+
+  // Сколько прилётов было с прошлого раза (если игрок не заходил неделю,
+  // не перебираем каждый прилёт — гостей всё равно не больше 3)
+  const arrivals = Math.floor((now - result.nextAt) / GUEST_INTERVAL) + 1;
+  const places = MAX_GUESTS - result.list.length;
+  const newGuests = Math.min(arrivals, places);
+  // Гости прилетели в последние прилёты: у каждого своё время (для
+  // сумеречного правила — по часам прилёта)
+  for (let i = 0; i < newGuests; i++) {
+    const arrivalTime = result.nextAt + (arrivals - newGuests + i) * GUEST_INTERVAL;
+    result.list.push(pickGuest(cats, hourOf(arrivalTime), random).id);
+  }
+  result.nextAt = result.nextAt + arrivals * GUEST_INTERVAL;
+  return result;
+}
+
+// Гость познакомился с игроком (победа) — он больше не ждёт в убежище.
+// Убираем только одного гостя с таким id.
+function removeGuest(guests, catId) {
+  const list = guests.list.slice();
+  const index = list.indexOf(catId);
+  if (index !== -1) list.splice(index, 1);
+  return { list: list, nextAt: guests.nextAt };
+}
+
+// =============================================================
+// Режим «Дом»: забота и дружба
+// =============================================================
+const TREATS_PER_LEVEL = 5;   // каждые 5 угощений — новый уровень дружбы
+const MAX_FRIENDSHIP = 5;     // самый высокий уровень дружбы
+const TREAT_COST = 1;         // угощение стоит 1 рыбку
+
+// Уровень дружбы кота (0–5)
+function friendshipLevel(save, catId) {
+  const treats = save.friendship[catId] || 0;
+  return Math.min(MAX_FRIENDSHIP, Math.floor(treats / TREATS_PER_LEVEL));
+}
+
+// Сколько угощений осталось до следующего уровня (0 — уровень максимальный)
+function treatsToNextLevel(save, catId) {
+  if (friendshipLevel(save, catId) >= MAX_FRIENDSHIP) return 0;
+  const treats = save.friendship[catId] || 0;
+  return TREATS_PER_LEVEL - (treats % TREATS_PER_LEVEL);
+}
+
+// Угостить кота рыбкой. Возвращает { save, ok, levelUp, level }:
+//   ok      — false, если рыбок нет (тогда сохранение не меняется);
+//   levelUp — true, если дружба выросла на уровень.
+function feedCat(save, catId) {
+  if (save.fish < TREAT_COST) {
+    return { save: save, ok: false, levelUp: false, level: friendshipLevel(save, catId) };
+  }
+  const before = friendshipLevel(save, catId);
+  const result = copySave(save);
+  result.fish = result.fish - TREAT_COST;
+  result.friendship[catId] = (result.friendship[catId] || 0) + 1;
+  const after = friendshipLevel(result, catId);
+  return { save: result, ok: true, levelUp: after > before, level: after };
+}
+
+// Сердечки дружбы: ♥♥♡♡♡
+function friendshipHearts(level) {
+  return '♥'.repeat(level) + '♡'.repeat(MAX_FRIENDSHIP - level);
+}
+
+// =============================================================
+// Ежедневные задания
+// =============================================================
+// Каждый день — 3 задания из списка. Задания засчитываются и на прогулке,
+// и дома. event — какое событие игры двигает задание вперёд.
+const QUEST_TYPES = [
+  { id: 'catch2', text: 'Поймай 2 котов', event: 'catch', goal: 2, reward: { fish: 5, parts: 0 } },
+  { id: 'treat1', text: 'Угости любого кота', event: 'treat', goal: 1, reward: { fish: 3, parts: 0 } },
+  { id: 'treat3', text: 'Угости котов 3 раза', event: 'treat', goal: 3, reward: { fish: 0, parts: 1 } },
+  { id: 'beacon1', text: 'Зайди на маяк', event: 'beacon', goal: 1, reward: { fish: 4, parts: 0 } },
+  { id: 'perfect1', text: 'Выиграй встречу, не проиграв ни одного раунда', event: 'perfectWin', goal: 1, reward: { fish: 0, parts: 1 } },
+  { id: 'signal2', text: 'Поймай сигнал 2 раза', event: 'signal', goal: 2, reward: { fish: 4, parts: 0 } },
+  { id: 'guest1', text: 'Познакомься с гостем в убежище', event: 'guest', goal: 1, reward: { fish: 4, parts: 0 } },
+  { id: 'rounds5', text: 'Выиграй 5 раундов', event: 'roundWin', goal: 5, reward: { fish: 5, parts: 0 } }
+];
+const QUESTS_PER_DAY = 3;
+
+function findQuestType(id) {
+  return QUEST_TYPES.find(function (quest) { return quest.id === id; });
+}
+
+// Проверяет задания из сохранения
+function cleanQuests(data) {
+  const quests = { day: '', list: [] };
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return quests;
+  if (typeof data.day !== 'string' || !Array.isArray(data.list)) return quests;
+  const list = data.list.filter(function (item) {
+    return item && findQuestType(item.id) && isCount(item.progress) && typeof item.done === 'boolean';
+  }).map(function (item) {
+    return { id: item.id, progress: item.progress, done: item.done };
+  });
+  if (list.length !== QUESTS_PER_DAY) return quests; // что-то не так — задания выберутся заново
+  quests.day = data.day;
+  quests.list = list;
+  return quests;
+}
+
+// Выбирает 3 разных задания (по порядку перемешанного списка)
+function chooseDailyQuests(random) {
+  const ids = QUEST_TYPES.map(function (quest) { return quest.id; });
+  const chosen = [];
+  while (chosen.length < QUESTS_PER_DAY) {
+    const index = Math.floor(random() * ids.length);
+    chosen.push({ id: ids[index], progress: 0, done: false });
+    ids.splice(index, 1); // чтобы задание не повторилось
+  }
+  return chosen;
+}
+
+// Если наступил новый день (по местному времени) — новые задания.
+// Возвращает новый объект quests.
+function refreshQuests(quests, dayKey, random) {
+  if (quests.day === dayKey && quests.list.length === QUESTS_PER_DAY) {
+    return quests;
+  }
+  return { day: dayKey, list: chooseDailyQuests(random) };
+}
+
+// Событие игры (например, 'catch' — поймали кота).
+// Двигает вперёд подходящие задания. Возвращает { save, completed }:
+// completed — задания, которые только что выполнились (награда уже выдана).
+function applyQuestEvent(save, dayKey, eventName, random) {
+  const result = copySave(save);
+  result.quests = refreshQuests(result.quests, dayKey, random);
+  const completed = [];
+  for (let i = 0; i < result.quests.list.length; i++) {
+    const item = result.quests.list[i];
+    const type = findQuestType(item.id);
+    if (item.done || type.event !== eventName) continue;
+    item.progress = item.progress + 1;
+    if (item.progress >= type.goal) {
+      item.done = true;
+      result.fish = result.fish + type.reward.fish;
+      result.parts = result.parts + type.reward.parts;
+      completed.push(type);
+    }
+  }
+  return { save: result, completed: completed };
+}
+
+// Текст награды: «+5 🐟» или «+1 деталь 🔩»
+function questRewardText(reward) {
+  const parts = [];
+  if (reward.fish > 0) parts.push('+' + reward.fish + ' 🐟');
+  if (reward.parts > 0) parts.push('+' + reward.parts + ' ' + pluralRu(reward.parts, 'деталь', 'детали', 'деталей') + ' 🔩');
+  return parts.join(' и ');
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -1095,6 +1302,9 @@ if (typeof module !== 'undefined') {
     captainRetryLeft, applyCaptainWin, availableHelpers, toggleHelper,
     DEFAULT_SETTINGS, DAILY_LIMIT_CHOICES, LIMIT_WARNING_SECONDS, BONUS_MINUTES,
     localDayKey, addPlayTime, playedToday, timeLimitState, addBonusTime,
-    makeParentQuestion, checkParentAnswer
+    makeParentQuestion, checkParentAnswer,
+    GUEST_INTERVAL, MAX_GUESTS, isTwilightHour, pickGuest, updateGuests, removeGuest,
+    TREATS_PER_LEVEL, MAX_FRIENDSHIP, friendshipLevel, treatsToNextLevel, feedCat, friendshipHearts,
+    QUEST_TYPES, QUESTS_PER_DAY, chooseDailyQuests, refreshQuests, applyQuestEvent, questRewardText
   };
 }

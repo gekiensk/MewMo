@@ -87,6 +87,9 @@ function renderAlbum() {
   document.getElementById('album-repair-fill').style.width =
     (shipRepairShare(save.parts) * 100) + '%';
 
+  // Задания на сегодня (quests.js)
+  renderQuests(document.getElementById('album-quests'));
+
   // Сетка котов: сначала очищаем, потом добавляем по клетке на кота
   albumGrid.textContent = '';
   for (let i = 0; i < CATS.length; i++) {
@@ -140,6 +143,15 @@ function makeAlbumCell(cat, crewCounts) {
     cell.appendChild(circle);
     cell.appendChild(name);
     cell.appendChild(stars);
+    // Сердечки дружбы (режим «Дом»), если кот хоть раз стал другом
+    const level = friendshipLevel(save, cat.id);
+    if (level > 0) {
+      const hearts = document.createElement('span');
+      hearts.className = 'album-hearts';
+      hearts.textContent = '♥'.repeat(level);
+      hearts.setAttribute('aria-label', 'Дружба: ' + level + ' из 5');
+      cell.appendChild(hearts);
+    }
     cell.setAttribute('aria-label', cat.name + ', открыть карточку');
     cell.addEventListener('click', function () {
       showAlbumCat(cat, crewCounts[cat.id]);
@@ -168,7 +180,7 @@ function showAlbumCat(cat, timesMet) {
   document.getElementById('album-cat-info').textContent =
     'Тип: ' + cat.type + '. Характер: ' + cat.character + '.';
   document.getElementById('album-cat-met').textContent =
-    'Встреч: ' + timesMet + '.';
+    'Встреч: ' + timesMet + '. Дружба: ' + friendshipHearts(friendshipLevel(save, cat.id));
   document.getElementById('album-cat-fact').textContent = cat.fact;
   showAlbumView(albumCatView);
   document.getElementById('album-back').focus();

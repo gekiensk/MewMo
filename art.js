@@ -378,7 +378,83 @@ function beaconIcon() {
     '</svg>';
 }
 
+// =============================================================
+// Убежище — уютный отсек космического корабля (режим «Дом»)
+// =============================================================
+// Холст 400×700. Сверху — стена с большим иллюминатором (за ним звёзды
+// и планета), слева пульт с огоньками, справа космическое растение,
+// снизу (с середины) — пол с круглым ковриком и подушками. Коты стоят
+// на полу — их кнопки кладёт home.js поверх этой картинки.
+function shelterScene() {
+  // Звёзды за иллюминатором: координаты заданы вручную, чтобы картинка
+  // была всегда одинаковой
+  const stars = [[140, 110], [170, 80], [230, 95], [260, 150], [150, 200], [250, 230],
+    [120, 160], [210, 250], [275, 110], [190, 140], [130, 230], [230, 180]];
+  let starDots = '';
+  for (let i = 0; i < stars.length; i++) {
+    starDots = starDots + '<circle cx="' + stars[i][0] + '" cy="' + stars[i][1] + '" r="' + (i % 3 === 0 ? 2.5 : 1.5) + '" fill="#FFFFFF"/>';
+  }
+  // Болты вокруг иллюминатора
+  let bolts = '';
+  for (let i = 0; i < 12; i++) {
+    const angle = i * Math.PI / 6;
+    bolts = bolts + '<circle cx="' + (200 + Math.cos(angle) * 122).toFixed(1) + '" cy="' + (165 + Math.sin(angle) * 122).toFixed(1) + '" r="4" fill="#B9B2D9"/>';
+  }
+  // Панели на стене — сетка прямоугольников
+  let panels = '';
+  for (let x = 0; x < 400; x = x + 80) {
+    for (let y = 0; y < 360; y = y + 90) {
+      panels = panels + '<rect x="' + (x + 4) + '" y="' + (y + 4) + '" width="72" height="82" rx="8" fill="none" stroke="#3D3285" stroke-width="3"/>';
+    }
+  }
+  // Полоски пола (как доски, уходящие вдаль)
+  let floorLines = '';
+  for (let x = -200; x <= 600; x = x + 60) {
+    floorLines = floorLines + '<line x1="' + (200 + (x - 200) * 0.45).toFixed(0) + '" y1="360" x2="' + x + '" y2="700" stroke="#453A8F" stroke-width="2"/>';
+  }
+
+  return '<svg class="shelter-scene" viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    // стена
+    '<rect x="0" y="0" width="400" height="360" fill="#2E2468"/>' +
+    panels +
+    // трубы под потолком
+    '<path d="M0 22 H400 M0 34 H400" stroke="#4A3F9E" stroke-width="7"/>' +
+    '<circle cx="60" cy="28" r="7" fill="#6EE7C8"/><circle cx="340" cy="28" r="7" fill="#FFD447"/>' +
+    // иллюминатор
+    '<circle cx="200" cy="165" r="130" fill="#8C86A8" stroke="#F7F3FF" stroke-width="4"/>' +
+    '<circle cx="200" cy="165" r="112" fill="#120E33" stroke="#1E1747" stroke-width="6"/>' +
+    starDots +
+    // планета с кольцом и маленькая луна
+    '<ellipse cx="238" cy="200" rx="52" ry="12" fill="none" stroke="#FFD447" stroke-width="4" transform="rotate(-18 238 200)"/>' +
+    '<circle cx="238" cy="200" r="32" fill="#FF9E6B"/>' +
+    '<path d="M210 190 Q238 180 266 195" stroke="#FF8FB1" stroke-width="5" fill="none"/>' +
+    '<circle cx="150" cy="120" r="12" fill="#DCCFF7"/>' +
+    '<path d="M110 90 Q140 60 190 64" stroke="#FFFFFF" stroke-width="6" opacity="0.25" fill="none" stroke-linecap="round"/>' +
+    bolts +
+    // пульт слева
+    '<rect x="14" y="230" width="62" height="110" rx="10" fill="#1E1747" stroke="#F7F3FF" stroke-width="3"/>' +
+    '<rect x="24" y="242" width="42" height="28" rx="4" fill="#123B4A"/>' +
+    '<path d="M27 258 Q34 246 41 258 T55 258 T63 256" stroke="#6EE7C8" stroke-width="2.5" fill="none"/>' +
+    '<circle cx="30" cy="290" r="6" fill="#FF8FB1"/><circle cx="50" cy="290" r="6" fill="#FFD447"/>' +
+    '<circle cx="30" cy="312" r="6" fill="#6EE7C8"/><circle cx="50" cy="312" r="6" fill="#7CC8FF"/>' +
+    // космическое растение справа
+    '<path d="M352 300 Q340 250 356 222 M360 300 Q372 246 392 236 M356 300 Q352 262 330 248" stroke="#7EDC8A" stroke-width="6" fill="none" stroke-linecap="round"/>' +
+    '<circle cx="356" cy="220" r="8" fill="#FF8FB1"/><circle cx="392" cy="234" r="7" fill="#FFD447"/><circle cx="330" cy="246" r="7" fill="#6EE7C8"/>' +
+    '<path d="M334 300 L380 300 L372 340 L342 340 Z" fill="#FF9E6B" stroke="#F7F3FF" stroke-width="3" stroke-linejoin="round"/>' +
+    // пол
+    '<rect x="0" y="360" width="400" height="340" fill="#3A2F7A"/>' +
+    floorLines +
+    '<rect x="0" y="352" width="400" height="10" fill="#F7F3FF" opacity="0.8"/>' +
+    // круглый коврик
+    '<ellipse cx="200" cy="540" rx="185" ry="105" fill="#FF8FB1" opacity="0.35"/>' +
+    '<ellipse cx="200" cy="540" rx="150" ry="80" fill="none" stroke="#FFD447" stroke-width="4" stroke-dasharray="10 10" opacity="0.7"/>' +
+    // подушки-лежанки
+    '<ellipse cx="60" cy="660" rx="54" ry="20" fill="#6EE7C8" opacity="0.7"/>' +
+    '<ellipse cx="340" cy="660" rx="54" ry="20" fill="#FFD447" opacity="0.7"/>' +
+    '</svg>';
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 if (typeof module !== 'undefined') {
-  module.exports = { CAT_LOOKS, SUIT_COLORS, catPortrait, capsuleIcon, beaconIcon };
+  module.exports = { CAT_LOOKS, SUIT_COLORS, catPortrait, capsuleIcon, beaconIcon, shelterScene };
 }

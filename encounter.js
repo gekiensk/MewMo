@@ -16,7 +16,8 @@
 //   catchCat(capsule)      — забрать кота в экипаж (или получить рыбок за повтор);
 //   makeCatShy(capsule)    — кот смутился, капсула минуту не открывается;
 //   captainWon(captain)    — капитан вступает в экипаж;
-//   captainLost(captain)   — капитан ждёт, следующая попытка через 2 минуты.
+//   captainLost(captain)   — капитан ждёт, следующая попытка через 2 минуты;
+//   guestWon(cat), guestShy(cat) — то же для гостя в убежище (home.js).
 
 // ----- Настройки -----
 const WINS_NEEDED = 2;         // сколько побед нужно в «Лапка, Коготь, Клубок» с обычным котом
@@ -101,6 +102,11 @@ function openCaptainEncounter(captain, captainData) {
   startEncounter({ kind: 'captain', capsule: null, captain: captain, cat: captainData });
 }
 
+// Гость в убежище (вызывается из home.js)
+function openGuestEncounter(cat) {
+  startEncounter({ kind: 'guest', capsule: null, captain: null, cat: cat });
+}
+
 function startEncounter(target) {
   const isCaptain = target.kind === 'captain';
   activeEncounter = {
@@ -119,7 +125,10 @@ function startEncounter(target) {
   const circle = document.getElementById('intro-circle');
   setCircleColor(circle, cat);
   circle.innerHTML = catFace(cat);
-  document.getElementById('intro-title').textContent = isCaptain ? 'Потерявшийся капитан!' : 'Кот рядом!';
+  let title = 'Кот рядом!';
+  if (isCaptain) title = 'Потерявшийся капитан!';
+  if (target.kind === 'guest') title = 'Гость в убежище!';
+  document.getElementById('intro-title').textContent = title;
   document.getElementById('intro-name').textContent = cat.name;
   document.getElementById('intro-stars').textContent = starsText(cat.rarity);
   const introText = document.getElementById('intro-text');
@@ -283,6 +292,7 @@ function catchSignal() {
 
   if (hit) {
     playSound('signal');
+    questEvent('signal'); // задание «Поймай сигнал» (quests.js)
     activeEncounter.hintEarned = true;
     signalResult.textContent = 'Сигнал пойман! Подсказка: ' + cat.name + ' любит ' +
       GESTURE_ICONS[cat.favoriteGesture] + ' ' + GESTURE_ACCUSATIVE[cat.favoriteGesture] + '.';
@@ -343,7 +353,10 @@ function playRound(playerGesture) {
 
   rpsRound.textContent = text;
   updateScore();
-  if (result === 'победа') playSound('roundWin');
+  if (result === 'победа') {
+    playSound('roundWin');
+    questEvent('roundWin'); // задание «Выиграй 5 раундов» (quests.js)
+  }
   if (result === 'поражение') playSound('roundLose');
 
   if (battle.pendingLoss) {
@@ -483,12 +496,20 @@ function showLoseScreen() {
 // Кнопка «Забрать в экипаж»
 function takeCat() {
   const encounter = activeEncounter;
+  // Победа без проигранных раундов — для задания «Выиграй встречу,
+  // не проиграв ни одного раунда»
+  const perfect = encounter.battle.catWins === 0;
   closeEncounter();
   if (encounter.kind === 'captain') {
     captainWon(encounter.captain); // функция из captains.js
+  } else if (encounter.kind === 'guest') {
+    guestWon(encounter.cat);       // функция из home.js
   } else {
     catchCat(encounter.capsule);   // функция из game.js
   }
+  // Ежедневные задания (quests.js)
+  questEvent('catch');
+  if (perfect) questEvent('perfectWin');
 }
 
 // Кнопка «Хорошо» после проигрыша
@@ -497,6 +518,8 @@ function catGotShy() {
   closeEncounter();
   if (encounter.kind === 'captain') {
     captainLost(encounter.captain); // функция из captains.js
+  } else if (encounter.kind === 'guest') {
+    guestShy(encounter.cat);        // функция из home.js
   } else {
     makeCatShy(encounter.capsule);  // функция из game.js
   }

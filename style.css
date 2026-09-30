@@ -1020,3 +1020,172 @@ button:focus-visible {
 .time-up.hidden {
   display: none;
 }
+
+/* ===== Стартовый экран: две кнопки ===== */
+.start-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+}
+.start-buttons .big-button.hidden {
+  display: none;
+}
+.home-start {
+  background: var(--mint);
+}
+.home-only-note {
+  margin: 0;
+  font-size: 16px;
+}
+.home-only-note.hidden {
+  display: none;
+}
+
+/* ===== Режим «Дом» ===== */
+/* Убежище закрывает место карты; строка состояния и кнопки — поверх */
+.home {
+  position: absolute;
+  inset: 0;
+  z-index: 800;
+  overflow: hidden;
+  background: var(--space-2);
+}
+.home.hidden {
+  display: none;
+}
+
+/* Картинка отсека растягивается на весь экран */
+.home-scene,
+.home-cats {
+  position: absolute;
+  inset: 0;
+}
+.shelter-scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Кот в убежище: круг с портретом и имя. left и top задаёт home.js,
+   а translate ставит кнопку центром в эту точку (это не маркер карты,
+   поэтому так можно). */
+.home-cat {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 84px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--fur);
+  font-family: var(--font);
+  translate: -50% -50%;
+  cursor: pointer;
+}
+.home-cat-circle {
+  display: block;
+  width: 70px;
+  height: 70px;
+  border: 3px solid var(--fur);
+  border-radius: 50%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.home-cat-circle .portrait {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.home-cat-name {
+  margin-top: 2px;
+  padding: 0 8px;
+  border-radius: 10px;
+  background: var(--space);
+  max-width: 92px;
+  overflow: hidden;
+  text-overflow: ellipsis; /* слишком длинное имя обрезается «…» */
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+/* Гость: светится и покачивается, подпись «Гость!» жёлтая */
+.home-guest .home-cat-circle {
+  border-color: var(--star);
+  box-shadow: 0 0 16px var(--star);
+  animation: bob 2.4s ease-in-out infinite;
+}
+.home-guest .home-cat-name {
+  color: var(--space);
+  background: var(--star);
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-guest .home-cat-circle { animation: none; }
+}
+
+.home-empty {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 60%;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--space);
+  font-size: 18px;
+  text-align: center;
+}
+.home-empty.hidden {
+  display: none;
+}
+
+/* Дома нет карты: кнопка «Где я?» не нужна, а «Экипаж» и ⚙️
+   опускаются ниже — на их место */
+body.mode-home #center-button {
+  display: none;
+}
+body.mode-home .crew-button {
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+body.mode-home .settings-button {
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+body.mode-home .toast {
+  bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Сердечки дружбы */
+.hearts {
+  margin: 0;
+  color: var(--nose);
+  font-size: 28px;
+  letter-spacing: 3px;
+}
+.album-hearts {
+  color: var(--nose);
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+/* ===== Ежедневные задания (в альбоме) ===== */
+.quests {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.quest {
+  margin: 6px 0;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: var(--space);
+  font-size: 16px;
+  line-height: 1.35;
+}
+.quest-done {
+  opacity: 0.7;
+}

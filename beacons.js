@@ -199,5 +199,6 @@ function openBeacon(beacon) {
   }
   playSound('reward');
   showToast(text + '!');
+  questEvent('beacon'); // задание «Зайди на маяк» (quests.js)
   updateBeaconLooks();
 }

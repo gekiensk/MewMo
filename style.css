@@ -231,6 +231,84 @@ button:focus-visible {
   .capsule { animation: none; }
 }
 
+/* ===== Маяк у реального места ===== */
+/* Маленький полосатый маяк с огоньком наверху. Это кнопка.
+   Как и у капсулы, не задаём position и transform — ими двигает MapLibre. */
+.beacon {
+  width: 26px;
+  height: 44px;
+  margin-top: 16px; /* место для огонька сверху */
+  padding: 0;
+  border: 3px solid var(--fur);
+  border-radius: 8px 8px 4px 4px;
+  /* полоски, как у настоящего маяка */
+  background: repeating-linear-gradient(var(--mint) 0 9px, var(--space-2) 9px 18px);
+  cursor: pointer;
+  font-family: var(--font);
+}
+
+/* Огонёк наверху маяка */
+.beacon::before {
+  content: '';
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  border: 2px solid var(--fur);
+  border-radius: 50%;
+  background: var(--star);
+  box-shadow: 0 0 10px var(--star), 0 0 22px var(--mint);
+  animation: beacon-blink 1.6s ease-in-out infinite;
+}
+
+@keyframes beacon-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+/* Игрок ближе 40 м: маяк крупнее и светится сильнее */
+.beacon.beacon-near {
+  scale: 1.2;
+  box-shadow: 0 0 12px var(--mint), 0 0 30px var(--mint);
+}
+
+/* Перезарядка: маяк серый и тусклый, огонёк не мигает */
+.beacon.beacon-charging {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+.beacon.beacon-charging::before {
+  animation: none;
+  background: var(--space-2);
+  box-shadow: none;
+}
+
+/* Таймер перезарядки под маяком */
+.beacon-timer {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -26px;
+  width: 52px;
+  margin-top: 3px;
+  border-radius: 8px;
+  background: var(--space);
+  color: var(--fur);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+}
+.beacon-timer:empty {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beacon::before { animation: none; }
+}
+
 /* ===== Всплывающая подсказка ===== */
 .toast {
   position: absolute;

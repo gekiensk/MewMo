@@ -331,6 +331,187 @@ function shipRepairShare(parts) {
   return Math.min(parts, SHIP_PARTS_NEEDED) / SHIP_PARTS_NEEDED;
 }
 
+// =============================================================
+// Маяки у реальных мест
+// =============================================================
+// Маяки ставятся у интересных мест из данных карты: слой 'poi' источника
+// OpenMapTiles. У каждого места там есть class (общий вид, например
+// 'art_gallery') и subclass (точнее, например 'artwork').
+
+// Разрешённые места: subclass (или class) → как назвать место в игре
+const BEACON_PLACES = {
+  playground: 'Детская площадка',
+  park: 'Парк',
+  garden: 'Сад',
+  fountain: 'Фонтан',
+  library: 'Библиотека',
+  museum: 'Музей',
+  artwork: 'Арт-объект',
+  sculpture: 'Скульптура'
+};
+
+// Запрещённые места: если class ИЛИ subclass в этом списке, маяка не будет.
+// Запрет сильнее разрешения. Здесь кладбища, мемориалы, места поклонения,
+// больницы, школы и детские сады, дороги, парковки, стройки и железная дорога.
+const BEACON_FORBIDDEN = [
+  'cemetery', 'grave_yard',
+  'memorial', 'monument', 'wayside_cross', 'wayside_shrine',
+  'place_of_worship', 'religion', 'church', 'mosque', 'synagogue', 'temple', 'shrine',
+  'hospital', 'clinic', 'doctors', 'dentist', 'nursing_home',
+  'school', 'kindergarten', 'childcare', 'college', 'university',
+  'road', 'highway', 'motorway', 'bus', 'bus_stop', 'bus_station',
+  'parking', 'bicycle_parking', 'motorcycle_parking', 'parking_entrance', 'fuel',
+  'construction',
+  'railway', 'rail', 'station', 'halt', 'tram_stop', 'subway', 'level_crossing'
+];
+
+const BEACON_RADIUS = 300;           // маяки ищем не дальше 300 м от игрока
+const BEACON_MAX_COUNT = 6;          // показываем не больше 6 маяков
+const BEACON_MIN_GAP = 40;           // между маяками не меньше 40 м
+const VIRTUAL_BEACON_COUNT = 3;      // сколько «виртуальных» маяков, если реальных нет
+const BEACON_COOLDOWN = 5 * 60 * 1000; // перезарядка маяка: 5 минут (в мс)
+const BEACON_PART_CHANCE = 0.3;      // шанс получить деталь корабля у маяка
+
+// Годится ли место для маяка. properties — свойства места из данных карты.
+function isBeaconPlace(properties) {
+  if (!properties) return false;
+  const placeClass = properties.class || '';
+  const subclass = properties.subclass || '';
+  // Сначала запреты
+  if (BEACON_FORBIDDEN.includes(placeClass) || BEACON_FORBIDDEN.includes(subclass)) {
+    return false;
+  }
+  return beaconKind(properties) !== '';
+}
+
+// Вид места для маяка ('park', 'library' …) или '' если не подходит.
+// Сначала смотрим на subclass (он точнее), потом на class.
+// Пример: книжный магазин в данных — class 'library', subclass 'books'.
+// subclass 'books' не разрешён, поэтому магазин маяком не станет.
+function beaconKind(properties) {
+  const subclass = properties.subclass || '';
+  if (subclass !== '') {
+    return BEACON_PLACES[subclass] ? subclass : '';
+  }
+  const placeClass = properties.class || '';
+  return BEACON_PLACES[placeClass] ? placeClass : '';
+}
+
+// Выбирает маяки из списка мест-кандидатов.
+// candidates — [{ id, position, kind, name }], center — где игрок.
+// Берём места не дальше BEACON_RADIUS, начиная с ближайших, и пропускаем
+// те, что ближе BEACON_MIN_GAP к уже выбранным (так убираются дубликаты
+// одного места — в данных карты одно место иногда встречается дважды).
+function selectBeacons(candidates, center) {
+  // Добавляем каждому кандидату расстояние до игрока
+  const near = [];
+  for (let i = 0; i < candidates.length; i++) {
+    const distance = distanceMeters(center, candidates[i].position);
+    if (distance <= BEACON_RADIUS) {
+      near.push({ place: candidates[i], distance: distance });
+    }
+  }
+  // Сортируем: ближние — первыми
+  near.sort(function (a, b) { return a.distance - b.distance; });
+
+  const chosen = [];
+  for (let i = 0; i < near.length && chosen.length < BEACON_MAX_COUNT; i++) {
+    const place = near[i].place;
+    let tooClose = false;
+    for (let j = 0; j < chosen.length; j++) {
+      if (chosen[j].id === place.id ||
+          distanceMeters(chosen[j].position, place.position) < BEACON_MIN_GAP) {
+        tooClose = true;
+        break;
+      }
+    }
+    if (!tooClose) chosen.push(place);
+  }
+  return chosen;
+}
+
+// Маяки из списка, которые не дальше radius метров от игрока
+function beaconsNear(beacons, center, radius) {
+  return beacons.filter(function (beacon) {
+    return distanceMeters(center, beacon.position) <= radius;
+  });
+}
+
+// «Виртуальные» маяки — если в данных карты подходящих мест нет.
+// Ставим их вокруг игрока на 60–120 м, примерно через треть круга
+// друг от друга — так между ними точно больше BEACON_MIN_GAP.
+// idPrefix — начало id (например, время создания), чтобы id не повторялись.
+function makeVirtualBeacons(center, random, idPrefix) {
+  const beacons = [];
+  const startAngle = random() * 2 * Math.PI;
+  for (let i = 0; i < VIRTUAL_BEACON_COUNT; i++) {
+    // ровно по кругу + небольшое случайное отклонение (до ±20°)
+    const wobble = (random() - 0.5) * (40 * Math.PI / 180);
+    const angle = startAngle + i * (2 * Math.PI / VIRTUAL_BEACON_COUNT) + wobble;
+    const distance = 60 + random() * 60;
+    beacons.push({
+      id: 'virtual-' + idPrefix + '-' + i,
+      position: offsetPosition(center, distance, angle),
+      kind: 'virtual',
+      name: ''
+    });
+  }
+  return beacons;
+}
+
+// Как назвать маяк для игрока
+function beaconTitle(beacon) {
+  if (beacon.name) return beacon.name;
+  if (beacon.kind === 'virtual') return 'Космический маяк';
+  return BEACON_PLACES[beacon.kind] || 'Маяк';
+}
+
+// Награда маяка: 2–4 рыбки и с шансом 30% деталь корабля
+function beaconReward(random) {
+  const fish = 2 + Math.floor(random() * 3); // 2, 3 или 4
+  const parts = random() < BEACON_PART_CHANCE ? 1 : 0;
+  return { fish: fish, parts: parts };
+}
+
+// Сколько миллисекунд осталось до конца перезарядки (0 — маяк готов).
+// cooldowns — словарь «id маяка → до какого времени перезаряжается».
+function beaconCooldownLeft(cooldowns, beaconId, now) {
+  const readyAt = cooldowns[beaconId] || 0;
+  return Math.max(0, readyAt - now);
+}
+
+// Запускает перезарядку маяка. Возвращает НОВЫЙ словарь, в котором
+// заодно выброшены маяки, чья перезарядка уже закончилась
+// (чтобы сохранение не росло бесконечно).
+function startBeaconCooldown(cooldowns, beaconId, now) {
+  const result = {};
+  const ids = Object.keys(cooldowns);
+  for (let i = 0; i < ids.length; i++) {
+    if (cooldowns[ids[i]] > now) {
+      result[ids[i]] = cooldowns[ids[i]];
+    }
+  }
+  result[beaconId] = now + BEACON_COOLDOWN;
+  return result;
+}
+
+// Игрок забрал награду маяка: возвращает новое сохранение
+function applyBeaconReward(save, beaconId, reward, now) {
+  const result = copySave(save);
+  result.fish = result.fish + reward.fish;
+  result.parts = result.parts + reward.parts;
+  result.beaconCooldowns = startBeaconCooldown(result.beaconCooldowns, beaconId, now);
+  return result;
+}
+
+// Время «минуты:секунды», например 4:05
+function formatTimeLeft(ms) {
+  const totalSeconds = Math.ceil(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -342,6 +523,11 @@ if (typeof module !== 'undefined') {
     gpsErrorAction,
     SAVE_KEY, SHIP_PARTS_NEEDED, NEW_CAT_PARTS, REPEAT_CAT_FISH,
     emptySave, cleanSave, loadSave, writeSave, isInCrew, crewCount,
-    applyCatWin, pluralRu, shipRepairShare
+    applyCatWin, pluralRu, shipRepairShare,
+    BEACON_PLACES, BEACON_FORBIDDEN, BEACON_RADIUS, BEACON_MAX_COUNT, BEACON_MIN_GAP,
+    VIRTUAL_BEACON_COUNT, BEACON_COOLDOWN, BEACON_PART_CHANCE,
+    isBeaconPlace, beaconKind, selectBeacons, beaconsNear, makeVirtualBeacons,
+    beaconTitle, beaconReward, beaconCooldownLeft, startBeaconCooldown,
+    applyBeaconReward, formatTimeLeft
   };
 }

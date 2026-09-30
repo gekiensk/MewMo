@@ -82,9 +82,9 @@ function startGame() {
   startScreen.classList.add('hidden'); // прячем стартовый экран
   createMap(DEFAULT_POSITION);
 
-  // Раз в секунду обновляем вид капсул: например, смущённый кот
-  // через минуту снова становится обычным
-  setInterval(updateCapsuleLooks, 1000);
+  // Раз в секунду обновляем вид капсул и маяков: например, смущённый
+  // кот через минуту снова становится обычным, а у маяка тикает таймер
+  setInterval(everySecond, 1000);
 
   if ('geolocation' in navigator) {
     setStatus('Ищем тебя на карте…');
@@ -277,6 +277,8 @@ function movePlayer(lngLat, accuracy) {
 
   // Убираем далёкие капсулы, добавляем новые и обновляем их свечение
   refreshCapsules(lngLat);
+  // Маяки у реальных мест (beacons.js)
+  refreshBeacons(false);
 
   if (followPlayer) {
     map.easeTo({ center: lngLat }); // плавно двигаем карту за игроком
@@ -434,6 +436,13 @@ function removeAllCapsules() {
   capsules = [];
 }
 
+// То, что делаем раз в секунду
+function everySecond() {
+  updateCapsuleLooks();
+  updateBeaconLooks();   // таймеры перезарядки (beacons.js)
+  refreshBeacons(false); // сам решит, пора ли пересчитывать
+}
+
 // =============================================================
 // Сохранение
 // =============================================================
@@ -467,12 +476,14 @@ function startDemoMode(reason) {
   setStatus(reason + ' Демо-режим: нажми на карту, чтобы переместиться.');
   // Без GPS игрок стоит там, где стоит, — раскладываем капсулы вокруг него
   refreshCapsules(playerPosition());
+  // В демо-режиме маяки виртуальные
+  refreshBeacons(true);
 }
 
 function onMapClick(event) {
   if (!demoMode) return; // с работающим GPS клики не двигают игрока
-  // Нажатие на капсулу — это «открыть капсулу», а не «идти сюда»
-  if (event.originalEvent.target.closest('.capsule')) return;
+  // Нажатие на капсулу или маяк — это «открыть», а не «идти сюда»
+  if (event.originalEvent.target.closest('.capsule, .beacon')) return;
   movePlayer([event.lngLat.lng, event.lngLat.lat], 0);
 }
 

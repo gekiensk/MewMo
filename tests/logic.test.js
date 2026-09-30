@@ -1,6 +1,6 @@
 // =============================================================
 // Тесты для logic.js
-// Запуск из папки проекта: node --test tests/
+// Запуск из папки проекта: node --test
 // Используем встроенные модули Node — ничего устанавливать не нужно.
 // =============================================================
 const test = require('node:test');
@@ -176,4 +176,15 @@ test('у редких котов зона уже и огонёк быстрее'
   assert.ok(legendary.zoneWidth < rare.zoneWidth && legendary.speed > rare.speed);
   // «уменьшить движение» — медленнее
   assert.ok(logic.signalSettings('обычный', true).speed < common.speed);
+});
+
+// ----- Ошибки GPS -----
+test('демо-режим — только если GPS не заработал ни разу или нет разрешения', function () {
+  // GPS ещё ни разу не работал
+  assert.strictEqual(logic.gpsErrorAction(false, false), 'демо');
+  // нет разрешения — всегда демо
+  assert.strictEqual(logic.gpsErrorAction(false, true), 'демо');
+  assert.strictEqual(logic.gpsErrorAction(true, true), 'демо');
+  // GPS уже работал, а потом пропал сигнал — игрок остаётся на месте
+  assert.strictEqual(logic.gpsErrorAction(true, false), 'слабый сигнал');
 });

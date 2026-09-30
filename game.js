@@ -242,7 +242,17 @@ function onPosition(pos) {
 
 // GPS не смог определить местоположение
 function onPositionError(error) {
-  if (error.code === error.PERMISSION_DENIED) {
+  const permissionDenied = error.code === error.PERMISSION_DENIED;
+  // gpsErrorAction из logic.js решает, что делать: демо-режим или
+  // «слабый сигнал» (если GPS уже работал — игрок остаётся на месте)
+  const action = gpsErrorAction(hasGps, permissionDenied);
+
+  if (action === 'слабый сигнал') {
+    setStatus('Слабый сигнал GPS… Ты там, где был в последний раз.');
+    return;
+  }
+
+  if (permissionDenied) {
     startDemoMode('Нет разрешения на геолокацию.');
   } else if (error.code === error.TIMEOUT) {
     startDemoMode('GPS долго не отвечает.');

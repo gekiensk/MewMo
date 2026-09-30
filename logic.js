@@ -165,6 +165,25 @@ function isInGreenZone(position, zoneStart, zoneWidth) {
   return position >= zoneStart - EDGE && position <= zoneStart + zoneWidth + EDGE;
 }
 
+// =============================================================
+// Ошибки GPS
+// =============================================================
+// Что делать, когда GPS прислал ошибку. Возвращает:
+//   'демо'          — включить демо-режим (игрок ходит нажатием на карту);
+//   'слабый сигнал' — оставить игрока на последнем известном месте
+//                     и просто написать «Слабый сигнал GPS…».
+// gpsWorked      — приходило ли уже хоть одно местоположение от GPS;
+// permissionDenied — игрок не разрешил геолокацию.
+function gpsErrorAction(gpsWorked, permissionDenied) {
+  // Нет разрешения — без демо-режима играть не получится
+  if (permissionDenied) return 'демо';
+  // GPS уже работал, а сейчас сигнал пропал (например, игрок зашёл
+  // под крышу или в арку) — это временно, ждём, пока сигнал вернётся
+  if (gpsWorked) return 'слабый сигнал';
+  // GPS не заработал ни разу — включаем демо-режим
+  return 'демо';
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -172,6 +191,7 @@ if (typeof module !== 'undefined') {
     distanceMeters, offsetPosition, randomCapsulePosition,
     RARITY_CHANCES, pickRarity, pickCat, rarityStars,
     GESTURES, BEATS, roundResult, catChooseGesture,
-    signalSettings, signalPosition, isInGreenZone
+    signalSettings, signalPosition, isInGreenZone,
+    gpsErrorAction
   };
 }

@@ -6,6 +6,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>MewMo</title>
 
+  <!-- Чтобы игру можно было добавить на главный экран телефона как приложение.
+       Service worker (работа без интернета) пока не добавляем — он может
+       мешать обновлениям игры. -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#1E1747">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
   <!-- Шрифт Baloo 2: круглый и дружелюбный, поддерживает русский -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

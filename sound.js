@@ -124,8 +124,23 @@ const SOUNDS = {
   }
 };
 
-// Сыграть звук по названию: playSound('meow')
+// Вибрация к некоторым звукам (миллисекунды). vibrate() — из settings.js,
+// она сама проверяет, включена ли вибрация и умеет ли телефон.
+const VIBRATIONS = {
+  meow: 20,
+  signal: 30,
+  roundWin: 40,
+  crew: [80, 60, 80],
+  reward: 50
+};
+
+// Сыграть звук по названию: playSound('meow').
+// Заодно телефон коротко вибрирует (если вибрация включена),
+// даже когда звук выключен.
 function playSound(name) {
+  if (VIBRATIONS[name] && typeof vibrate === 'function') {
+    vibrate(VIBRATIONS[name]);
+  }
   if (!canPlaySound() || !SOUNDS[name]) return;
   try {
     SOUNDS[name]();

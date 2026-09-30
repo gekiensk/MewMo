@@ -81,6 +81,7 @@ centerButton.addEventListener('click', function () {
 // =============================================================
 function startGame() {
   initSound(); // звук можно включить только по нажатию (sound.js)
+  startPlayClock(); // часы игры и ограничение времени (settings.js)
   startScreen.classList.add('hidden'); // прячем стартовый экран
   createMap(DEFAULT_POSITION);
 

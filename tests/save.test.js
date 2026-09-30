@@ -27,7 +27,9 @@ test('записанное сохранение читается обратно 
   const save = {
     crew: { bul: 2, moh: 1 }, captains: { cap: 1 },
     fish: 12, parts: 3, beaconCooldowns: { 'poi-5': 1700000000000 },
-    nextCaptainAt: 1700000000000
+    nextCaptainAt: 1700000000000,
+    settings: { sound: false, vibration: true, dailyLimit: 60, homeOnly: true },
+    playTime: { day: '2026-09-30', seconds: 125, bonusMinutes: 15 }
   };
   assert.strictEqual(logic.writeSave(storage, save), true);
   assert.ok(logic.SAVE_KEY in storage.data, 'ключ ' + logic.SAVE_KEY);

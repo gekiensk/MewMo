@@ -33,6 +33,9 @@
   <!-- Кнопка «вернуть карту ко мне» -->
   <button id="center-button" class="round-button" aria-label="Показать, где я">Где я?</button>
 
+  <!-- Маленькая кнопка «Настройки» -->
+  <button id="settings-button" class="settings-button" aria-label="Настройки">⚙️</button>
+
   <!-- Кнопка «Экипаж»: открывает альбом найденных котов -->
   <button id="crew-button" class="round-button crew-button" aria-label="Открыть альбом экипажа">🐱<br>Экипаж</button>
 
@@ -174,6 +177,69 @@
     </div>
   </section>
 
+  <!-- ===== Экран «На сегодня всё!» =====
+       Появляется, когда закончилось время игры, выбранное взрослым.
+       Убрать его можно только через раздел «Для взрослых». -->
+  <section id="time-up" class="time-up hidden" role="dialog" aria-modal="true" aria-labelledby="time-up-title">
+    <h2 id="time-up-title" class="screen-title">На сегодня всё!</h2>
+    <p class="screen-text">Коты ждут тебя завтра. 😴</p>
+    <button id="time-up-adult" class="small-button">Для взрослых</button>
+  </section>
+
+  <!-- ===== Окно «Настройки» =====
+       Три вида: главный, родительский замок и раздел «Для взрослых». -->
+  <section id="settings" class="overlay settings hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="overlay-card">
+      <button id="settings-close" class="close-button" aria-label="Закрыть настройки">✕</button>
+
+      <div id="settings-main">
+        <h2 id="settings-title" class="screen-title">Настройки</h2>
+        <button id="toggle-sound" class="big-button toggle-button" aria-pressed="true">🔊 Звук: вкл</button>
+        <button id="toggle-vibration" class="big-button toggle-button" aria-pressed="true">📳 Вибрация: вкл</button>
+        <p id="vibration-note" class="screen-text small-text hidden">Этот телефон не умеет вибрировать.</p>
+        <button id="open-adult" class="small-button">Для взрослых</button>
+      </div>
+
+      <!-- Родительский замок -->
+      <div id="settings-lock" class="hidden">
+        <h2 class="screen-title">Для взрослых</h2>
+        <p class="screen-text">Реши пример, чтобы войти:</p>
+        <p id="lock-question" class="lock-question"></p>
+        <input id="lock-answer" class="lock-input" type="text" inputmode="numeric" pattern="[0-9]*"
+               autocomplete="off" aria-label="Ответ">
+        <p id="lock-message" class="screen-text small-text" aria-live="polite"></p>
+        <button id="lock-check" class="big-button">Проверить</button>
+        <button id="lock-back" class="small-button">Назад</button>
+      </div>
+
+      <!-- Раздел «Для взрослых» -->
+      <div id="settings-adult" class="hidden">
+        <h2 class="screen-title">Для взрослых</h2>
+        <p class="screen-text">Время игры в день:</p>
+        <div class="limit-buttons">
+          <button class="limit-button" data-limit="0">Выкл</button>
+          <button class="limit-button" data-limit="30">30 мин</button>
+          <button class="limit-button" data-limit="60">60 мин</button>
+          <button class="limit-button" data-limit="90">90 мин</button>
+        </div>
+        <p id="adult-played" class="screen-text small-text"></p>
+        <button id="adult-bonus" class="small-button">Добавить 15 минут на сегодня</button>
+        <div class="fact data-info">
+          <p class="fact-title">Какие данные хранит игра</p>
+          <p>Координаты (где находится телефон) используются только во время
+            игры и не сохраняются и никуда не отправляются.</p>
+          <p>Прогресс (коты, рыбки, детали, настройки) хранится только на этом
+            телефоне, в памяти браузера.</p>
+          <p>В игре нет чата, рекламы и покупок, игра не собирает имя, фото
+            и другие личные данные.</p>
+          <p>Время считается, только пока игра открыта на экране,
+            и обнуляется в полночь.</p>
+        </div>
+        <button id="adult-back" class="big-button">Готово</button>
+      </div>
+    </div>
+  </section>
+
   <!-- Стартовый экран, который закрывает карту, пока не нажмёшь «Начать» -->
   <section id="start-screen" class="start-screen">
     <h1 class="logo">MewMo</h1>
@@ -202,6 +268,8 @@
   <script src="encounter.js"></script>
   <!-- album.js — альбом экипажа (пользуется помощниками из encounter.js) -->
   <script src="album.js"></script>
+  <!-- settings.js — настройки, «Для взрослых», время игры -->
+  <script src="settings.js"></script>
   <!-- beacons.js — маяки у реальных мест -->
   <script src="beacons.js"></script>
   <!-- captains.js — потерявшиеся капитаны у маяков -->

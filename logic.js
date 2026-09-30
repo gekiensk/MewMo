@@ -200,17 +200,56 @@ function gpsErrorAction(gpsWorked, permissionDenied) {
 //   fish: 12,                   // космические рыбки
 //   parts: 3,                   // детали корабля
 //   beaconCooldowns: { … },     // маяки на перезарядке: id → до какого времени (мс)
-//   nextCaptainAt: 0            // раньше этого времени (мс) новый капитан не появится
+//   nextCaptainAt: 0,           // раньше этого времени (мс) новый капитан не появится
+//   settings: { … },            // настройки (см. DEFAULT_SETTINGS)
+//   playTime: { day, seconds, bonusMinutes } // сколько сыграно сегодня
 // }
+//
+// Старые сохранения (без новых полей) продолжают работать: cleanSave
+// заполняет недостающие поля значениями по умолчанию.
 
 const SAVE_KEY = 'mewmo-save-v1'; // под этим именем лежит сохранение
 const SHIP_PARTS_NEEDED = 20;      // сколько деталей нужно для ремонта корабля
 const NEW_CAT_PARTS = 1;           // награда за нового кота — деталь корабля
 const REPEAT_CAT_FISH = 3;         // награда за повторную встречу — рыбки
 
+// Настройки по умолчанию
+const DEFAULT_SETTINGS = {
+  sound: true,       // звук включён
+  vibration: true,   // вибрация включена
+  dailyLimit: 0,     // ограничение времени в день, минут (0 — выключено)
+  homeOnly: false    // «Только режим „Дом“» (прогулка недоступна)
+};
+const DAILY_LIMIT_CHOICES = [0, 30, 60, 90]; // варианты ограничения (минуты)
+
 // Пустое сохранение: игра с нуля
 function emptySave() {
-  return { crew: {}, captains: {}, fish: 0, parts: 0, beaconCooldowns: {}, nextCaptainAt: 0 };
+  return {
+    crew: {}, captains: {}, fish: 0, parts: 0, beaconCooldowns: {}, nextCaptainAt: 0,
+    settings: Object.assign({}, DEFAULT_SETTINGS),
+    playTime: { day: '', seconds: 0, bonusMinutes: 0 }
+  };
+}
+
+// Проверяет настройки: всё непонятное — как по умолчанию
+function cleanSettings(data) {
+  const settings = Object.assign({}, DEFAULT_SETTINGS);
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return settings;
+  if (typeof data.sound === 'boolean') settings.sound = data.sound;
+  if (typeof data.vibration === 'boolean') settings.vibration = data.vibration;
+  if (DAILY_LIMIT_CHOICES.includes(data.dailyLimit)) settings.dailyLimit = data.dailyLimit;
+  if (typeof data.homeOnly === 'boolean') settings.homeOnly = data.homeOnly;
+  return settings;
+}
+
+// Проверяет счётчик времени игры
+function cleanPlayTime(data) {
+  const playTime = { day: '', seconds: 0, bonusMinutes: 0 };
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return playTime;
+  if (typeof data.day === 'string') playTime.day = data.day;
+  if (isCount(data.seconds)) playTime.seconds = data.seconds;
+  if (isCount(data.bonusMinutes)) playTime.bonusMinutes = data.bonusMinutes;
+  return playTime;
 }
 
 // Целое число 0 или больше? (для проверки испорченных данных)
@@ -249,6 +288,8 @@ function cleanSave(data) {
   save.parts = isCount(data.parts) ? data.parts : 0;
   save.beaconCooldowns = cleanCounts(data.beaconCooldowns, 0);
   save.nextCaptainAt = isCount(data.nextCaptainAt) ? data.nextCaptainAt : 0;
+  save.settings = cleanSettings(data.settings);
+  save.playTime = cleanPlayTime(data.playTime);
   return save;
 }
 
@@ -951,6 +992,82 @@ function toggleHelper(selected, catId) {
   return selected.concat([catId]);
 }
 
+// =============================================================
+// Время игры в день
+// =============================================================
+// Считаем секунды, пока игра открыта и видна на экране. В полночь по
+// местному времени счётчик обнуляется: у каждого дня свой «ключ» дня.
+
+const LIMIT_WARNING_SECONDS = 5 * 60; // за 5 минут до конца — предупреждение
+const BONUS_MINUTES = 15;             // «Добавить 15 минут» в разделе для взрослых
+
+// «Ключ» дня по местному времени, например '2026-09-30'.
+// date — объект Date (время на телефоне игрока).
+function localDayKey(date) {
+  const month = date.getMonth() + 1; // месяцы в JavaScript считаются с 0
+  const day = date.getDate();
+  return date.getFullYear() + '-' + (month < 10 ? '0' : '') + month + '-' + (day < 10 ? '0' : '') + day;
+}
+
+// Прибавляет seconds секунд к времени игры за день dayKey.
+// Если наступил новый день — счётчик начинается с нуля.
+// Возвращает новый объект playTime.
+function addPlayTime(playTime, dayKey, seconds) {
+  if (playTime.day !== dayKey) {
+    return { day: dayKey, seconds: seconds, bonusMinutes: 0 };
+  }
+  return { day: dayKey, seconds: playTime.seconds + seconds, bonusMinutes: playTime.bonusMinutes };
+}
+
+// Сколько секунд сыграно сегодня (если в сохранении вчерашний день — 0)
+function playedToday(playTime, dayKey) {
+  return playTime.day === dayKey ? playTime.seconds : 0;
+}
+
+// Состояние ограничения времени. Возвращает:
+//   status  — 'без ограничения', 'играем', 'скоро конец' или 'время вышло';
+//   secondsLeft — сколько секунд осталось (Infinity, если ограничения нет).
+// limitMinutes — ограничение из настроек (0 — выключено).
+function timeLimitState(playTime, dayKey, limitMinutes) {
+  if (!limitMinutes) {
+    return { status: 'без ограничения', secondsLeft: Infinity };
+  }
+  const bonus = playTime.day === dayKey ? playTime.bonusMinutes : 0;
+  const allowed = (limitMinutes + bonus) * 60;
+  const left = Math.max(0, allowed - playedToday(playTime, dayKey));
+  let status = 'играем';
+  if (left === 0) status = 'время вышло';
+  else if (left <= LIMIT_WARNING_SECONDS) status = 'скоро конец';
+  return { status: status, secondsLeft: left };
+}
+
+// Взрослый разрешил поиграть ещё немного сегодня
+function addBonusTime(playTime, dayKey) {
+  const today = playTime.day === dayKey ? playTime : { day: dayKey, seconds: 0, bonusMinutes: 0 };
+  return { day: dayKey, seconds: today.seconds, bonusMinutes: today.bonusMinutes + BONUS_MINUTES };
+}
+
+// =============================================================
+// Родительский замок
+// =============================================================
+// Чтобы войти в раздел «Для взрослых», нужно решить пример:
+// двузначное число умножить на однозначное (например, 23 × 4).
+// Для ребёнка 9–12 лет это не мгновенно, а взрослый решит легко.
+
+function makeParentQuestion(random) {
+  const a = 12 + Math.floor(random() * 88); // от 12 до 99
+  const b = 3 + Math.floor(random() * 7);   // от 3 до 9
+  return { a: a, b: b, answer: a * b, text: a + ' × ' + b };
+}
+
+// Правильный ли ответ. text — то, что ввели (строка).
+// Пробелы по краям не мешают, но принимаем только цифры.
+function checkParentAnswer(question, text) {
+  const clean = String(text).trim();
+  if (!/^[0-9]+$/.test(clean)) return false;
+  return Number(clean) === question.answer;
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -975,6 +1092,9 @@ if (typeof module !== 'undefined') {
     CAPTAIN_MIN_CREW, CAPTAIN_LIFETIME, CAPTAIN_NEXT_DELAY, CAPTAIN_RETRY_DELAY,
     CAPTAIN_WINS_NEEDED, MAX_HELPERS, CAPTAIN_PARTS,
     isCaptainActive, canSpawnCaptain, chooseCaptain, makeCaptain, captainAfterLoss,
-    captainRetryLeft, applyCaptainWin, availableHelpers, toggleHelper
+    captainRetryLeft, applyCaptainWin, availableHelpers, toggleHelper,
+    DEFAULT_SETTINGS, DAILY_LIMIT_CHOICES, LIMIT_WARNING_SECONDS, BONUS_MINUTES,
+    localDayKey, addPlayTime, playedToday, timeLimitState, addBonusTime,
+    makeParentQuestion, checkParentAnswer
   };
 }

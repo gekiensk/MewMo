@@ -331,6 +331,7 @@ function addCapsule(position) {
   const element = document.createElement('button');
   element.className = 'capsule';
   element.setAttribute('aria-label', 'Капсула с котом');
+  element.innerHTML = capsuleIcon(); // картинка капсулы из art.js
 
   const marker = new maplibregl.Marker({ element: element, anchor: 'bottom' })
     .setLngLat(position)

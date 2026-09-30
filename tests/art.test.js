@@ -1,0 +1,48 @@
+// =============================================================
+// Тесты картинок (art.js)
+// Запуск из папки проекта: node --test
+// =============================================================
+const test = require('node:test');
+const assert = require('node:assert');
+const art = require('../art.js');
+const { CATS, CAPTAINS } = require('../cats.js');
+
+// Похоже ли на правильный SVG: начинается с <svg, кончается </svg>,
+// открывающих и закрывающих тегов <svg> поровну
+function looksLikeSvg(text) {
+  return typeof text === 'string' &&
+    text.startsWith('<svg') &&
+    text.endsWith('</svg>') &&
+    text.length > 200 &&
+    !text.includes('undefined') &&
+    !text.includes('NaN');
+}
+
+test('у каждого кота и капитана есть портрет', function () {
+  for (const cat of CATS.concat(CAPTAINS)) {
+    assert.ok(art.CAT_LOOKS[cat.id], 'нет внешности у ' + cat.name);
+    assert.ok(looksLikeSvg(art.catPortrait(cat.id)), 'плохой портрет у ' + cat.name);
+  }
+});
+
+test('цвет скафандра совпадает с типом кота', function () {
+  for (const cat of CATS.concat(CAPTAINS)) {
+    assert.strictEqual(art.CAT_LOOKS[cat.id].suit, cat.type, cat.name);
+    assert.ok(art.SUIT_COLORS[cat.type], 'нет цвета для типа ' + cat.type);
+  }
+});
+
+test('у каждого кота своя деталь', function () {
+  const all = CATS.concat(CAPTAINS);
+  const details = all.map(function (cat) { return art.CAT_LOOKS[cat.id].detail; });
+  assert.strictEqual(new Set(details).size, all.length);
+});
+
+test('неизвестный кот не ломает игру', function () {
+  assert.ok(looksLikeSvg(art.catPortrait('нет-такого')));
+});
+
+test('иконки капсулы и маяка — SVG', function () {
+  assert.ok(looksLikeSvg(art.capsuleIcon()));
+  assert.ok(looksLikeSvg(art.beaconIcon()));
+});

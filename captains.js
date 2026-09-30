@@ -63,7 +63,7 @@ function maybeSpawnCaptain(now) {
   captainElement = document.createElement('button');
   captainElement.className = 'captain';
   captainElement.setAttribute('aria-label', data.name + ' ждёт у маяка');
-  captainElement.textContent = catFace(data); // функция из encounter.js
+  captainElement.innerHTML = catFace(data); // портрет капитана (encounter.js)
   captainTimer = document.createElement('span');
   captainTimer.className = 'captain-timer';
   captainElement.appendChild(captainTimer);

@@ -127,6 +127,7 @@ function addBeaconMarker(place) {
   const element = document.createElement('button');
   element.className = 'beacon';
   element.setAttribute('aria-label', 'Маяк: ' + beaconTitle(place));
+  element.innerHTML = beaconIcon(); // картинка маяка из art.js
 
   // Надпись с таймером перезарядки (видна, только когда маяк тусклый)
   const timer = document.createElement('span');

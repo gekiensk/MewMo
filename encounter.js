@@ -118,7 +118,7 @@ function startEncounter(target) {
   const cat = target.cat;
   const circle = document.getElementById('intro-circle');
   setCircleColor(circle, cat);
-  circle.textContent = catFace(cat);
+  circle.innerHTML = catFace(cat);
   document.getElementById('intro-title').textContent = isCaptain ? 'Потерявшийся капитан!' : 'Кот рядом!';
   document.getElementById('intro-name').textContent = cat.name;
   document.getElementById('intro-stars').textContent = starsText(cat.rarity);
@@ -191,7 +191,14 @@ function showHelpers() {
     button.className = 'helper-button';
     button.dataset.catId = cat.id;
     button.setAttribute('aria-pressed', 'false');
-    button.textContent = catFace(cat) + ' ' + cat.name;
+    // маленький портрет и имя
+    const face = document.createElement('span');
+    face.className = 'helper-face';
+    face.innerHTML = catFace(cat);
+    const name = document.createElement('span');
+    name.textContent = cat.name;
+    button.appendChild(face);
+    button.appendChild(name);
     button.addEventListener('click', function () {
       // toggleHelper из logic.js: не больше двух помощников
       activeEncounter.helpers = toggleHelper(activeEncounter.helpers, cat.id);
@@ -446,7 +453,7 @@ function showWinScreen() {
 
   const circle = document.getElementById('win-circle');
   setCircleColor(circle, cat);
-  circle.textContent = catFace(cat);
+  circle.innerHTML = catFace(cat);
   document.getElementById('win-name').textContent = cat.name;
   document.getElementById('win-stars').textContent = starsText(cat.rarity) + ' ' + cat.rarity;
   document.getElementById('win-info').textContent = 'Тип: ' + cat.type + '. Характер: ' + cat.character + '.';
@@ -456,6 +463,8 @@ function showWinScreen() {
 }
 
 function showLoseScreen() {
+  // Портрет смутившегося кота (класс shy делает его тусклым)
+  document.getElementById('lose-circle').innerHTML = catFace(activeEncounter.cat);
   const loseText = document.getElementById('lose-text');
   if (activeEncounter.kind === 'captain') {
     loseText.textContent = 'Капитан пока сильнее. Он подождёт у маяка — попробуй ещё раз через 2 минуты!';
@@ -512,9 +521,10 @@ function setCircleColor(element, cat) {
   }
 }
 
-// Мордочка в круге: у капитанов — хитрый кот 😼, у остальных — 😺
+// Портрет кота в круге (SVG из art.js). Вставляется через innerHTML —
+// это безопасно, потому что картинку рисует сама игра, а не игрок.
 function catFace(cat) {
-  return cat.type === 'капитан' ? '😼' : '😺';
+  return catPortrait(cat.id);
 }
 
 // Звёздочки редкости: ★☆☆, ★★☆ или ★★★

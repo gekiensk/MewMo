@@ -123,7 +123,9 @@ function makeAlbumCell(cat, crewCounts) {
   const circle = document.createElement('div');
   circle.className = 'mini-circle';
   const face = document.createElement('span');
-  face.textContent = catFace(cat); // функция из encounter.js
+  // Портрет (функция из encounter.js). У ненайденного кота CSS
+  // превращает этот же портрет в тёмный силуэт.
+  face.innerHTML = catFace(cat);
   circle.appendChild(face);
 
   const name = document.createElement('span');
@@ -160,7 +162,7 @@ function makeAlbumCell(cat, crewCounts) {
 function showAlbumCat(cat, timesMet) {
   const circle = document.getElementById('album-cat-circle');
   setCircleColor(circle, cat);
-  circle.textContent = catFace(cat);
+  circle.innerHTML = catFace(cat);
   document.getElementById('album-cat-name').textContent = cat.name;
   document.getElementById('album-cat-stars').textContent = starsText(cat.rarity) + ' ' + cat.rarity;
   document.getElementById('album-cat-info').textContent =

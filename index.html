@@ -47,7 +47,7 @@
       <!-- Экран 1: «Кот рядом!» -->
       <div id="screen-intro" class="screen">
         <h2 id="intro-title" class="screen-title">Кот рядом!</h2>
-        <div id="intro-circle" class="cat-circle">😺</div>
+        <div id="intro-circle" class="cat-circle"></div>
         <p id="intro-name" class="cat-name"></p>
         <p id="intro-stars" class="stars"></p>
         <p id="intro-text" class="screen-text hidden"></p>
@@ -101,7 +101,7 @@
       <!-- Экран 4: победа — «Кот найден!» -->
       <div id="screen-win" class="screen hidden">
         <h2 id="win-title" class="screen-title">Кот найден!</h2>
-        <div id="win-circle" class="cat-circle">😺</div>
+        <div id="win-circle" class="cat-circle"></div>
         <p id="win-name" class="cat-name"></p>
         <p id="win-stars" class="stars"></p>
         <p id="win-info" class="screen-text"></p>
@@ -115,7 +115,7 @@
       <!-- Экран 5: проигрыш — без наказания -->
       <div id="screen-lose" class="screen hidden">
         <h2 class="screen-title">Ой!</h2>
-        <div id="lose-circle" class="cat-circle shy">🙈</div>
+        <div id="lose-circle" class="cat-circle shy"></div>
         <p id="lose-text" class="screen-text">Кот смутился и спрятался. Попробуй ещё раз через минуту!</p>
         <button id="lose-ok" class="big-button">Хорошо</button>
       </div>
@@ -146,7 +146,7 @@
 
       <!-- Карточка кота -->
       <div id="album-cat" class="hidden">
-        <div id="album-cat-circle" class="cat-circle">😺</div>
+        <div id="album-cat-circle" class="cat-circle"></div>
         <p id="album-cat-name" class="cat-name"></p>
         <p id="album-cat-stars" class="stars"></p>
         <p id="album-cat-info" class="screen-text"></p>
@@ -188,6 +188,8 @@
   <script src="logic.js"></script>
   <!-- cats.js — каталог котов -->
   <script src="cats.js"></script>
+  <!-- art.js — картинки в SVG: портреты котов, капсула, маяк -->
+  <script src="art.js"></script>
   <!-- encounter.js — окно «Знакомство с котом» (мини-игры) -->
   <script src="encounter.js"></script>
   <!-- album.js — альбом экипажа (пользуется помощниками из encounter.js) -->

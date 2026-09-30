@@ -180,29 +180,24 @@ button:focus-visible {
 
 /* ===== Капсула с котом на карте ===== */
 /* Это кнопка: на неё нажимают, чтобы открыть капсулу */
+/* Картинка капсулы — SVG из art.js (capsuleIcon), сама кнопка прозрачная */
 .capsule {
-  width: 34px;
-  height: 46px;
+  width: 40px;
+  height: 54px;
   padding: 0;
-  border: 3px solid var(--fur);
-  border-radius: 17px 17px 14px 14px; /* форма капсулы: сверху круглее */
-  background: linear-gradient(var(--star) 0 55%, var(--space-2) 55% 100%);
-  box-shadow: 0 0 14px var(--star); /* свечение, чтобы капсулу было видно */
+  border: none;
+  background: none;
+  /* свечение вокруг картинки, чтобы капсулу было видно на карте */
+  filter: drop-shadow(0 0 6px var(--star));
   cursor: pointer;
   animation: bob 2.4s ease-in-out infinite;
 }
 
-/* Окошко капсулы, через которое «виден» кот */
-.capsule::before {
-  content: '';
-  position: absolute;
-  top: 7px;
-  left: 50%;
-  width: 14px;
-  height: 14px;
-  margin-left: -7px;
-  border-radius: 50%;
-  background: var(--mint);
+/* SVG-картинки на карте (капсула, маяк) заполняют свою кнопку */
+.map-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 /* Капсула слегка покачивается вверх-вниз.
@@ -215,7 +210,7 @@ button:focus-visible {
 /* Капсула рядом (ближе 40 м): светится ярче и чуть крупнее — её можно открыть.
    Размер меняем свойством scale, а не transform — transform занят MapLibre. */
 .capsule.capsule-near {
-  box-shadow: 0 0 10px var(--star), 0 0 28px var(--star), 0 0 44px var(--nose);
+  filter: drop-shadow(0 0 6px var(--star)) drop-shadow(0 0 14px var(--nose));
   scale: 1.2;
 }
 
@@ -223,7 +218,6 @@ button:focus-visible {
 .capsule.capsule-shy {
   opacity: 0.45;
   filter: grayscale(1);
-  box-shadow: none;
   animation: none;
 }
 
@@ -232,46 +226,34 @@ button:focus-visible {
 }
 
 /* ===== Маяк у реального места ===== */
-/* Маленький полосатый маяк с огоньком наверху. Это кнопка.
+/* Полосатая башенка с кошачьими ушками и огоньком — SVG из art.js
+   (beaconIcon). Сама кнопка прозрачная.
    Как и у капсулы, не задаём position и transform — ими двигает MapLibre. */
 .beacon {
-  width: 26px;
-  height: 44px;
-  margin-top: 16px; /* место для огонька сверху */
+  width: 36px;
+  height: 64px;
   padding: 0;
-  border: 3px solid var(--fur);
-  border-radius: 8px 8px 4px 4px;
-  /* полоски, как у настоящего маяка */
-  background: repeating-linear-gradient(var(--mint) 0 9px, var(--space-2) 9px 18px);
+  border: none;
+  background: none;
+  filter: drop-shadow(0 0 4px var(--mint));
   cursor: pointer;
   font-family: var(--font);
 }
 
-/* Огонёк наверху маяка */
-.beacon::before {
-  content: '';
-  position: absolute;
-  top: -18px;
-  left: 50%;
-  width: 16px;
-  height: 16px;
-  margin-left: -8px;
-  border: 2px solid var(--fur);
-  border-radius: 50%;
-  background: var(--star);
-  box-shadow: 0 0 10px var(--star), 0 0 22px var(--mint);
+/* Огонёк маяка мигает (в SVG у него класс beacon-light) */
+.beacon .beacon-light {
   animation: beacon-blink 1.6s ease-in-out infinite;
 }
 
 @keyframes beacon-blink {
   0%, 100% { opacity: 1; }
-  50%      { opacity: 0.45; }
+  50%      { opacity: 0.3; }
 }
 
 /* Игрок ближе 40 м: маяк крупнее и светится сильнее */
 .beacon.beacon-near {
   scale: 1.2;
-  box-shadow: 0 0 12px var(--mint), 0 0 30px var(--mint);
+  filter: drop-shadow(0 0 6px var(--mint)) drop-shadow(0 0 14px var(--mint));
 }
 
 /* Перезарядка: маяк серый и тусклый, огонёк не мигает */
@@ -279,10 +261,9 @@ button:focus-visible {
   filter: grayscale(1);
   opacity: 0.6;
 }
-.beacon.beacon-charging::before {
+.beacon.beacon-charging .beacon-light {
   animation: none;
-  background: var(--space-2);
-  box-shadow: none;
+  opacity: 0.2;
 }
 
 /* Таймер перезарядки под маяком */
@@ -306,24 +287,30 @@ button:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .beacon::before { animation: none; }
+  .beacon .beacon-light { animation: none; }
 }
 
 /* ===== Потерявшийся капитан на карте ===== */
-/* Круглая кнопка с хитрым котом 😼, висит над маяком.
+/* Круглая кнопка с портретом капитана (SVG из art.js), висит над маяком.
    position и transform не задаём — ими двигает MapLibre. */
 .captain {
-  width: 58px;
-  height: 58px;
+  width: 62px;
+  height: 62px;
   padding: 0;
   border: 4px solid var(--star);
   border-radius: 50%;
   background: linear-gradient(135deg, var(--star), var(--nose));
   box-shadow: 0 0 14px var(--star);
-  font-size: 32px;
-  line-height: 50px;
   cursor: pointer;
   animation: bob 2.4s ease-in-out infinite;
+}
+
+/* Портрет внутри кнопки капитана обрезаем по кругу */
+.captain .portrait {
+  display: block;
+  width: 100%;
+  height: 100%;
+  clip-path: circle(50%);
 }
 
 /* Корона над капитаном — нарисована рамками, как ушки у логотипа */
@@ -510,16 +497,32 @@ button:focus-visible {
   margin: 8px auto;
   border: 4px solid var(--fur);
   border-radius: 50%;
-  font-size: 72px;
-  line-height: 122px; /* ставит смайлик по центру круга */
+  overflow: hidden; /* портрет обрезается по кругу */
 }
-.circle-water     { background: #7CC8FF; } /* водный — голубой */
-.circle-forest    { background: #7EDC8A; } /* лесной — зелёный */
-.circle-city      { background: var(--star); } /* городской — жёлтый */
-.circle-legendary { background: var(--nose); } /* легендарный — розовый */
-.circle-twilight  { background: linear-gradient(160deg, #9B7BE0, #FF9E6B); } /* сумеречный — закатный */
-.circle-captain   { background: linear-gradient(135deg, var(--star), var(--nose)); } /* капитан — золотой */
+
+/* Портрет кота (SVG из art.js) заполняет круг целиком */
+.cat-circle .portrait,
+.mini-circle .portrait {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Фон круга — светлый оттенок цвета скафандра, чтобы скафандр
+   был хорошо виден на фоне */
+.circle-water     { background: #CDEBFF; } /* водный — голубой */
+.circle-forest    { background: #D3F5D8; } /* лесной — зелёный */
+.circle-city      { background: #FFF1B8; } /* городской — жёлтый */
+.circle-legendary { background: #FFD6E4; } /* легендарный — розовый */
+.circle-twilight  { background: linear-gradient(160deg, #DCCFF7, #FFD9C4); } /* сумеречный — закатный */
+.circle-captain   { background: linear-gradient(135deg, #FFF1B8, #FFD6E4); } /* капитан — золотой */
+
+/* Кот смутился: круг тёмный, портрет серый и полупрозрачный */
 .cat-circle.shy   { background: var(--space); }
+.cat-circle.shy .portrait {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
 
 .cat-name {
   margin: 4px 0;
@@ -752,18 +755,43 @@ button:focus-visible {
   height: 60px;
   border: 3px solid var(--fur);
   border-radius: 50%;
-  font-size: 34px;
-  line-height: 54px;
+  overflow: hidden;
   box-sizing: border-box;
 }
+.mini-circle span {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 
-/* Серый силуэт: круг серый, а смайлик — тёмная тень */
+/* Серый силуэт: круг серый, а портрет того же кота — тёмная тень */
 .mini-circle.silhouette {
   background: #8C86A8;
 }
 .mini-circle.silhouette span {
   filter: brightness(0);
   opacity: 0.55;
+}
+/* У силуэта прячем стекло шлема, иначе вместо кота — тёмный круг */
+.mini-circle.silhouette .helmet {
+  display: none;
+}
+
+/* Маленький портрет в кнопке выбора помощника */
+.helper-face {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  margin-right: 6px;
+  border-radius: 50%;
+  overflow: hidden;
+  vertical-align: middle;
+  background: var(--space-2);
+}
+.helper-face .portrait {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .album-name {

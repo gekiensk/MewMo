@@ -50,7 +50,17 @@
         <div id="intro-circle" class="cat-circle">😺</div>
         <p id="intro-name" class="cat-name"></p>
         <p id="intro-stars" class="stars"></p>
+        <p id="intro-text" class="screen-text hidden"></p>
         <button id="intro-next" class="big-button">Познакомиться</button>
+      </div>
+
+      <!-- Экран «Помощники» (только для капитанов) -->
+      <div id="screen-helpers" class="screen hidden">
+        <h2 class="screen-title">Помощники</h2>
+        <p class="screen-text">Выбери до двух котов из экипажа. Каждый даст одну вторую попытку, если раунд не удастся.</p>
+        <div id="helper-list" class="helper-list"></div>
+        <p id="helpers-count" class="score"></p>
+        <button id="helpers-go" class="big-button">В бой!</button>
       </div>
 
       <!-- Экран 2: «Поймай сигнал» -->
@@ -74,7 +84,7 @@
           🐾 Лапка прижимает Коготь.<br>
           ✂️ Коготь режет нитку Клубка.<br>
           🧶 В Клубке запутывается Лапка.<br>
-          Играем до двух побед!
+          <span id="rps-goal">Играем до двух побед!</span>
         </p>
         <p id="rps-hint" class="hint hidden"></p>
         <p id="rps-score" class="score"></p>
@@ -84,6 +94,8 @@
           <button class="gesture-button" data-gesture="Коготь">✂️<br>Коготь</button>
           <button class="gesture-button" data-gesture="Клубок">🧶<br>Клубок</button>
         </div>
+        <!-- Кнопки «Помоги, <имя>!» — появляются, если раунд проигран, а помощник есть -->
+        <div id="rps-helpers" class="rps-helpers hidden"></div>
       </div>
 
       <!-- Экран 4: победа — «Кот найден!» -->
@@ -104,7 +116,7 @@
       <div id="screen-lose" class="screen hidden">
         <h2 class="screen-title">Ой!</h2>
         <div id="lose-circle" class="cat-circle shy">🙈</div>
-        <p class="screen-text">Кот смутился и спрятался. Попробуй ещё раз через минуту!</p>
+        <p id="lose-text" class="screen-text">Кот смутился и спрятался. Попробуй ещё раз через минуту!</p>
         <button id="lose-ok" class="big-button">Хорошо</button>
       </div>
     </div>
@@ -126,6 +138,9 @@
           <div class="repair-bar"><div id="album-repair-fill" class="repair-fill"></div></div>
         </div>
         <div id="album-grid" class="album-grid"></div>
+        <!-- Отдельный ряд «Капитаны» -->
+        <h3 id="album-captains-title" class="album-subtitle">Капитаны</h3>
+        <div id="album-captains" class="album-grid"></div>
         <button id="album-reset" class="small-button">Начать заново</button>
       </div>
 
@@ -179,6 +194,8 @@
   <script src="album.js"></script>
   <!-- beacons.js — маяки у реальных мест -->
   <script src="beacons.js"></script>
+  <!-- captains.js — потерявшиеся капитаны у маяков -->
+  <script src="captains.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

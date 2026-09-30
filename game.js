@@ -467,6 +467,7 @@ function everySecond() {
   updateCapsuleLooks();
   updateBeaconLooks();   // таймеры перезарядки (beacons.js)
   refreshBeacons(false); // сам решит, пора ли пересчитывать
+  updateCaptain();       // капитаны у маяков (captains.js)
 }
 
 // =============================================================
@@ -491,6 +492,7 @@ function saveGame() {
 function resetProgress() {
   save = emptySave();
   saveGame();
+  removeCaptain(); // экипажа больше нет — капитан улетает (captains.js)
   updateStatus();
 }
 
@@ -508,8 +510,8 @@ function startDemoMode(reason) {
 
 function onMapClick(event) {
   if (!demoMode) return; // с работающим GPS клики не двигают игрока
-  // Нажатие на капсулу или маяк — это «открыть», а не «идти сюда»
-  if (event.originalEvent.target.closest('.capsule, .beacon')) return;
+  // Нажатие на капсулу, маяк или капитана — это «открыть», а не «идти сюда»
+  if (event.originalEvent.target.closest('.capsule, .beacon, .captain')) return;
   movePlayer([event.lngLat.lng, event.lngLat.lat], 0);
 }
 

@@ -89,12 +89,44 @@ const CATS = [
   }
 ];
 
+// =============================================================
+// Потерявшиеся капитаны (боссы)
+// =============================================================
+// Это не обычные коты: они не сидят в капсулах, а ждут игрока у маяка.
+// Поля те же, что у котов. rarity у всех — 'капитан' (от неё зависит
+// сложность «Поймай сигнал»), type — 'капитан'.
+const CAPTAINS = [
+  {
+    id: 'zvezdous',
+    name: 'Капитан Звездоус',
+    type: 'капитан',
+    rarity: 'капитан',
+    character: 'Строгий, но добрый штурман. Потерял звёздную карту',
+    favoriteGesture: 'Коготь',
+    fact: 'Кошкам нужно примерно в 6 раз меньше света, чем человеку, чтобы видеть.'
+  },
+  {
+    id: 'lunnaya-lapa',
+    name: 'Капитан Лунная Лапа',
+    type: 'капитан',
+    rarity: 'капитан',
+    character: 'Весёлый командир, отдаёт команды громким «Мяу!»',
+    favoriteGesture: 'Лапка',
+    fact: 'Когда кошка идёт шагом, её задние лапы ступают почти точно в следы передних.'
+  }
+];
+
 // Найти кота по его id (или undefined, если такого нет)
 function findCat(id) {
   return CATS.find(function (cat) { return cat.id === id; });
 }
 
+// Найти капитана по его id
+function findCaptain(id) {
+  return CAPTAINS.find(function (captain) { return captain.id === id; });
+}
+
 // ----- Для тестов в Node: отдаём каталог наружу -----
 if (typeof module !== 'undefined') {
-  module.exports = { CATS, findCat };
+  module.exports = { CATS, CAPTAINS, findCat, findCaptain };
 }

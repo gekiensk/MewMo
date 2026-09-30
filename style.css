@@ -309,6 +309,74 @@ button:focus-visible {
   .beacon::before { animation: none; }
 }
 
+/* ===== Потерявшийся капитан на карте ===== */
+/* Круглая кнопка с хитрым котом 😼, висит над маяком.
+   position и transform не задаём — ими двигает MapLibre. */
+.captain {
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  border: 4px solid var(--star);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--star), var(--nose));
+  box-shadow: 0 0 14px var(--star);
+  font-size: 32px;
+  line-height: 50px;
+  cursor: pointer;
+  animation: bob 2.4s ease-in-out infinite;
+}
+
+/* Корона над капитаном — нарисована рамками, как ушки у логотипа */
+.captain::before {
+  content: '';
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  width: 26px;
+  height: 12px;
+  margin-left: -13px;
+  background: var(--star);
+  border: 2px solid var(--fur);
+  border-radius: 3px 3px 2px 2px;
+  clip-path: polygon(0 100%, 0 0, 25% 55%, 50% 0, 75% 55%, 100% 0, 100% 100%);
+}
+
+.captain.captain-near {
+  scale: 1.15;
+  box-shadow: 0 0 12px var(--star), 0 0 32px var(--star), 0 0 50px var(--nose);
+}
+
+/* После проигрыша капитан отдыхает: серый, не качается, виден таймер */
+.captain.captain-resting {
+  filter: grayscale(1);
+  opacity: 0.6;
+  box-shadow: none;
+  animation: none;
+}
+
+.captain-timer {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 52px;
+  margin-left: -26px;
+  margin-top: 4px;
+  border-radius: 8px;
+  background: var(--space);
+  color: var(--fur);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.captain-timer:empty {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .captain { animation: none; }
+}
+
 /* ===== Всплывающая подсказка ===== */
 .toast {
   position: absolute;
@@ -449,6 +517,7 @@ button:focus-visible {
 .circle-forest    { background: #7EDC8A; } /* лесной — зелёный */
 .circle-city      { background: var(--star); } /* городской — жёлтый */
 .circle-legendary { background: var(--nose); } /* легендарный — розовый */
+.circle-captain   { background: linear-gradient(135deg, var(--star), var(--nose)); } /* капитан — золотой */
 .cat-circle.shy   { background: var(--space); }
 
 .cat-name {
@@ -550,6 +619,47 @@ button:focus-visible {
 .gesture-button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* ----- Помощники в бою с капитаном ----- */
+.helper-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* Кнопка-кот: нажал — выбран (aria-pressed="true"), нажал снова — нет */
+.helper-button {
+  min-height: 56px;
+  padding: 8px 14px;
+  border: 3px solid var(--fur);
+  border-radius: 18px;
+  background: var(--space);
+  color: var(--fur);
+  font-family: var(--font);
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.helper-button[aria-pressed="true"] {
+  background: var(--mint);
+  color: var(--space);
+  border-color: var(--star);
+}
+
+/* Кнопки «Помоги, <имя>!» после проигранного раунда */
+.rps-helpers.hidden,
+.screen-text.hidden {
+  display: none;
+}
+.helper-call {
+  background: var(--mint);
+}
+.helper-refuse {
+  background: var(--space);
+  color: var(--fur);
+  border: 3px solid var(--fur);
 }
 
 /* ----- «Кот найден!» ----- */
@@ -691,4 +801,11 @@ button:focus-visible {
 /* Заголовок альбома чуть меньше, чтобы «Экипаж: N из M» влезал в строку */
 .album-title {
   font-size: 26px;
+}
+
+/* Подзаголовок «Капитаны» в альбоме */
+.album-subtitle {
+  margin: 20px 0 10px;
+  color: var(--star);
+  font-size: 22px;
 }

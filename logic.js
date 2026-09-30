@@ -92,7 +92,7 @@ function pickCat(cats, random) {
 
 // Сколько звёздочек у редкости (1–3)
 function rarityStars(rarity) {
-  if (rarity === 'легендарный') return 3;
+  if (rarity === 'легендарный' || rarity === 'капитан') return 3;
   if (rarity === 'редкий') return 2;
   return 1;
 }
@@ -130,12 +130,15 @@ function catChooseGesture(favoriteGesture, random) {
 // =============================================================
 // «Поймай сигнал»
 // =============================================================
-// Сложность зависит от редкости кота:
+// Сложность зависит от редкости кота (у капитанов rarity = 'капитан'):
 // zoneWidth — ширина зелёной зоны (доля шкалы от 0 до 1),
 // speed — сколько «шкал» огонёк пробегает за секунду.
 function signalSettings(rarity, reducedMotion) {
   let settings;
-  if (rarity === 'легендарный') {
+  if (rarity === 'капитан') {
+    // у капитанов зона ещё уже, чем у легендарных
+    settings = { zoneWidth: 0.08, speed: 1.6 };
+  } else if (rarity === 'легендарный') {
     settings = { zoneWidth: 0.12, speed: 1.6 };
   } else if (rarity === 'редкий') {
     settings = { zoneWidth: 0.2, speed: 1.2 };
@@ -196,7 +199,8 @@ function gpsErrorAction(gpsWorked, permissionDenied) {
 //   captains: { … },            // капитаны в экипаже (так же: id → встречи)
 //   fish: 12,                   // космические рыбки
 //   parts: 3,                   // детали корабля
-//   beaconCooldowns: { … }      // маяки на перезарядке: id → до какого времени (мс)
+//   beaconCooldowns: { … },     // маяки на перезарядке: id → до какого времени (мс)
+//   nextCaptainAt: 0            // раньше этого времени (мс) новый капитан не появится
 // }
 
 const SAVE_KEY = 'mewmo-save-v1'; // под этим именем лежит сохранение
@@ -206,7 +210,7 @@ const REPEAT_CAT_FISH = 3;         // награда за повторную в�
 
 // Пустое сохранение: игра с нуля
 function emptySave() {
-  return { crew: {}, captains: {}, fish: 0, parts: 0, beaconCooldowns: {} };
+  return { crew: {}, captains: {}, fish: 0, parts: 0, beaconCooldowns: {}, nextCaptainAt: 0 };
 }
 
 // Целое число 0 или больше? (для проверки испорченных данных)
@@ -244,6 +248,7 @@ function cleanSave(data) {
   save.fish = isCount(data.fish) ? data.fish : 0;
   save.parts = isCount(data.parts) ? data.parts : 0;
   save.beaconCooldowns = cleanCounts(data.beaconCooldowns, 0);
+  save.nextCaptainAt = isCount(data.nextCaptainAt) ? data.nextCaptainAt : 0;
   return save;
 }
 
@@ -692,6 +697,153 @@ function pickCatForPlace(cats, options, random) {
   return choices[Math.floor(random() * choices.length)];
 }
 
+// =============================================================
+// Бой «Лапка, Коготь, Клубок» (для обычных котов и для капитанов)
+// =============================================================
+// Состояние боя — объект:
+//   winsNeeded  — до скольких побед играем (коты — 2, капитаны — 3);
+//   playerWins, catWins — счёт;
+//   helpersLeft — id помощников, которые ещё могут дать «вторую попытку»;
+//   pendingLoss — true, если раунд проигран и игрок решает, позвать ли
+//                 помощника (очко сопернику пока не засчитано);
+//   finished    — '' (идёт), 'победа' или 'поражение'.
+// Функции ниже не меняют старый объект, а возвращают новый.
+
+function createBattle(winsNeeded, helperIds) {
+  return {
+    winsNeeded: winsNeeded,
+    playerWins: 0,
+    catWins: 0,
+    helpersLeft: (helperIds || []).slice(), // копия списка
+    pendingLoss: false,
+    finished: ''
+  };
+}
+
+// Проверяет, не закончился ли бой
+function battleCheckFinished(battle) {
+  if (battle.playerWins >= battle.winsNeeded) battle.finished = 'победа';
+  else if (battle.catWins >= battle.winsNeeded) battle.finished = 'поражение';
+  return battle;
+}
+
+// Итог раунда: result — 'победа', 'поражение' или 'ничья' (из roundResult)
+function battleRound(state, result) {
+  const battle = Object.assign({}, state, { helpersLeft: state.helpersLeft.slice() });
+  if (battle.finished || battle.pendingLoss) return battle; // бой уже кончился или ждём решения
+  if (result === 'победа') {
+    battle.playerWins = battle.playerWins + 1;
+  } else if (result === 'поражение') {
+    if (battle.helpersLeft.length > 0) {
+      // Есть помощник — очко пока не засчитываем, игрок решит сам
+      battle.pendingLoss = true;
+    } else {
+      battle.catWins = battle.catWins + 1;
+    }
+  }
+  return battleCheckFinished(battle);
+}
+
+// «Помоги, <имя>!» — помощник тратит свою вторую попытку,
+// проигранный раунд не считается и переигрывается
+function battleUseHelper(state, helperId) {
+  const battle = Object.assign({}, state, { helpersLeft: state.helpersLeft.slice() });
+  const index = battle.helpersLeft.indexOf(helperId);
+  if (!battle.pendingLoss || index === -1) return battle;
+  battle.helpersLeft.splice(index, 1);
+  battle.pendingLoss = false;
+  return battle;
+}
+
+// Игрок решил не звать помощника — очко сопернику
+function battleAcceptLoss(state) {
+  const battle = Object.assign({}, state, { helpersLeft: state.helpersLeft.slice() });
+  if (!battle.pendingLoss) return battle;
+  battle.pendingLoss = false;
+  battle.catWins = battle.catWins + 1;
+  return battleCheckFinished(battle);
+}
+
+// =============================================================
+// Потерявшиеся капитаны (боссы)
+// =============================================================
+const CAPTAIN_MIN_CREW = 3;                  // капитаны приходят, когда в экипаже 3+ кота
+const CAPTAIN_LIFETIME = 60 * 60 * 1000;     // капитан ждёт у маяка 1 час
+const CAPTAIN_NEXT_DELAY = 30 * 60 * 1000;   // после победы следующий — через 30 минут
+const CAPTAIN_RETRY_DELAY = 2 * 60 * 1000;   // после проигрыша — ещё раз через 2 минуты
+const CAPTAIN_WINS_NEEDED = 3;               // бой с капитаном — до трёх побед
+const MAX_HELPERS = 2;                       // помощников — не больше двух
+const CAPTAIN_PARTS = 3;                     // награда за капитана — 3 детали
+
+// Капитан (объект на карте) ещё ждёт игрока?
+// captain — { captainId, beaconId, expiresAt, retryAt } или null
+function isCaptainActive(captain, now) {
+  return !!captain && now < captain.expiresAt;
+}
+
+// Можно ли сейчас позвать нового капитана.
+// info: { crewCount, captain, nextCaptainAt, beaconCount, now }
+function canSpawnCaptain(info) {
+  if (info.crewCount < CAPTAIN_MIN_CREW) return false;     // экипаж маловат
+  if (isCaptainActive(info.captain, info.now)) return false; // один уже ждёт
+  if (info.now < info.nextCaptainAt) return false;         // после победы — пауза
+  return info.beaconCount > 0;                             // капитан ждёт у маяка
+}
+
+// Какой капитан придёт: сначала те, кого ещё нет в экипаже;
+// если все уже в экипаже — любой (можно встретиться снова).
+function chooseCaptain(captains, save, random) {
+  const notMet = captains.filter(function (c) { return !((save.captains[c.id] || 0) > 0); });
+  const choices = notMet.length > 0 ? notMet : captains;
+  return choices[Math.floor(random() * choices.length)];
+}
+
+// Новый капитан у маяка beaconId
+function makeCaptain(captainId, beaconId, now) {
+  return { captainId: captainId, beaconId: beaconId, expiresAt: now + CAPTAIN_LIFETIME, retryAt: 0 };
+}
+
+// Игрок проиграл капитану: без наказания, но следующая попытка — через 2 минуты.
+// Капитан остаётся до конца своего часа.
+function captainAfterLoss(captain, now) {
+  return Object.assign({}, captain, { retryAt: now + CAPTAIN_RETRY_DELAY });
+}
+
+// Сколько мс ждать до следующей попытки (0 — можно играть)
+function captainRetryLeft(captain, now) {
+  return Math.max(0, captain.retryAt - now);
+}
+
+// Игрок победил капитана: капитан вступает в экипаж, награда — 3 детали,
+// следующий капитан — не раньше чем через 30 минут.
+function applyCaptainWin(save, captainId, now) {
+  const result = copySave(save);
+  const isNew = !((save.captains[captainId] || 0) > 0);
+  result.captains[captainId] = (result.captains[captainId] || 0) + 1;
+  result.parts = result.parts + CAPTAIN_PARTS;
+  result.nextCaptainAt = now + CAPTAIN_NEXT_DELAY;
+  return { save: result, reward: { isNew: isNew, parts: CAPTAIN_PARTS } };
+}
+
+// Кого можно взять в помощники: все из экипажа (коты и капитаны),
+// кроме самого капитана, с которым идёт бой. list — каталог(и).
+function availableHelpers(save, list, exceptId) {
+  return list.filter(function (cat) {
+    const met = (save.crew[cat.id] || 0) + (save.captains[cat.id] || 0);
+    return met > 0 && cat.id !== exceptId;
+  });
+}
+
+// Выбор помощников: нажали на кота — добавляем (если мест ещё нет — не
+// добавляем), нажали снова — убираем. Возвращает новый список id.
+function toggleHelper(selected, catId) {
+  if (selected.includes(catId)) {
+    return selected.filter(function (id) { return id !== catId; });
+  }
+  if (selected.length >= MAX_HELPERS) return selected.slice();
+  return selected.concat([catId]);
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -710,6 +862,11 @@ if (typeof module !== 'undefined') {
     beaconTitle, beaconReward, beaconCooldownLeft, startBeaconCooldown,
     applyBeaconReward, formatTimeLeft,
     TERRAIN_RADIUS, PLACE_TYPE_CHANCE, TERRAIN_CAT_TYPE, terrainKind,
-    distanceToGeometry, terrainNear, pickCatForPlace
+    distanceToGeometry, terrainNear, pickCatForPlace,
+    createBattle, battleRound, battleUseHelper, battleAcceptLoss,
+    CAPTAIN_MIN_CREW, CAPTAIN_LIFETIME, CAPTAIN_NEXT_DELAY, CAPTAIN_RETRY_DELAY,
+    CAPTAIN_WINS_NEEDED, MAX_HELPERS, CAPTAIN_PARTS,
+    isCaptainActive, canSpawnCaptain, chooseCaptain, makeCaptain, captainAfterLoss,
+    captainRetryLeft, applyCaptainWin, availableHelpers, toggleHelper
   };
 }

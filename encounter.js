@@ -2,19 +2,24 @@
 // MewMo — окно «Знакомство с котом» (главная мини-игра)
 // =============================================================
 // Порядок экранов:
-//   1. «Кот рядом!»           — кто сидит в капсуле;
-//   2. «Поймай сигнал»        — попал в зелёную зону → подсказка;
-//   3. «Лапка, Коготь, Клубок» — играем до двух побед;
-//   4. «Кот найден!»          — если выиграл;
-//   5. «Кот смутился…»        — если проиграл (без наказания).
+//   1. «Кот рядом!»           — кто сидит в капсуле
+//                               (или «Потерявшийся капитан!» у маяка);
+//   2. «Помощники»            — только для капитанов: выбери до двух котов
+//                               из экипажа, каждый даст «вторую попытку»;
+//   3. «Поймай сигнал»        — попал в зелёную зону → подсказка;
+//   4. «Лапка, Коготь, Клубок» — до двух побед (с капитаном — до трёх);
+//   5. «Кот найден!»          — если выиграл;
+//   6. «Ой!»                  — если проиграл (без наказания).
 //
 // Правила и расчёты берутся из logic.js, а когда игра закончилась,
-// этот файл вызывает функции из game.js:
-//   catchCat(capsule)  — забрать кота в экипаж (или получить рыбок за повтор);
-//   makeCatShy(capsule) — кот смутился, капсула минуту не открывается.
+// этот файл вызывает функции из game.js и captains.js:
+//   catchCat(capsule)      — забрать кота в экипаж (или получить рыбок за повтор);
+//   makeCatShy(capsule)    — кот смутился, капсула минуту не открывается;
+//   captainWon(captain)    — капитан вступает в экипаж;
+//   captainLost(captain)   — капитан ждёт, следующая попытка через 2 минуты.
 
 // ----- Настройки -----
-const WINS_NEEDED = 2;         // сколько побед нужно в «Лапка, Коготь, Клубок»
+const WINS_NEEDED = 2;         // сколько побед нужно в «Лапка, Коготь, Клубок» с обычным котом
 const ROUND_PAUSE = 1400;      // пауза (мс) перед финальным экраном, чтобы прочитать итог раунда
 
 // Значки жестов
@@ -30,8 +35,19 @@ const WIN_REASONS = {
   'Клубок': 'Лапка запуталась в Клубке'
 };
 
+// Число побед словом: «Играем до двух побед!»
+const WINS_WORDS = { 2: 'двух', 3: 'трёх' };
+
 // ----- Состояние мини-игры -----
-// Пока окно закрыто — null. Когда открыто — объект с данными встречи.
+// Пока окно закрыто — null. Когда открыто — объект с данными встречи:
+//   kind       — 'capsule' (кот из капсулы) или 'captain' (капитан у маяка);
+//   capsule    — капсула (для обычного кота);
+//   captain    — капитан на карте (для капитана);
+//   cat        — кот или капитан из cats.js;
+//   hintEarned — получил ли игрок подсказку в «Поймай сигнал»;
+//   helpers    — id выбранных помощников;
+//   battle     — состояние боя (createBattle из logic.js);
+//   signal     — данные шкалы «Поймай сигнал».
 let activeEncounter = null;
 
 // ----- Находим элементы окна -----
@@ -45,11 +61,14 @@ const signalNext = document.getElementById('signal-next');
 const rpsHint = document.getElementById('rps-hint');
 const rpsScore = document.getElementById('rps-score');
 const rpsRound = document.getElementById('rps-round');
+const rpsHelpers = document.getElementById('rps-helpers');
 const gestureButtons = document.querySelectorAll('.gesture-button');
+const helperList = document.getElementById('helper-list');
 
 // ----- Кнопки окна -----
 document.getElementById('encounter-close').addEventListener('click', closeButtonPressed);
-document.getElementById('intro-next').addEventListener('click', startSignal);
+document.getElementById('intro-next').addEventListener('click', introNext);
+document.getElementById('helpers-go').addEventListener('click', startSignal);
 signalButton.addEventListener('click', catchSignal);
 signalNext.addEventListener('click', startRps);
 document.getElementById('win-take').addEventListener('click', takeCat);
@@ -72,22 +91,42 @@ document.addEventListener('keydown', function (event) {
 // =============================================================
 // Открыть и закрыть окно
 // =============================================================
+// Обычный кот из капсулы (вызывается из game.js)
 function openEncounter(capsule) {
+  startEncounter({ kind: 'capsule', capsule: capsule, captain: null, cat: capsule.cat });
+}
+
+// Капитан у маяка (вызывается из captains.js)
+function openCaptainEncounter(captain, captainData) {
+  startEncounter({ kind: 'captain', capsule: null, captain: captain, cat: captainData });
+}
+
+function startEncounter(target) {
+  const isCaptain = target.kind === 'captain';
   activeEncounter = {
-    capsule: capsule,
-    cat: capsule.cat,
-    hintEarned: false, // получил ли игрок подсказку в «Поймай сигнал»
-    playerWins: 0,
-    catWins: 0,
-    signal: null,      // данные шкалы «Поймай сигнал»
-    finished: ''       // '', 'победа' или 'поражение'
+    kind: target.kind,
+    capsule: target.capsule,
+    captain: target.captain,
+    cat: target.cat,
+    hintEarned: false,
+    helpers: [],
+    battle: createBattle(isCaptain ? CAPTAIN_WINS_NEEDED : WINS_NEEDED, []),
+    signal: null
   };
 
   // Заполняем экран «Кот рядом!»
-  const cat = capsule.cat;
-  setCircleColor(document.getElementById('intro-circle'), cat);
+  const cat = target.cat;
+  const circle = document.getElementById('intro-circle');
+  setCircleColor(circle, cat);
+  circle.textContent = catFace(cat);
+  document.getElementById('intro-title').textContent = isCaptain ? 'Потерявшийся капитан!' : 'Кот рядом!';
   document.getElementById('intro-name').textContent = cat.name;
   document.getElementById('intro-stars').textContent = starsText(cat.rarity);
+  const introText = document.getElementById('intro-text');
+  introText.textContent = isCaptain
+    ? 'Капитан ищет свой корабль. Выиграй три раунда — и он вступит в экипаж!'
+    : '';
+  introText.classList.toggle('hidden', !isCaptain);
 
   encounterWindow.classList.remove('hidden');
   showScreen('screen-intro');
@@ -101,13 +140,14 @@ function closeEncounter() {
 }
 
 // Кнопка ✕. Что будет, зависит от того, чем закончилась игра:
-// выиграл — кот всё равно твой; проиграл — кот смущается;
-// игра не закончена — просто закрываем, капсулу можно открыть снова.
+// выиграл — кот всё равно твой; проиграл — как кнопка «Хорошо»;
+// игра не закончена — просто закрываем, можно открыть снова.
 function closeButtonPressed() {
   if (!activeEncounter) return;
-  if (activeEncounter.finished === 'победа') {
+  const finished = activeEncounter.battle.finished;
+  if (finished === 'победа') {
     takeCat();
-  } else if (activeEncounter.finished === 'поражение') {
+  } else if (finished === 'поражение') {
     catGotShy();
   } else {
     closeEncounter();
@@ -119,6 +159,61 @@ function showScreen(id) {
   for (let i = 0; i < screens.length; i++) {
     screens[i].classList.toggle('hidden', screens[i].id !== id);
   }
+}
+
+// Кнопка «Познакомиться» / «Сразиться»: капитану сначала выбираем помощников
+function introNext() {
+  if (activeEncounter.kind === 'captain') {
+    showHelpers();
+  } else {
+    startSignal();
+  }
+}
+
+// =============================================================
+// Помощники (только для капитанов)
+// =============================================================
+function showHelpers() {
+  // Все коты и капитаны из экипажа, кроме этого капитана (logic.js)
+  const candidates = availableHelpers(save, CATS.concat(CAPTAINS), activeEncounter.cat.id);
+  helperList.textContent = '';
+
+  if (candidates.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'screen-text';
+    empty.textContent = 'В экипаже пока некому помочь. Ничего — справишься сам!';
+    helperList.appendChild(empty);
+  }
+
+  for (let i = 0; i < candidates.length; i++) {
+    const cat = candidates[i];
+    const button = document.createElement('button');
+    button.className = 'helper-button';
+    button.dataset.catId = cat.id;
+    button.setAttribute('aria-pressed', 'false');
+    button.textContent = catFace(cat) + ' ' + cat.name;
+    button.addEventListener('click', function () {
+      // toggleHelper из logic.js: не больше двух помощников
+      activeEncounter.helpers = toggleHelper(activeEncounter.helpers, cat.id);
+      updateHelperButtons();
+    });
+    helperList.appendChild(button);
+  }
+
+  updateHelperButtons();
+  showScreen('screen-helpers');
+  document.getElementById('helpers-go').focus();
+}
+
+// Выбранные помощники подсвечены, остальные — обычные
+function updateHelperButtons() {
+  const buttons = helperList.querySelectorAll('.helper-button');
+  for (let i = 0; i < buttons.length; i++) {
+    const chosen = activeEncounter.helpers.includes(buttons[i].dataset.catId);
+    buttons[i].setAttribute('aria-pressed', chosen ? 'true' : 'false');
+  }
+  document.getElementById('helpers-count').textContent =
+    'Выбрано: ' + activeEncounter.helpers.length + ' из ' + MAX_HELPERS;
 }
 
 // =============================================================
@@ -180,7 +275,7 @@ function catchSignal() {
 
   if (hit) {
     activeEncounter.hintEarned = true;
-    signalResult.textContent = 'Сигнал пойман! Подсказка: этот кот любит ' +
+    signalResult.textContent = 'Сигнал пойман! Подсказка: ' + cat.name + ' любит ' +
       GESTURE_ICONS[cat.favoriteGesture] + ' ' + GESTURE_ACCUSATIVE[cat.favoriteGesture] + '.';
   } else {
     signalResult.textContent = 'Сигнал ускользнул. Ничего страшного — играем дальше!';
@@ -196,8 +291,9 @@ function catchSignal() {
 // =============================================================
 function startRps() {
   const cat = activeEncounter.cat;
-  activeEncounter.playerWins = 0;
-  activeEncounter.catWins = 0;
+  const winsNeeded = activeEncounter.battle.winsNeeded;
+  // Бой начинается заново, с выбранными помощниками
+  activeEncounter.battle = createBattle(winsNeeded, activeEncounter.helpers);
 
   if (activeEncounter.hintEarned) {
     rpsHint.textContent = 'Подсказка: ' + cat.name + ' любит ' +
@@ -207,7 +303,9 @@ function startRps() {
     rpsHint.classList.add('hidden');
   }
 
+  document.getElementById('rps-goal').textContent = 'Играем до ' + WINS_WORDS[winsNeeded] + ' побед!';
   rpsRound.textContent = 'Выбери жест!';
+  hideHelperCalls();
   setGestureButtonsEnabled(true);
   updateScore();
   showScreen('screen-rps');
@@ -217,6 +315,8 @@ function playRound(playerGesture) {
   const cat = activeEncounter.cat;
   const catGesture = catChooseGesture(cat.favoriteGesture, Math.random);
   const result = roundResult(playerGesture, catGesture);
+  activeEncounter.battle = battleRound(activeEncounter.battle, result); // logic.js
+  const battle = activeEncounter.battle;
 
   // Что выбрали оба
   let text = 'Ты: ' + GESTURE_ICONS[playerGesture] + ' ' + playerGesture +
@@ -225,26 +325,76 @@ function playRound(playerGesture) {
   if (result === 'ничья') {
     text = text + 'Ничья — переигрываем!';
   } else if (result === 'победа') {
-    activeEncounter.playerWins = activeEncounter.playerWins + 1;
     text = text + WIN_REASONS[playerGesture] + '. Очко тебе!';
+  } else if (battle.pendingLoss) {
+    text = text + WIN_REASONS[catGesture] + '. Позовёшь помощника?';
   } else {
-    activeEncounter.catWins = activeEncounter.catWins + 1;
-    text = text + WIN_REASONS[catGesture] + '. Очко коту!';
+    text = text + WIN_REASONS[catGesture] + '. Очко ' + (activeEncounter.kind === 'captain' ? 'капитану!' : 'коту!');
   }
 
   rpsRound.textContent = text;
   updateScore();
 
-  // Кто-то набрал две победы — игра окончена
-  if (activeEncounter.playerWins >= WINS_NEEDED) {
-    finishRps('победа');
-  } else if (activeEncounter.catWins >= WINS_NEEDED) {
-    finishRps('поражение');
+  if (battle.pendingLoss) {
+    showHelperCalls();
+  } else if (battle.finished) {
+    finishRps(battle.finished);
+  }
+}
+
+// Раунд проигран, но есть помощники: показываем кнопки «Помоги, <имя>!»
+// и «Не надо». Жесты пока нажимать нельзя.
+function showHelperCalls() {
+  setGestureButtonsEnabled(false);
+  rpsHelpers.textContent = '';
+  const helpersLeft = activeEncounter.battle.helpersLeft;
+  for (let i = 0; i < helpersLeft.length; i++) {
+    const helper = findCat(helpersLeft[i]) || findCaptain(helpersLeft[i]);
+    const button = document.createElement('button');
+    button.className = 'big-button helper-call';
+    button.textContent = 'Помоги, ' + helper.name + '!';
+    button.addEventListener('click', function () {
+      useHelper(helper);
+    });
+    rpsHelpers.appendChild(button);
+  }
+  const refuse = document.createElement('button');
+  refuse.className = 'big-button helper-refuse';
+  refuse.textContent = 'Не надо, играем дальше';
+  refuse.addEventListener('click', acceptLoss);
+  rpsHelpers.appendChild(refuse);
+  rpsHelpers.classList.remove('hidden');
+  rpsHelpers.querySelector('button').focus();
+}
+
+function hideHelperCalls() {
+  rpsHelpers.textContent = '';
+  rpsHelpers.classList.add('hidden');
+}
+
+// Помощник дал вторую попытку: раунд не считается, переигрываем
+function useHelper(helper) {
+  activeEncounter.battle = battleUseHelper(activeEncounter.battle, helper.id);
+  rpsRound.textContent = helper.name + ' помогает! Раунд не считается — переигрываем.';
+  hideHelperCalls();
+  setGestureButtonsEnabled(true);
+  updateScore();
+}
+
+// Игрок отказался от помощи: очко сопернику
+function acceptLoss() {
+  activeEncounter.battle = battleAcceptLoss(activeEncounter.battle);
+  rpsRound.textContent = 'Очко ' + (activeEncounter.kind === 'captain' ? 'капитану.' : 'коту.');
+  hideHelperCalls();
+  updateScore();
+  if (activeEncounter.battle.finished) {
+    finishRps(activeEncounter.battle.finished);
+  } else {
+    setGestureButtonsEnabled(true);
   }
 }
 
 function finishRps(outcome) {
-  activeEncounter.finished = outcome;
   setGestureButtonsEnabled(false); // пока ждём, жесты нажимать нельзя
 
   // Небольшая пауза, чтобы игрок успел прочитать, чем кончился раунд
@@ -255,15 +405,18 @@ function finishRps(outcome) {
     if (outcome === 'победа') {
       showWinScreen();
     } else {
-      showScreen('screen-lose');
-      document.getElementById('lose-ok').focus();
+      showLoseScreen();
     }
   }, ROUND_PAUSE);
 }
 
 function updateScore() {
-  rpsScore.textContent = 'Счёт: ты ' + activeEncounter.playerWins +
-    ' — ' + activeEncounter.catWins + ' ' + activeEncounter.cat.name;
+  const battle = activeEncounter.battle;
+  let text = 'Счёт: ты ' + battle.playerWins + ' — ' + battle.catWins + ' ' + activeEncounter.cat.name;
+  if (activeEncounter.kind === 'captain') {
+    text = text + '. Помощников: ' + battle.helpersLeft.length;
+  }
+  rpsScore.textContent = text;
 }
 
 function setGestureButtonsEnabled(enabled) {
@@ -277,12 +430,23 @@ function setGestureButtonsEnabled(enabled) {
 // =============================================================
 function showWinScreen() {
   const cat = activeEncounter.cat;
+  const isCaptain = activeEncounter.kind === 'captain';
   // Знакомый кот уже в экипаже — он просто рад встрече и дарит рыбок.
   // isInCrew — из logic.js, save — сохранение из game.js.
-  const known = isInCrew(save, cat.id);
-  document.getElementById('win-title').textContent = known ? 'Снова встреча!' : 'Кот найден!';
-  document.getElementById('win-take').textContent = known ? 'Ура! Забрать ' + REPEAT_CAT_FISH + ' 🐟' : 'Забрать в экипаж';
-  setCircleColor(document.getElementById('win-circle'), cat);
+  const known = isCaptain ? (save.captains[cat.id] || 0) > 0 : isInCrew(save, cat.id);
+
+  let title = known ? 'Снова встреча!' : 'Кот найден!';
+  let button = known ? 'Ура! Забрать ' + REPEAT_CAT_FISH + ' 🐟' : 'Забрать в экипаж';
+  if (isCaptain) {
+    title = known ? 'Снова победа!' : 'Капитан в экипаже!';
+    button = 'Ура! Забрать ' + CAPTAIN_PARTS + ' ' + pluralRu(CAPTAIN_PARTS, 'деталь', 'детали', 'деталей') + ' 🔩';
+  }
+  document.getElementById('win-title').textContent = title;
+  document.getElementById('win-take').textContent = button;
+
+  const circle = document.getElementById('win-circle');
+  setCircleColor(circle, cat);
+  circle.textContent = catFace(cat);
   document.getElementById('win-name').textContent = cat.name;
   document.getElementById('win-stars').textContent = starsText(cat.rarity) + ' ' + cat.rarity;
   document.getElementById('win-info').textContent = 'Тип: ' + cat.type + '. Характер: ' + cat.character + '.';
@@ -291,27 +455,49 @@ function showWinScreen() {
   document.getElementById('win-take').focus();
 }
 
+function showLoseScreen() {
+  const loseText = document.getElementById('lose-text');
+  if (activeEncounter.kind === 'captain') {
+    loseText.textContent = 'Капитан пока сильнее. Он подождёт у маяка — попробуй ещё раз через 2 минуты!';
+  } else {
+    loseText.textContent = 'Кот смутился и спрятался. Попробуй ещё раз через минуту!';
+  }
+  showScreen('screen-lose');
+  document.getElementById('lose-ok').focus();
+}
+
 // Кнопка «Забрать в экипаж»
 function takeCat() {
-  const capsule = activeEncounter.capsule;
+  const encounter = activeEncounter;
   closeEncounter();
-  catchCat(capsule); // функция из game.js
+  if (encounter.kind === 'captain') {
+    captainWon(encounter.captain); // функция из captains.js
+  } else {
+    catchCat(encounter.capsule);   // функция из game.js
+  }
 }
 
 // Кнопка «Хорошо» после проигрыша
 function catGotShy() {
-  const capsule = activeEncounter.capsule;
+  const encounter = activeEncounter;
   closeEncounter();
-  makeCatShy(capsule); // функция из game.js
+  if (encounter.kind === 'captain') {
+    captainLost(encounter.captain); // функция из captains.js
+  } else {
+    makeCatShy(encounter.capsule);  // функция из game.js
+  }
 }
 
 // =============================================================
 // Помощники для внешнего вида
 // =============================================================
-// Цвет круга: легендарный — розовый, иначе по типу кота
+// Цвет круга: капитан — золотой, легендарный — розовый, иначе по типу кота
 function setCircleColor(element, cat) {
-  element.classList.remove('circle-water', 'circle-forest', 'circle-city', 'circle-legendary');
-  if (cat.rarity === 'легендарный') {
+  element.classList.remove('circle-water', 'circle-forest', 'circle-city',
+    'circle-legendary', 'circle-captain', 'circle-twilight');
+  if (cat.type === 'капитан') {
+    element.classList.add('circle-captain');
+  } else if (cat.rarity === 'легендарный') {
     element.classList.add('circle-legendary');
   } else if (cat.type === 'водный') {
     element.classList.add('circle-water');
@@ -319,9 +505,16 @@ function setCircleColor(element, cat) {
     element.classList.add('circle-forest');
   } else if (cat.type === 'городской') {
     element.classList.add('circle-city');
+  } else if (cat.type === 'сумеречный') {
+    element.classList.add('circle-twilight');
   } else {
     element.classList.add('circle-legendary');
   }
+}
+
+// Мордочка в круге: у капитанов — хитрый кот 😼, у остальных — 😺
+function catFace(cat) {
+  return cat.type === 'капитан' ? '😼' : '😺';
 }
 
 // Звёздочки редкости: ★☆☆, ★★☆ или ★★★

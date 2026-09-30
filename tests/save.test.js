@@ -26,7 +26,8 @@ test('записанное сохранение читается обратно 
   const storage = fakeStorage();
   const save = {
     crew: { bul: 2, moh: 1 }, captains: { cap: 1 },
-    fish: 12, parts: 3, beaconCooldowns: { 'poi-5': 1700000000000 }
+    fish: 12, parts: 3, beaconCooldowns: { 'poi-5': 1700000000000 },
+    nextCaptainAt: 1700000000000
   };
   assert.strictEqual(logic.writeSave(storage, save), true);
   assert.ok(logic.SAVE_KEY in storage.data, 'ключ ' + logic.SAVE_KEY);
@@ -55,7 +56,8 @@ test('испорченные поля заменяются, правильные
     fish: -5,
     parts: 'три',
     captains: [1, 2],
-    beaconCooldowns: { a: 100, b: null }
+    beaconCooldowns: { a: 100, b: null },
+    nextCaptainAt: 'скоро'
   });
   const save = logic.loadSave(fakeStorage({ [logic.SAVE_KEY]: text }));
   assert.deepStrictEqual(save.crew, { bul: 2 });
@@ -63,6 +65,7 @@ test('испорченные поля заменяются, правильные
   assert.strictEqual(save.parts, 0);
   assert.deepStrictEqual(save.captains, {});
   assert.deepStrictEqual(save.beaconCooldowns, { a: 100 });
+  assert.strictEqual(save.nextCaptainAt, 0);
 });
 
 test('новый кот: в экипаж и 1 деталь корабля', function () {

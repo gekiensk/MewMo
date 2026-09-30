@@ -6,6 +6,7 @@
 //   • сеткой — все коты каталога: найденный — цветной круг, имя
 //     и звёзды, ненайденный — серый силуэт и «???»;
 //   • нажатие на найденного кота открывает его карточку;
+//   • отдельный ряд «Капитаны» — побеждённые капитаны;
 //   • внизу — маленькая кнопка «Начать заново» (с подтверждением).
 //
 // Данные берутся из сохранения save (оно живёт в game.js), а расчёты —
@@ -92,10 +93,23 @@ function renderAlbum() {
     albumGrid.appendChild(makeAlbumCell(CATS[i], save.crew));
   }
 
-  // Ряд «Капитаны» (появляется на этапе 6, если капитаны есть в каталоге)
-  if (typeof renderCaptainsRow === 'function') {
-    renderCaptainsRow();
+  // Отдельный ряд «Капитаны»
+  document.getElementById('album-captains-title').textContent =
+    'Капитаны: ' + countMet(save.captains, CAPTAINS) + ' из ' + CAPTAINS.length;
+  const captainsGrid = document.getElementById('album-captains');
+  captainsGrid.textContent = '';
+  for (let i = 0; i < CAPTAINS.length; i++) {
+    captainsGrid.appendChild(makeAlbumCell(CAPTAINS[i], save.captains));
   }
+}
+
+// Сколько из списка list уже встречено (есть в словаре counts)
+function countMet(counts, list) {
+  let count = 0;
+  for (let i = 0; i < list.length; i++) {
+    if ((counts[list[i].id] || 0) > 0) count = count + 1;
+  }
+  return count;
 }
 
 // Одна клетка альбома. crewCounts — словарь «id → сколько раз встречен».
@@ -109,7 +123,7 @@ function makeAlbumCell(cat, crewCounts) {
   const circle = document.createElement('div');
   circle.className = 'mini-circle';
   const face = document.createElement('span');
-  face.textContent = '😺';
+  face.textContent = catFace(cat); // функция из encounter.js
   circle.appendChild(face);
 
   const name = document.createElement('span');
@@ -144,7 +158,9 @@ function makeAlbumCell(cat, crewCounts) {
 // =============================================================
 // timesMet — сколько раз игрок встретил этого кота
 function showAlbumCat(cat, timesMet) {
-  setCircleColor(document.getElementById('album-cat-circle'), cat);
+  const circle = document.getElementById('album-cat-circle');
+  setCircleColor(circle, cat);
+  circle.textContent = catFace(cat);
   document.getElementById('album-cat-name').textContent = cat.name;
   document.getElementById('album-cat-stars').textContent = starsText(cat.rarity) + ' ' + cat.rarity;
   document.getElementById('album-cat-info').textContent =

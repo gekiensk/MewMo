@@ -1189,3 +1189,12 @@ body.mode-home .toast {
 .quest-done {
   opacity: 0.7;
 }
+
+/* ===== Окно «Как разрешить геолокацию» ===== */
+/* Выше окон игры, но ниже настроек */
+.overlay.gps-help {
+  z-index: 1550;
+}
+.help-steps {
+  font-size: 15px;
+}

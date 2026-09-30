@@ -179,9 +179,9 @@ test('у редких котов зона уже и огонёк быстрее'
 });
 
 // ----- Ошибки GPS -----
-test('демо-режим — только если GPS не заработал ни разу или нет разрешения', function () {
-  // GPS ещё ни разу не работал
-  assert.strictEqual(logic.gpsErrorAction(false, false), 'демо');
+test('ошибка GPS: демо только без разрешения, до первых координат — «ищем»', function () {
+  // GPS ещё ни разу не работал — продолжаем искать (демо включит таймер через 45 с)
+  assert.strictEqual(logic.gpsErrorAction(false, false), 'ищем');
   // нет разрешения — всегда демо
   assert.strictEqual(logic.gpsErrorAction(false, true), 'демо');
   assert.strictEqual(logic.gpsErrorAction(true, true), 'демо');

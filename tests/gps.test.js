@@ -26,3 +26,53 @@ test('время журнала — часы:минуты:секунды', funct
   assert.strictEqual(logic.formatClock(new Date(2026, 8, 30, 9, 5, 7)), '09:05:07');
   assert.strictEqual(logic.formatClock(new Date(2026, 8, 30, 23, 59, 59)), '23:59:59');
 });
+
+// ----- «Сторож» -----
+const SEC = 1000;
+function watchdog(changes) {
+  return logic.shouldRestartGps(Object.assign({
+    walking: true, visible: true, lastFixAt: 0, lastStartAt: 0, now: 100 * SEC
+  }, changes));
+}
+
+test('сторож: нет координат 30 секунд — перезапуск', function () {
+  assert.strictEqual(watchdog({ lastFixAt: 71 * SEC, lastStartAt: 10 * SEC }), false); // 29 с
+  assert.strictEqual(watchdog({ lastFixAt: 70 * SEC, lastStartAt: 10 * SEC }), true);  // 30 с
+});
+
+test('сторож: после перезапуска снова ждёт 30 секунд', function () {
+  assert.strictEqual(watchdog({ lastFixAt: 0, lastStartAt: 80 * SEC }), false);
+  assert.strictEqual(watchdog({ lastFixAt: 0, lastStartAt: 70 * SEC }), true);
+});
+
+test('сторож не трогает GPS дома, когда игра свёрнута и когда нет разрешения', function () {
+  assert.strictEqual(watchdog({ walking: false }), false);
+  assert.strictEqual(watchdog({ visible: false }), false);
+  assert.strictEqual(watchdog({ permissionDenied: true }), false);
+  assert.strictEqual(watchdog({ permissionDenied: false }), true);
+});
+
+// ----- Переход в демо-режим -----
+function search(changes) {
+  return logic.gpsSearchState(Object.assign({
+    permissionDenied: false, hasFix: false, searchStartedAt: 0, now: 0
+  }, changes));
+}
+
+test('до первых координат ищем 45 секунд, потом — демо-режим', function () {
+  assert.strictEqual(search({ now: 0 }), 'ищем');
+  assert.strictEqual(search({ now: 44 * SEC }), 'ищем');
+  assert.strictEqual(search({ now: 45 * SEC }), 'демо');
+  assert.strictEqual(search({ searchStartedAt: 100 * SEC, now: 120 * SEC }), 'ищем');
+});
+
+test('нет разрешения — сразу; координаты были — всё работает', function () {
+  assert.strictEqual(search({ permissionDenied: true }), 'нет разрешения');
+  assert.strictEqual(search({ hasFix: true, now: 999 * SEC }), 'работает');
+});
+
+test('ошибка TIMEOUT до первых координат не включает демо-режим сразу', function () {
+  assert.strictEqual(logic.gpsErrorAction(false, false), 'ищем');
+  assert.strictEqual(logic.gpsErrorAction(true, false), 'слабый сигнал');
+  assert.strictEqual(logic.gpsErrorAction(false, true), 'демо');
+});

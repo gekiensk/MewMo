@@ -43,7 +43,6 @@ let statusMessage = '';  // текст строки состояния (без �
 let toastTimer = null;   // таймер, который прячет подсказку
 let wasTwilight = false; // были ли сумерки при прошлой проверке
 let gameMode = '';       // '' — стартовый экран, 'walk' — прогулка, 'home' — режим «Дом»
-let watchId = null;      // номер слежения за GPS (чтобы его остановить)
 
 // ----- Сохранение -----
 // Хранилище браузера (localStorage). В некоторых браузерах (например,
@@ -105,25 +104,17 @@ function startWalk() {
     map.resize();
   }
 
-  if ('geolocation' in navigator) {
-    setStatus('Ищем тебя на карте…');
-    // watchPosition вызывает onPosition каждый раз, когда игрок сдвинулся
-    watchId = navigator.geolocation.watchPosition(onPosition, onPositionError, {
-      enableHighAccuracy: true, // просим точный GPS
-      maximumAge: 5000,         // можно взять данные не старше 5 секунд
-      timeout: 15000            // ждём ответа не дольше 15 секунд
-    });
-  } else {
-    startDemoMode('Этот браузер не умеет определять местоположение.');
-  }
+  // Координаты уже приходили раньше (например, вернулись из дома) —
+  // пишем «Обновляем…», иначе — «Ищем спутники…»
+  setStatus(hasGps ? 'Обновляем, где ты…' : 'Ищем спутники…');
+  // Слежение за GPS: gps.js (там же «сторож» и диагностика)
+  startGps('прогулка');
 }
 
 // Закончить прогулку (переходим в режим «Дом»): перестаём следить за GPS
 function stopWalk() {
-  if (watchId !== null) {
-    navigator.geolocation.clearWatch(watchId);
-    watchId = null;
-  }
+  stopGps();        // gps.js
+  resetGpsSearch(); // gps.js
 }
 
 // =============================================================
@@ -261,6 +252,7 @@ function makeCircle(center, radius) {
 // =============================================================
 function onPosition(pos) {
   if (gameMode !== 'walk') return; // дома координаты не нужны
+  noteGpsFix(pos.coords.accuracy); // для диагностики — только точность (gps.js)
   demoMode = false; // GPS заработал — выходим из демо-режима
 
   // Первый ответ GPS: если капсулы уже лежат вокруг демо-точки,
@@ -281,22 +273,22 @@ function onPosition(pos) {
 // GPS не смог определить местоположение
 function onPositionError(error) {
   if (gameMode !== 'walk') return;
+  noteGpsError(error); // журнал диагностики (gps.js)
   const permissionDenied = error.code === error.PERMISSION_DENIED;
-  // gpsErrorAction из logic.js решает, что делать: демо-режим или
-  // «слабый сигнал» (если GPS уже работал — игрок остаётся на месте)
+  // gpsErrorAction из logic.js решает, что делать:
+  //   'демо'          — нет разрешения: демо-режим и окно с инструкцией;
+  //   'слабый сигнал' — GPS уже работал: игрок остаётся на месте;
+  //   'ищем'          — координат ещё не было: ищем дальше (если за 45 с
+  //                     ничего не придёт, демо-режим включит gps.js).
   const action = gpsErrorAction(hasGps, permissionDenied);
 
   if (action === 'слабый сигнал') {
     setStatus('Слабый сигнал GPS… Ты там, где был в последний раз.');
-    return;
-  }
-
-  if (permissionDenied) {
-    startDemoMode('Нет разрешения на геолокацию.');
-  } else if (error.code === error.TIMEOUT) {
-    startDemoMode('GPS долго не отвечает.');
+  } else if (action === 'ищем') {
+    if (!demoMode) setStatus('Ищем спутники…');
   } else {
-    startDemoMode('Не получается найти тебя на карте.');
+    if (!demoMode) startDemoMode('Нет разрешения на геолокацию.');
+    showGpsHelp(); // gps.js: как разрешить геолокацию
   }
 }
 

@@ -172,10 +172,14 @@ function isInGreenZone(position, zoneStart, zoneWidth) {
 // Ошибки GPS
 // =============================================================
 // Что делать, когда GPS прислал ошибку. Возвращает:
-//   'демо'          — включить демо-режим (игрок ходит нажатием на карту);
-//   'слабый сигнал' — оставить игрока на последнем известном месте
-//                     и просто написать «Слабый сигнал GPS…».
-// gpsWorked      — приходило ли уже хоть одно местоположение от GPS;
+//   'демо'          — нет разрешения: включить демо-режим и показать,
+//                     как разрешить геолокацию;
+//   'слабый сигнал' — GPS уже работал: игрок остаётся на последнем месте,
+//                     пишем «Слабый сигнал GPS…»;
+//   'ищем'          — координат ещё не было: пишем «Ищем спутники…»
+//                     и продолжаем искать (демо-режим включит «таймер»
+//                     gpsSearchState, если за 45 секунд ничего не придёт).
+// gpsWorked        — приходило ли уже хоть одно местоположение от GPS;
 // permissionDenied — игрок не разрешил геолокацию.
 function gpsErrorAction(gpsWorked, permissionDenied) {
   // Нет разрешения — без демо-режима играть не получится
@@ -183,8 +187,37 @@ function gpsErrorAction(gpsWorked, permissionDenied) {
   // GPS уже работал, а сейчас сигнал пропал (например, игрок зашёл
   // под крышу или в арку) — это временно, ждём, пока сигнал вернётся
   if (gpsWorked) return 'слабый сигнал';
-  // GPS не заработал ни разу — включаем демо-режим
-  return 'демо';
+  // Координат ещё не было: телефону нужно время, чтобы найти спутники
+  return 'ищем';
+}
+
+const GPS_WATCHDOG_TIME = 30 * 1000; // «сторож»: нет координат 30 с — перезапуск слежения
+const GPS_DEMO_WAIT = 45 * 1000;     // демо-режим, если за 45 с не пришло ни одних координат
+
+// «Сторож»: пора ли перезапустить слежение за GPS.
+// info: { walking, visible, permissionDenied, lastFixAt, lastStartAt, now } — время в мс.
+// Если геолокацию запретили — не перезапускаем: браузер всё равно откажет,
+// а игрок увидит окно с инструкцией и кнопкой «Попробовать снова».
+// Считаем от самого позднего: последней координаты или последнего запуска
+// слежения, — чтобы после перезапуска снова подождать 30 секунд.
+function shouldRestartGps(info) {
+  if (!info.walking || !info.visible) return false; // дома и в фоне не трогаем
+  if (info.permissionDenied) return false;
+  const lastEvent = Math.max(info.lastFixAt || 0, info.lastStartAt || 0);
+  return info.now - lastEvent >= GPS_WATCHDOG_TIME;
+}
+
+// Состояние поиска координат. info: { permissionDenied, hasFix,
+// searchStartedAt, now }. Возвращает:
+//   'нет разрешения' — геолокацию запретили;
+//   'работает'       — координаты уже приходили;
+//   'демо'           — ищем дольше 45 секунд и ничего — пора в демо-режим;
+//   'ищем'           — ещё ищем.
+function gpsSearchState(info) {
+  if (info.permissionDenied) return 'нет разрешения';
+  if (info.hasFix) return 'работает';
+  if (info.now - info.searchStartedAt >= GPS_DEMO_WAIT) return 'демо';
+  return 'ищем';
 }
 
 // =============================================================
@@ -1308,7 +1341,7 @@ if (typeof module !== 'undefined') {
     RARITY_CHANCES, pickRarity, pickCat, rarityStars,
     GESTURES, BEATS, roundResult, catChooseGesture,
     signalSettings, signalPosition, isInGreenZone,
-    gpsErrorAction,
+    gpsErrorAction, GPS_WATCHDOG_TIME, GPS_DEMO_WAIT, shouldRestartGps, gpsSearchState,
     SAVE_KEY, SHIP_PARTS_NEEDED, NEW_CAT_PARTS, REPEAT_CAT_FISH,
     emptySave, cleanSave, loadSave, writeSave, isInCrew, crewCount,
     applyCatWin, pluralRu, shipRepairShare,

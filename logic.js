@@ -184,6 +184,153 @@ function gpsErrorAction(gpsWorked, permissionDenied) {
   return 'демо';
 }
 
+// =============================================================
+// Сохранение прогресса
+// =============================================================
+// Прогресс хранится в памяти браузера (localStorage) в виде текста JSON.
+// ВАЖНО: координаты игрока сюда НИКОГДА не записываются.
+//
+// Как выглядит сохранение:
+// {
+//   crew: { bul: 2, moh: 1 },   // кто в экипаже и сколько раз встречен
+//   captains: { … },            // капитаны в экипаже (так же: id → встречи)
+//   fish: 12,                   // космические рыбки
+//   parts: 3,                   // детали корабля
+//   beaconCooldowns: { … }      // маяки на перезарядке: id → до какого времени (мс)
+// }
+
+const SAVE_KEY = 'mewmo-save-v1'; // под этим именем лежит сохранение
+const SHIP_PARTS_NEEDED = 20;      // сколько деталей нужно для ремонта корабля
+const NEW_CAT_PARTS = 1;           // награда за нового кота — деталь корабля
+const REPEAT_CAT_FISH = 3;         // награда за повторную встречу — рыбки
+
+// Пустое сохранение: игра с нуля
+function emptySave() {
+  return { crew: {}, captains: {}, fish: 0, parts: 0, beaconCooldowns: {} };
+}
+
+// Целое число 0 или больше? (для проверки испорченных данных)
+function isCount(value) {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+// Проверяет «словарь» вида { id: число } и оставляет только правильные
+// записи. Числа должны быть не меньше minValue.
+function cleanCounts(data, minValue) {
+  const result = {};
+  // Должен быть обычный объект, а не массив, не null и не строка
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return result;
+  }
+  const keys = Object.keys(data);
+  for (let i = 0; i < keys.length; i++) {
+    const value = data[keys[i]];
+    if (isCount(value) && value >= minValue) {
+      result[keys[i]] = value;
+    }
+  }
+  return result;
+}
+
+// Приводит прочитанные данные в порядок. Всё испорченное заменяется
+// на значения «с нуля», чтобы игра не сломалась.
+function cleanSave(data) {
+  const save = emptySave();
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return save;
+  }
+  save.crew = cleanCounts(data.crew, 1);
+  save.captains = cleanCounts(data.captains, 1);
+  save.fish = isCount(data.fish) ? data.fish : 0;
+  save.parts = isCount(data.parts) ? data.parts : 0;
+  save.beaconCooldowns = cleanCounts(data.beaconCooldowns, 0);
+  return save;
+}
+
+// Прочитать сохранение. storage — хранилище (в игре это localStorage,
+// в тестах — подставной объект с методами getItem и setItem).
+// Если сохранения нет или оно испорчено — начинаем с нуля.
+function loadSave(storage) {
+  try {
+    const text = storage.getItem(SAVE_KEY);
+    if (!text) return emptySave();
+    return cleanSave(JSON.parse(text));
+  } catch (error) {
+    // Сюда попадём, если хранилища нет, оно запрещено
+    // или внутри не JSON, а «каша»
+    return emptySave();
+  }
+}
+
+// Записать сохранение. Возвращает true, если получилось.
+function writeSave(storage, save) {
+  try {
+    storage.setItem(SAVE_KEY, JSON.stringify(save));
+    return true;
+  } catch (error) {
+    // Память браузера переполнена или запрещена — играем без сохранения
+    return false;
+  }
+}
+
+// Копия сохранения, чтобы не менять исходный объект
+// (так функции проще проверять тестами)
+function copySave(save) {
+  return JSON.parse(JSON.stringify(save));
+}
+
+// Есть ли кот в экипаже
+function isInCrew(save, catId) {
+  return (save.crew[catId] || 0) > 0;
+}
+
+// Сколько котов из каталога cats уже в экипаже
+function crewCount(save, cats) {
+  let count = 0;
+  for (let i = 0; i < cats.length; i++) {
+    if (isInCrew(save, cats[i].id)) count = count + 1;
+  }
+  return count;
+}
+
+// Игрок победил кота. Возвращает { save, reward }:
+//   save   — новое сохранение;
+//   reward — { isNew, parts, fish }: что игрок получил.
+// Новый кот вступает в экипаж и приносит деталь корабля.
+// Знакомый кот просто рад встрече и дарит рыбок (второй раз в экипаж
+// он не добавляется, только растёт счётчик встреч).
+function applyCatWin(save, catId) {
+  const result = copySave(save);
+  const isNew = !isInCrew(save, catId);
+  const reward = { isNew: isNew, parts: 0, fish: 0 };
+
+  result.crew[catId] = (result.crew[catId] || 0) + 1;
+  if (isNew) {
+    reward.parts = NEW_CAT_PARTS;
+  } else {
+    reward.fish = REPEAT_CAT_FISH;
+  }
+  result.parts = result.parts + reward.parts;
+  result.fish = result.fish + reward.fish;
+  return { save: result, reward: reward };
+}
+
+// Слово после числа по-русски: 1 деталь, 2 детали, 5 деталей,
+// 11 деталей, 21 деталь, 22 детали …
+function pluralRu(n, one, few, many) {
+  const lastTwo = n % 100;
+  const last = n % 10;
+  if (lastTwo >= 11 && lastTwo <= 14) return many;
+  if (last === 1) return one;
+  if (last >= 2 && last <= 4) return few;
+  return many;
+}
+
+// Какая доля ремонта корабля готова: число от 0 до 1
+function shipRepairShare(parts) {
+  return Math.min(parts, SHIP_PARTS_NEEDED) / SHIP_PARTS_NEEDED;
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -192,6 +339,9 @@ if (typeof module !== 'undefined') {
     RARITY_CHANCES, pickRarity, pickCat, rarityStars,
     GESTURES, BEATS, roundResult, catChooseGesture,
     signalSettings, signalPosition, isInGreenZone,
-    gpsErrorAction
+    gpsErrorAction,
+    SAVE_KEY, SHIP_PARTS_NEEDED, NEW_CAT_PARTS, REPEAT_CAT_FISH,
+    emptySave, cleanSave, loadSave, writeSave, isInCrew, crewCount,
+    applyCatWin, pluralRu, shipRepairShare
   };
 }

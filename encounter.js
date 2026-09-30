@@ -10,7 +10,7 @@
 //
 // Правила и расчёты берутся из logic.js, а когда игра закончилась,
 // этот файл вызывает функции из game.js:
-//   catchCat(capsule)  — забрать кота в экипаж;
+//   catchCat(capsule)  — забрать кота в экипаж (или получить рыбок за повтор);
 //   makeCatShy(capsule) — кот смутился, капсула минуту не открывается.
 
 // ----- Настройки -----
@@ -277,6 +277,11 @@ function setGestureButtonsEnabled(enabled) {
 // =============================================================
 function showWinScreen() {
   const cat = activeEncounter.cat;
+  // Знакомый кот уже в экипаже — он просто рад встрече и дарит рыбок.
+  // isInCrew — из logic.js, save — сохранение из game.js.
+  const known = isInCrew(save, cat.id);
+  document.getElementById('win-title').textContent = known ? 'Снова встреча!' : 'Кот найден!';
+  document.getElementById('win-take').textContent = known ? 'Ура! Забрать ' + REPEAT_CAT_FISH + ' 🐟' : 'Забрать в экипаж';
   setCircleColor(document.getElementById('win-circle'), cat);
   document.getElementById('win-name').textContent = cat.name;
   document.getElementById('win-stars').textContent = starsText(cat.rarity) + ' ' + cat.rarity;

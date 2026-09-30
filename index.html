@@ -33,6 +33,9 @@
   <!-- Кнопка «вернуть карту ко мне» -->
   <button id="center-button" class="round-button" aria-label="Показать, где я">Где я?</button>
 
+  <!-- Кнопка «Экипаж»: открывает альбом найденных котов -->
+  <button id="crew-button" class="round-button crew-button" aria-label="Открыть альбом экипажа">🐱<br>Экипаж</button>
+
   <!-- ===== Окно «Знакомство с котом» =====
        Появляется поверх карты, когда нажимаешь на капсулу рядом.
        Внутри несколько «экранов» (screen), показываем по одному. -->
@@ -85,7 +88,7 @@
 
       <!-- Экран 4: победа — «Кот найден!» -->
       <div id="screen-win" class="screen hidden">
-        <h2 class="screen-title">Кот найден!</h2>
+        <h2 id="win-title" class="screen-title">Кот найден!</h2>
         <div id="win-circle" class="cat-circle">😺</div>
         <p id="win-name" class="cat-name"></p>
         <p id="win-stars" class="stars"></p>
@@ -103,6 +106,49 @@
         <div id="lose-circle" class="cat-circle shy">🙈</div>
         <p class="screen-text">Кот смутился и спрятался. Попробуй ещё раз через минуту!</p>
         <button id="lose-ok" class="big-button">Хорошо</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Альбом экипажа =====
+       Открывается кнопкой «Экипаж». Внутри три «вида»:
+       сетка котов, карточка одного кота и подтверждение «Начать заново». -->
+  <section id="album" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="album-title">
+    <div class="overlay-card">
+      <button id="album-close" class="close-button" aria-label="Закрыть альбом">✕</button>
+
+      <!-- Главный вид: счётчики и сетка котов -->
+      <div id="album-main">
+        <h2 id="album-title" class="screen-title album-title">Экипаж</h2>
+        <p id="album-fish" class="album-fish"></p>
+        <div class="repair">
+          <p id="album-repair-text" class="repair-text"></p>
+          <div class="repair-bar"><div id="album-repair-fill" class="repair-fill"></div></div>
+        </div>
+        <div id="album-grid" class="album-grid"></div>
+        <button id="album-reset" class="small-button">Начать заново</button>
+      </div>
+
+      <!-- Карточка кота -->
+      <div id="album-cat" class="hidden">
+        <div id="album-cat-circle" class="cat-circle">😺</div>
+        <p id="album-cat-name" class="cat-name"></p>
+        <p id="album-cat-stars" class="stars"></p>
+        <p id="album-cat-info" class="screen-text"></p>
+        <p id="album-cat-met" class="screen-text"></p>
+        <div class="fact">
+          <p class="fact-title">А ты знал?</p>
+          <p id="album-cat-fact"></p>
+        </div>
+        <button id="album-back" class="big-button">Назад</button>
+      </div>
+
+      <!-- Подтверждение «Начать заново» -->
+      <div id="album-confirm" class="hidden">
+        <h2 class="screen-title">Начать заново?</h2>
+        <p class="screen-text">Точно? Весь экипаж потеряется.</p>
+        <button id="album-reset-no" class="big-button">Нет, оставить</button>
+        <button id="album-reset-yes" class="big-button danger-button">Да, начать заново</button>
       </div>
     </div>
   </section>
@@ -129,6 +175,8 @@
   <script src="cats.js"></script>
   <!-- encounter.js — окно «Знакомство с котом» (мини-игры) -->
   <script src="encounter.js"></script>
+  <!-- album.js — альбом экипажа (пользуется помощниками из encounter.js) -->
+  <script src="album.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

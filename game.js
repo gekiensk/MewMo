@@ -38,10 +38,17 @@ let playerMarker;        // значок игрока
 let followPlayer = true; // двигается ли карта вслед за игроком
 let demoMode = false;    // true, когда GPS не работает
 let capsules = [];       // список капсул, которые лежат на карте
-let foundCats = 0;       // сколько котов уже нашли
 let hasGps = false;      // приходил ли уже хоть раз ответ от GPS
 let statusMessage = '';  // текст строки состояния (без счётчика котов)
 let toastTimer = null;   // таймер, который прячет подсказку
+
+// ----- Сохранение -----
+// Хранилище браузера (localStorage). В некоторых браузерах (например,
+// в режиме «инкогнито») оно запрещено — тогда играем без сохранения.
+// ВАЖНО: координаты игрока в сохранение НЕ записываются — только коты,
+// рыбки, детали и перезарядка маяков.
+const storage = browserStorage();
+let save = loadSave(storage); // функция из logic.js
 
 // Пока карта грузит свой стиль, рисовать круг точности нельзя.
 // Поэтому запоминаем последний круг и нарисуем его, когда карта будет готова.
@@ -391,8 +398,18 @@ function openCapsule(capsule) {
 // Игрок выиграл и нажал «Забрать в экипаж» (вызывается из encounter.js)
 function catchCat(capsule) {
   removeCapsule(capsule); // на её место появится новая
-  foundCats = foundCats + 1;
-  showToast(capsule.cat.name + ' теперь в твоём экипаже!');
+
+  // applyCatWin из logic.js: новый кот → в экипаж и деталь корабля,
+  // знакомый кот → просто рад встрече и дарит рыбок
+  const result = applyCatWin(save, capsule.cat.id);
+  save = result.save;
+  saveGame();
+
+  if (result.reward.isNew) {
+    showToast(capsule.cat.name + ' теперь в твоём экипаже! +' + result.reward.parts + ' 🔩 деталь корабля');
+  } else {
+    showToast(capsule.cat.name + ' рад встрече! +' + result.reward.fish + ' 🐟');
+  }
   updateStatus();
   refreshCapsules(playerPosition());
 }
@@ -415,6 +432,31 @@ function removeAllCapsules() {
     capsules[i].marker.remove();
   }
   capsules = [];
+}
+
+// =============================================================
+// Сохранение
+// =============================================================
+// Достаёт localStorage. Даже само обращение к нему может «упасть»,
+// если браузер запрещает память сайтам, — поэтому try/catch.
+function browserStorage() {
+  try {
+    return window.localStorage;
+  } catch (error) {
+    return null; // loadSave и writeSave умеют работать без хранилища
+  }
+}
+
+// Записывает текущий прогресс в память браузера
+function saveGame() {
+  writeSave(storage, save); // функция из logic.js
+}
+
+// «Начать заново» из альбома: весь прогресс стирается
+function resetProgress() {
+  save = emptySave();
+  saveGame();
+  updateStatus();
 }
 
 // =============================================================
@@ -446,7 +488,8 @@ function setStatus(text) {
 }
 
 function updateStatus() {
-  statusText.textContent = statusMessage + ' Найдено котов: ' + foundCats + '.';
+  // Счётчик берётся из сохранения: сколько котов каталога в экипаже
+  statusText.textContent = statusMessage + ' Экипаж: ' + crewCount(save, CATS) + ' из ' + CATS.length + '.';
 }
 
 // Всплывающая подсказка внизу экрана. Держится TOAST_TIME и исчезает.

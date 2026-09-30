@@ -130,6 +130,14 @@ html, body {
   cursor: pointer;
 }
 
+/* Кнопка «Экипаж» — такая же круглая, стоит над кнопкой «Где я?» */
+.crew-button {
+  bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+  background: var(--nose);
+  font-size: 14px;
+  line-height: 1.1;
+}
+
 button:focus-visible {
   outline: 3px solid var(--mint);
   outline-offset: 3px;
@@ -229,8 +237,8 @@ button:focus-visible {
   z-index: 950;
   left: 16px;
   right: 16px;
-  /* над кнопкой «Где я?» и подписью об авторах карты, чтобы их не закрывать */
-  bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+  /* над кнопками «Где я?», «Экипаж» и подписью об авторах карты, чтобы их не закрывать */
+  bottom: calc(196px + env(safe-area-inset-bottom, 0px));
   padding: 12px 16px;
   border: 2px solid var(--star);
   border-radius: 16px;
@@ -261,7 +269,8 @@ button:focus-visible {
 
 /* ===== Окно «Знакомство с котом» ===== */
 /* Тёмная подложка на весь экран, поверх карты и строки состояния */
-.encounter {
+.encounter,
+.overlay {
   position: absolute;
   inset: 0;
   z-index: 1100;
@@ -274,12 +283,14 @@ button:focus-visible {
   box-sizing: border-box;
 }
 
-.encounter.hidden {
+.encounter.hidden,
+.overlay.hidden {
   display: none;
 }
 
 /* Сама карточка окна */
-.encounter-card {
+.encounter-card,
+.overlay-card {
   position: relative;
   width: 100%;
   max-width: 420px;
@@ -336,7 +347,8 @@ button:focus-visible {
   min-height: 64px;
 }
 
-.encounter .big-button {
+.encounter .big-button,
+.overlay .big-button {
   width: 100%;
   margin-top: 12px;
 }
@@ -478,4 +490,127 @@ button:focus-visible {
 .fact-title {
   color: var(--mint);
   font-weight: 800;
+}
+
+/* ===== Альбом экипажа ===== */
+/* Спрятанные части альбома (карточка, подтверждение) */
+#album-main.hidden,
+#album-cat.hidden,
+#album-confirm.hidden {
+  display: none;
+}
+
+.album-fish {
+  margin: 4px 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* Шкала «Ремонт корабля» */
+.repair {
+  margin: 8px 0 16px;
+}
+.repair-text {
+  margin: 4px 0;
+  font-size: 17px;
+}
+.repair-bar {
+  height: 20px;
+  border: 3px solid var(--fur);
+  border-radius: 12px;
+  background: var(--space);
+  overflow: hidden;
+}
+/* Заполненная часть: ширину в процентах задаёт album.js */
+.repair-fill {
+  height: 100%;
+  width: 0;
+  background: var(--mint);
+}
+
+/* Сетка котов: 3 клетки в ряд */
+.album-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.album-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 120px;
+  padding: 8px 4px;
+  border: 2px solid var(--fur);
+  border-radius: 18px;
+  background: var(--space);
+  color: var(--fur);
+  font-family: var(--font);
+  cursor: pointer;
+}
+
+/* Ненайденный кот: серый, нажимать не на что */
+.album-unknown {
+  border-style: dashed;
+  opacity: 0.7;
+  cursor: default;
+}
+
+/* Маленький круг с котом */
+.mini-circle {
+  width: 60px;
+  height: 60px;
+  border: 3px solid var(--fur);
+  border-radius: 50%;
+  font-size: 34px;
+  line-height: 54px;
+  box-sizing: border-box;
+}
+
+/* Серый силуэт: круг серый, а смайлик — тёмная тень */
+.mini-circle.silhouette {
+  background: #8C86A8;
+}
+.mini-circle.silhouette span {
+  filter: brightness(0);
+  opacity: 0.55;
+}
+
+.album-name {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.album-stars {
+  color: var(--star);
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+/* Маленькая кнопка «Начать заново» внизу альбома */
+.small-button {
+  margin-top: 24px;
+  padding: 8px 16px;
+  min-height: 44px;
+  border: 2px solid var(--fur);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fur);
+  font-family: var(--font);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+/* Кнопка «Да, начать заново» — другого цвета, чтобы не нажать случайно */
+.danger-button {
+  background: var(--space);
+  color: var(--fur);
+  border: 3px solid var(--nose);
+}
+
+/* Заголовок альбома чуть меньше, чтобы «Экипаж: N из M» влезал в строку */
+.album-title {
+  font-size: 26px;
 }

@@ -36,7 +36,12 @@ test('записанное сохранение читается обратно 
       { id: 'catch2', progress: 1, done: false },
       { id: 'treat1', progress: 1, done: true },
       { id: 'beacon1', progress: 0, done: false }
-    ] }
+    ] },
+    chapter: 2,
+    chaptersDone: [1],
+    badges: ['rescuer-1'],
+    flewHome: ['bul', 'moh'],
+    latecomers: ['iskra']
   };
   assert.strictEqual(logic.writeSave(storage, save), true);
   assert.ok(logic.SAVE_KEY in storage.data, 'ключ ' + logic.SAVE_KEY);

@@ -687,6 +687,7 @@ button:focus-visible {
 /* ===== Альбом экипажа ===== */
 /* Спрятанные части альбома (карточка, подтверждение) */
 #album-main.hidden,
+#album-launch-confirm.hidden,
 #album-cat.hidden,
 #album-confirm.hidden {
   display: none;
@@ -1215,4 +1216,141 @@ body.mode-home .toast {
   word-break: break-word;
   user-select: text;       /* текст можно выделить и скопировать пальцем */
   -webkit-user-select: text;
+}
+
+/* ===== Финал главы: кнопка «Запустить корабль» ===== */
+.launch-button {
+  background: var(--star);
+}
+.launch-button.hidden {
+  display: none;
+}
+.album-badges {
+  margin: 8px 0;
+  color: var(--star);
+  font-size: 18px;
+  font-weight: 700;
+}
+.album-badges.hidden {
+  display: none;
+}
+
+/* ===== Сцена взлёта ===== */
+/* Поверх всего, кроме настроек */
+.launch {
+  position: absolute;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--space);
+  text-align: center;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.launch.hidden,
+.launch-text.hidden,
+.launch .big-button.hidden,
+.launch .small-button.hidden {
+  display: none;
+}
+.launch-scene {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+.launch-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.launch-text {
+  flex: none;
+}
+.launch-badge {
+  color: var(--star);
+  font-size: 20px;
+  font-weight: 800;
+}
+.launch-next {
+  width: 100%;
+  max-width: 360px;
+}
+.launch-skip {
+  margin-top: 8px;
+}
+
+/* Внутри картинки двигаем части корабля свойством transform —
+   это SVG, а не маркер карты, поэтому так можно */
+.launch-ship,
+.launch-paw,
+.launch-flame {
+  transform-box: fill-box;
+}
+.launch-flame {
+  transform-origin: 50% 0;
+  opacity: 0;
+}
+/* Лапка машет, поворачиваясь вокруг своего низа («запястья») */
+.launch-paw {
+  transform-origin: 50% 100%;
+}
+
+/* Анимация идёт, пока у окна класс launch-go:
+   0–1,8 с — корабль трясётся и пламя разгорается, лапки машут;
+   1,8–5,8 с — корабль улетает вверх; текст появляется в конце */
+.launch-go .launch-ship {
+  animation: launch-shake 0.12s linear 15, launch-fly 4s ease-in 1.8s forwards;
+}
+.launch-go .launch-flame {
+  animation: launch-flame 0.2s ease-in-out infinite alternate;
+}
+.launch-go .launch-paw {
+  animation: launch-wave 0.5s ease-in-out infinite alternate;
+}
+.launch-go .launch-text {
+  opacity: 0;
+  animation: launch-text 1s ease-out 4.5s forwards;
+}
+
+/* После сцены (или «Пропустить»): корабль улетел, текст виден */
+.launch-done .launch-ship {
+  transform: translateY(-120%);
+}
+
+@keyframes launch-shake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-3px); }
+  75%      { transform: translateX(3px); }
+}
+@keyframes launch-fly {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-120%); }
+}
+@keyframes launch-flame {
+  from { opacity: 0.7; transform: scaleY(0.8); }
+  to   { opacity: 1;   transform: scaleY(1.3); }
+}
+@keyframes launch-wave {
+  from { transform: rotate(-25deg); }
+  to   { transform: rotate(25deg); }
+}
+@keyframes launch-text {
+  to { opacity: 1; }
+}
+
+/* «Уменьшить движение»: корабль стоит на месте, всё без анимации */
+@media (prefers-reduced-motion: reduce) {
+  .launch-go .launch-ship,
+  .launch-go .launch-flame,
+  .launch-go .launch-paw,
+  .launch-go .launch-text {
+    animation: none;
+    opacity: 1;
+  }
+  .launch-done .launch-ship {
+    transform: none;
+  }
 }

@@ -454,7 +454,76 @@ function shelterScene() {
     '</svg>';
 }
 
+// =============================================================
+// Взлёт корабля (финал главы)
+// =============================================================
+// Холст 400×600. Корабль с иллюминаторами, в иллюминаторах — портреты
+// котов экипажа, рядом с каждым — машущая лапка. crewIds — id котов
+// (показываем до 6, остальных — надписью «…и ещё N»).
+// Анимацию (тряска, полёт вверх, пламя, лапки) задаёт style.css
+// по классам launch-ship, launch-flame, launch-paw.
+const LAUNCH_PORTHOLES = [[150, 230], [250, 230], [150, 310], [250, 310], [150, 390], [250, 390]];
+
+function launchScene(crewIds) {
+  artIdCounter = artIdCounter + 1;
+  const uid = 'launch' + artIdCounter;
+
+  // Звёзды на небе
+  const stars = [[40, 60], [90, 140], [330, 50], [370, 170], [60, 300], [350, 330], [200, 40], [120, 30], [290, 110]];
+  let sky = '';
+  for (let i = 0; i < stars.length; i++) {
+    sky = sky + '<circle cx="' + stars[i][0] + '" cy="' + stars[i][1] + '" r="' + (i % 2 === 0 ? 2.5 : 1.5) + '" fill="#FFFFFF"/>';
+  }
+
+  // Иллюминаторы с котами и машущими лапками
+  let windows = '';
+  let clips = '';
+  const shown = Math.min(crewIds.length, LAUNCH_PORTHOLES.length);
+  for (let i = 0; i < LAUNCH_PORTHOLES.length; i++) {
+    const x = LAUNCH_PORTHOLES[i][0];
+    const y = LAUNCH_PORTHOLES[i][1];
+    clips = clips + '<clipPath id="' + uid + '-c' + i + '"><circle cx="' + x + '" cy="' + y + '" r="32"/></clipPath>';
+    windows = windows + '<circle cx="' + x + '" cy="' + y + '" r="36" fill="#120E33" stroke="#F7F3FF" stroke-width="5"/>';
+    if (i < shown) {
+      // Портрет кота внутри иллюминатора (вложенная картинка SVG)
+      const portrait = catPortrait(crewIds[i]).replace('<svg class="portrait"',
+        '<svg x="' + (x - 34) + '" y="' + (y - 32) + '" width="68" height="68"');
+      windows = windows + '<g clip-path="url(#' + uid + '-c' + i + ')">' + portrait + '</g>';
+      // Лапка машет: снаружи иллюминатора, со стороны края корабля
+      const pawX = x < 200 ? x - 42 : x + 42;
+      windows = windows + '<g class="launch-paw">' +
+        '<ellipse cx="' + pawX + '" cy="' + (y - 4) + '" rx="8" ry="11" fill="#FFD447" stroke="#1E1747" stroke-width="2"/>' +
+        '<circle cx="' + (pawX - 4) + '" cy="' + (y - 13) + '" r="2.5" fill="#FF8FB1"/>' +
+        '<circle cx="' + (pawX + 4) + '" cy="' + (y - 13) + '" r="2.5" fill="#FF8FB1"/></g>';
+    }
+  }
+  let more = '';
+  if (crewIds.length > shown) {
+    more = '<text x="200" y="455" text-anchor="middle" font-size="18" font-weight="700" font-family="sans-serif" fill="#F7F3FF">…и ещё ' + (crewIds.length - shown) + '</text>';
+  }
+
+  return '<svg class="launch-svg" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    '<defs>' + clips + '</defs>' +
+    '<rect width="400" height="600" fill="#1E1747"/>' + sky +
+    // планета Земля внизу
+    '<ellipse cx="200" cy="640" rx="330" ry="120" fill="#7CC8FF"/>' +
+    '<path d="M-20 560 Q60 530 120 555 T260 548 Q330 530 420 560 L420 600 L-20 600 Z" fill="#7EDC8A"/>' +
+    '<g class="launch-ship">' +
+    // пламя из дюз
+    '<path class="launch-flame" d="M165 500 Q200 590 235 500 Z" fill="#FF9E6B"/>' +
+    '<path class="launch-flame" d="M180 500 Q200 560 220 500 Z" fill="#FFD447"/>' +
+    // крылья
+    '<path d="M110 420 L60 500 L120 480 Z M290 420 L340 500 L280 480 Z" fill="#FF8FB1" stroke="#F7F3FF" stroke-width="4" stroke-linejoin="round"/>' +
+    // корпус с носом и кошачьими ушками на носу
+    '<path d="M110 480 L110 220 Q110 120 200 80 Q290 120 290 220 L290 480 Q290 505 265 505 L135 505 Q110 505 110 480 Z" fill="#FFD447" stroke="#F7F3FF" stroke-width="5"/>' +
+    '<path d="M168 104 L176 70 L196 88 Z M232 104 L224 70 L204 88 Z" fill="#FF8FB1" stroke="#F7F3FF" stroke-width="3" stroke-linejoin="round"/>' +
+    '<rect x="110" y="440" width="180" height="22" fill="#2E2468"/>' +
+    windows + more +
+    '</g>' +
+    '</svg>';
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 if (typeof module !== 'undefined') {
-  module.exports = { CAT_LOOKS, SUIT_COLORS, catPortrait, capsuleIcon, beaconIcon, shelterScene };
+  module.exports = { CAT_LOOKS, SUIT_COLORS, catPortrait, capsuleIcon, beaconIcon, shelterScene, launchScene };
 }

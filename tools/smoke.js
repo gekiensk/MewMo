@@ -15,7 +15,9 @@
 //      «Проверить GPS» → «Играть дома» → убежище → снова «Гулять» →
 //      координаты снова приходят.
 //   4. Сценарий «Нет разрешения»: геолокация запрещена → окно с инструкцией.
-//   5. Любая ошибка в консоли браузера = провал.
+//   5. Сценарий «Финал главы»: 20 деталей → «Запустить корабль» → взлёт →
+//      вступление к главе 2.
+//   6. Любая ошибка в консоли браузера = провал.
 //   В конце печатает «ВСЁ ХОРОШО» или список проблем.
 //
 // Что нужно: Node.js, Python 3 и Playwright с браузером Chromium.
@@ -258,6 +260,57 @@ async function deniedScenario(browser) {
 }
 
 // =============================================================
+// Сценарий 3: финал главы 1 — запуск корабля и вступление к главе 2
+// =============================================================
+async function launchScenario(browser) {
+  const name = 'Финал главы';
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+    geolocation: { longitude: ROUTE[0][0], latitude: ROUTE[0][1], accuracy: 10 },
+    permissions: ['geolocation']
+  });
+  await stubExternal(context);
+  // Перед загрузкой игры кладём сохранение: 20 деталей и три кота в экипаже.
+  // (Только при первой загрузке страницы — дальше игра сама ведёт сохранение.)
+  await context.addInitScript(function () {
+    if (!sessionStorage.getItem('smoke-ready')) {
+      sessionStorage.setItem('smoke-ready', '1');
+      localStorage.setItem('mewmo-save-v1', JSON.stringify({
+        crew: { bul: 1, moh: 2, iskra: 1 }, parts: 20, fish: 3, tutorialSeen: true
+      }));
+    }
+  });
+  const page = await context.newPage();
+  page.setDefaultTimeout(8000);
+  watchErrors(page, name);
+  await page.goto(URL);
+  await skipTutorial(page);
+  await page.click('#start-button');
+  await skipTutorial(page);
+  await moveTo(page, context, ROUTE[1], 'первую точку');
+
+  await page.click('#crew-button');
+  expect(await page.isVisible('#album-launch'), name + ': нет кнопки «Запустить корабль» при 20 деталях');
+  await page.click('#album-launch');
+  await page.click('#album-launch-yes');
+  expect(await page.isVisible('#launch'), name + ': не появилась сцена взлёта');
+  await page.click('#launch-skip');
+  await page.click('#launch-next');
+  const intro = await page.textContent('#launch-intro-text');
+  expect(intro.includes('сигнал бедствия'), name + ': нет вступления к главе 2');
+  await page.click('#launch-start-chapter');
+  const state = await page.evaluate(function () {
+    return { chapter: save.chapter, badges: save.badges, flew: save.flewHome.length };
+  });
+  expect(state.chapter === 2, name + ': после взлёта не началась глава 2');
+  expect(state.badges.includes('rescuer-1'), name + ': нет значка «Спасатель 1 ранга»');
+  expect(state.flew === 3, name + ': домой улетели не все коты экипажа');
+  // Прогулка продолжается: координаты приходят
+  await moveTo(page, context, ROUTE[2], 'точку после взлёта');
+  await context.close();
+}
+
+// =============================================================
 // Запуск
 // =============================================================
 async function main() {
@@ -278,6 +331,8 @@ async function main() {
     await walkScenario(browser);
     console.log('Сценарий 2: нет разрешения на геолокацию…');
     await deniedScenario(browser);
+    console.log('Сценарий 3: финал главы 1 — запуск корабля…');
+    await launchScenario(browser);
   } catch (error) {
     problems.push('Проверка упала: ' + error.message.split('\n')[0]);
   } finally {

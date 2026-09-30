@@ -181,6 +181,10 @@
           <p id="album-repair-text" class="repair-text"></p>
           <div class="repair-bar"><div id="album-repair-fill" class="repair-fill"></div></div>
         </div>
+        <!-- Корабль починен — можно запускать (нажимает игрок сам, когда захочет) -->
+        <button id="album-launch" class="big-button launch-button hidden">🚀 Запустить корабль</button>
+        <!-- Значки игрока -->
+        <p id="album-badges" class="album-badges hidden"></p>
         <!-- Ежедневные задания (quests.js) -->
         <h3 class="album-subtitle">Задания на сегодня</h3>
         <ul id="album-quests" class="quests"></ul>
@@ -203,6 +207,14 @@
           <p id="album-cat-fact"></p>
         </div>
         <button id="album-back" class="big-button">Назад</button>
+      </div>
+
+      <!-- Подтверждение запуска корабля -->
+      <div id="album-launch-confirm" class="hidden">
+        <h2 class="screen-title">Запуск корабля</h2>
+        <p class="screen-text">Экипаж улетит домой. Готов?</p>
+        <button id="album-launch-yes" class="big-button launch-button">🚀 Да, запускаем!</button>
+        <button id="album-launch-no" class="big-button danger-button">Пока нет</button>
       </div>
 
       <!-- Подтверждение «Начать заново» -->
@@ -240,6 +252,24 @@
       <button id="gps-help-retry" class="big-button">Попробовать снова</button>
       <p class="screen-text small-text">А пока можно играть в демо-режиме: нажимай на карту, чтобы ходить.</p>
     </div>
+  </section>
+
+  <!-- ===== Взлёт корабля (финал главы) =====
+       Картинку рисует art.js (launchScene), анимацию — style.css -->
+  <section id="launch" class="launch hidden" role="dialog" aria-modal="true" aria-labelledby="launch-thanks-title">
+    <div id="launch-scene" class="launch-scene"></div>
+    <div id="launch-thanks" class="launch-text">
+      <h2 id="launch-thanks-title" class="screen-title">Спасибо, Земной спасатель!</h2>
+      <p class="screen-text">Экипаж летит домой.</p>
+      <p id="launch-badge" class="launch-badge"></p>
+    </div>
+    <div id="launch-intro" class="launch-text hidden">
+      <h2 id="launch-intro-title" class="screen-title"></h2>
+      <p id="launch-intro-text" class="screen-text"></p>
+      <button id="launch-start-chapter" class="big-button">Помочь!</button>
+    </div>
+    <button id="launch-next" class="big-button launch-next hidden">Дальше</button>
+    <button id="launch-skip" class="small-button launch-skip">Пропустить</button>
   </section>
 
   <!-- ===== Экран «На сегодня всё!» =====
@@ -352,6 +382,8 @@
   <script src="encounter.js"></script>
   <!-- album.js — альбом экипажа (пользуется помощниками из encounter.js) -->
   <script src="album.js"></script>
+  <!-- launch.js — финал главы: запуск корабля -->
+  <script src="launch.js"></script>
   <!-- quests.js — ежедневные задания -->
   <script src="quests.js"></script>
   <!-- settings.js — настройки, «Для взрослых», время игры -->

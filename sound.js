@@ -116,6 +116,15 @@ const SOUNDS = {
       playNote(melody[i], i * 0.13, last ? 0.4 : 0.14, 'triangle', 0.55);
     }
   },
+  // взлёт корабля: низкий гул, который растёт, а потом весёлая мелодия
+  launch: function () {
+    playNote(55, 0, 3.2, 'sawtooth', 0.35, 220);
+    playNote(82, 0.3, 2.9, 'triangle', 0.3, 330);
+    const melody = [523, 659, 784, 1047, 784, 1047];
+    for (let i = 0; i < melody.length; i++) {
+      playNote(melody[i], 3.3 + i * 0.16, i === melody.length - 1 ? 0.6 : 0.18, 'triangle', 0.5);
+    }
+  },
   // награда (маяк, рыбки) — блестящее «дзынь-дзынь-дзынь»
   reward: function () {
     playNote(1047, 0, 0.1, 'sine', 0.5);

@@ -238,7 +238,12 @@ function gpsSearchState(info) {
 //   playTime: { day, seconds, bonusMinutes }, // сколько сыграно сегодня
 //   guests: { list: ['bul'], nextAt: 0 },     // гости в убежище и когда прилетит следующий
 //   friendship: { bul: 7 },                   // сколько раз угостили каждого кота
-//   quests: { day, list: [{ id, progress, done }] } // задания на сегодня
+//   quests: { day, list: [{ id, progress, done }] }, // задания на сегодня
+//   chapter: 1,               // текущая глава
+//   chaptersDone: [],         // пройденные главы
+//   badges: ['rescuer-1'],    // значки игрока
+//   flewHome: ['bul'],        // коты, улетевшие домой на первом корабле
+//   latecomers: ['moh']       // «отставшие» коты главы 1, найденные в главе 2
 // }
 //
 // Старые сохранения (без новых полей) продолжают работать: cleanSave
@@ -266,8 +271,23 @@ function emptySave() {
     playTime: { day: '', seconds: 0, bonusMinutes: 0 },
     guests: { list: [], nextAt: 0 },
     friendship: {},
-    quests: { day: '', list: [] }
+    quests: { day: '', list: [] },
+    chapter: 1,
+    chaptersDone: [],
+    badges: [],
+    flewHome: [],
+    latecomers: []
   };
+}
+
+// Список строк без повторов (для id котов и значков). Всё, что не строка, выбрасываем.
+function cleanStringList(data) {
+  if (!Array.isArray(data)) return [];
+  const result = [];
+  for (let i = 0; i < data.length; i++) {
+    if (typeof data[i] === 'string' && !result.includes(data[i])) result.push(data[i]);
+  }
+  return result;
 }
 
 // Проверяет настройки: всё непонятное — как по умолчанию
@@ -332,6 +352,16 @@ function cleanSave(data) {
   save.guests = cleanGuests(data.guests);
   save.friendship = cleanCounts(data.friendship, 0);
   save.quests = cleanQuests(data.quests);
+  // Главы. Старое сохранение без номера главы — это глава 1.
+  save.chapter = (Number.isInteger(data.chapter) && data.chapter >= 1 && data.chapter <= LAST_CHAPTER) ? data.chapter : 1;
+  save.chaptersDone = Array.isArray(data.chaptersDone)
+    ? data.chaptersDone.filter(function (n, i, list) {
+      return Number.isInteger(n) && n >= 1 && n <= LAST_CHAPTER && list.indexOf(n) === i;
+    })
+    : [];
+  save.badges = cleanStringList(data.badges);
+  save.flewHome = cleanStringList(data.flewHome);
+  save.latecomers = cleanStringList(data.latecomers);
   return save;
 }
 
@@ -414,9 +444,73 @@ function pluralRu(n, one, few, many) {
   return many;
 }
 
-// Какая доля ремонта корабля готова: число от 0 до 1
-function shipRepairShare(parts) {
-  return Math.min(parts, SHIP_PARTS_NEEDED) / SHIP_PARTS_NEEDED;
+// Какая доля ремонта корабля готова: число от 0 до 1.
+// chapter — глава (у каждой главы свой корабль и своё число деталей).
+function shipRepairShare(parts, chapter) {
+  const needed = partsNeeded(chapter || 1);
+  return Math.min(parts, needed) / needed;
+}
+
+// =============================================================
+// Главы
+// =============================================================
+// Глава 1 — маленький корабль (20 деталей). Когда он починен, экипаж
+// улетает домой, и начинается глава 2 — большой корабль (30 деталей).
+const LAST_CHAPTER = 2;                  // сколько глав уже есть в игре
+const CHAPTER_PARTS = { 1: 20, 2: 30 };  // сколько деталей нужно в каждой главе
+const LAUNCHABLE_CHAPTERS = [1];         // у каких глав уже есть финал со взлётом
+
+// Сколько деталей нужно для ремонта корабля главы chapter
+function partsNeeded(chapter) {
+  return CHAPTER_PARTS[chapter] || SHIP_PARTS_NEEDED;
+}
+
+// Глава кота (у старых записей без поля chapter — глава 1)
+function catChapter(cat) {
+  return cat.chapter || 1;
+}
+
+// Коты главы chapter. Если котов этой главы ещё нет в каталоге —
+// коты главы 1 (чтобы игра не осталась без котов).
+function chapterCats(cats, chapter) {
+  const result = cats.filter(function (cat) { return catChapter(cat) === chapter; });
+  if (result.length > 0) return result;
+  return cats.filter(function (cat) { return catChapter(cat) === 1; });
+}
+
+// Можно ли запустить корабль: деталей хватает, и у главы есть финал
+function canLaunchShip(save) {
+  return LAUNCHABLE_CHAPTERS.includes(save.chapter) && save.parts >= partsNeeded(save.chapter);
+}
+
+// Запуск корабля: экипаж главы улетает домой, игрок получает значок
+// «Спасатель N ранга», начинается следующая глава.
+// allCats — все коты и капитаны (чтобы узнать, кто из этой главы).
+// Лишние детали (сверх нужных) переходят в новую главу.
+function launchShip(save, allCats) {
+  if (!canLaunchShip(save)) return save;
+  const result = copySave(save);
+  const chapter = save.chapter;
+  for (let i = 0; i < allCats.length; i++) {
+    const cat = allCats[i];
+    const inCrew = (save.crew[cat.id] || 0) > 0 || (save.captains[cat.id] || 0) > 0;
+    if (inCrew && catChapter(cat) === chapter && !result.flewHome.includes(cat.id)) {
+      result.flewHome.push(cat.id);
+    }
+  }
+  if (!result.chaptersDone.includes(chapter)) result.chaptersDone.push(chapter);
+  const badge = 'rescuer-' + chapter;
+  if (!result.badges.includes(badge)) result.badges.push(badge);
+  result.parts = save.parts - partsNeeded(chapter);
+  result.chapter = chapter + 1;
+  return result;
+}
+
+// Название значка: 'rescuer-1' → «Спасатель 1 ранга»
+function badgeName(badge) {
+  const parts = badge.split('-');
+  if (parts[0] === 'rescuer') return 'Спасатель ' + parts[1] + ' ранга';
+  return badge;
 }
 
 // =============================================================
@@ -1427,6 +1521,8 @@ if (typeof module !== 'undefined') {
     GUEST_INTERVAL, MAX_GUESTS, isTwilightHour, pickGuest, updateGuests, removeGuest,
     TREATS_PER_LEVEL, MAX_FRIENDSHIP, friendshipLevel, treatsToNextLevel, feedCat, friendshipHearts,
     QUEST_TYPES, QUESTS_PER_DAY, chooseDailyQuests, refreshQuests, applyQuestEvent, questRewardText,
+    LAST_CHAPTER, CHAPTER_PARTS, LAUNCHABLE_CHAPTERS, partsNeeded, catChapter, chapterCats,
+    canLaunchShip, launchShip, badgeName,
     GPS_LOG_MAX, addLogEntry, formatClock, GPS_ERROR_NAMES, agoText, buildGpsReport
   };
 }

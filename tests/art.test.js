@@ -46,4 +46,8 @@ test('иконки капсулы и маяка — SVG', function () {
   assert.ok(looksLikeSvg(art.capsuleIcon()));
   assert.ok(looksLikeSvg(art.beaconIcon()));
   assert.ok(looksLikeSvg(art.shelterScene()));
+  assert.ok(looksLikeSvg(art.launchScene(['bul', 'moh'])));
+  assert.ok(looksLikeSvg(art.launchScene([])));
+  // 8 котов — 6 в иллюминаторах и надпись «…и ещё 2»
+  assert.ok(art.launchScene(['bul', 'moh', 'iskra', 'gaika', 'pixel', 'kometa', 'shishka', 'murena']).includes('…и ещё 2'));
 });

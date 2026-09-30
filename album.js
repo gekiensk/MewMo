@@ -18,6 +18,7 @@ const albumWindow = document.getElementById('album');
 const albumMain = document.getElementById('album-main');
 const albumCatView = document.getElementById('album-cat');
 const albumConfirm = document.getElementById('album-confirm');
+const albumLaunchConfirm = document.getElementById('album-launch-confirm');
 const albumGrid = document.getElementById('album-grid');
 
 // ----- Кнопки -----
@@ -29,6 +30,18 @@ document.getElementById('album-reset').addEventListener('click', function () {
   document.getElementById('album-reset-no').focus();
 });
 document.getElementById('album-reset-no').addEventListener('click', showAlbumMain);
+
+// «🚀 Запустить корабль» → подтверждение → взлёт (launch.js)
+document.getElementById('album-launch').addEventListener('click', function () {
+  showAlbumView(albumLaunchConfirm);
+  document.getElementById('album-launch-no').focus();
+});
+document.getElementById('album-launch-no').addEventListener('click', showAlbumMain);
+// (launch.js подключается позже album.js, поэтому зовём через функцию-обёртку:
+// к моменту нажатия launchShipNow уже будет)
+document.getElementById('album-launch-yes').addEventListener('click', function () {
+  launchShipNow();
+});
 document.getElementById('album-reset-yes').addEventListener('click', function () {
   resetProgress(); // функция из game.js
   showAlbumMain();
@@ -57,7 +70,7 @@ function closeAlbum() {
 // В окне три «вида»: главный (сетка), карточка кота и подтверждение.
 // Показываем один, остальные прячем.
 function showAlbumView(view) {
-  const views = [albumMain, albumCatView, albumConfirm];
+  const views = [albumMain, albumCatView, albumConfirm, albumLaunchConfirm];
   for (let i = 0; i < views.length; i++) {
     views[i].classList.toggle('hidden', views[i] !== view);
   }
@@ -80,12 +93,20 @@ function renderAlbum() {
   document.getElementById('album-fish').textContent =
     '🐟 Космические рыбки: ' + save.fish;
 
-  // Шкала ремонта корабля
+  // Шкала ремонта корабля текущей главы (в главе 1 — 20 деталей, в главе 2 — 30)
   document.getElementById('album-repair-text').textContent =
     'Ремонт корабля: ' + save.parts + ' ' +
-    pluralRu(save.parts, 'деталь', 'детали', 'деталей') + ' из ' + SHIP_PARTS_NEEDED;
+    pluralRu(save.parts, 'деталь', 'детали', 'деталей') + ' из ' + partsNeeded(save.chapter);
   document.getElementById('album-repair-fill').style.width =
-    (shipRepairShare(save.parts) * 100) + '%';
+    (shipRepairShare(save.parts, save.chapter) * 100) + '%';
+
+  // Корабль починен — большая кнопка «Запустить корабль» (logic.js решает, можно ли)
+  document.getElementById('album-launch').classList.toggle('hidden', !canLaunchShip(save));
+
+  // Значки игрока («Спасатель 1 ранга» и т. п.)
+  const badges = document.getElementById('album-badges');
+  badges.textContent = save.badges.map(function (badge) { return '🏅 ' + badgeName(badge); }).join('   ');
+  badges.classList.toggle('hidden', save.badges.length === 0);
 
   // Задания на сегодня (quests.js)
   renderQuests(document.getElementById('album-quests'));

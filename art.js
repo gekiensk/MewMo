@@ -53,7 +53,23 @@ const CAT_LOOKS = {
   sumrak: { suit: 'сумеречный', fur: '#77739A', eyes: INK, eyeStyle: 'мечтательные', stripes: false, detail: 'moon' },
   yantar: { suit: 'сумеречный', fur: '#3F3850', eyes: '#FFB300', eyeStyle: 'кошачьи', stripes: false, detail: 'sun' },
   zvezdous: { suit: 'капитан', fur: '#D9D2C5', eyes: INK, eyeStyle: 'обычные', stripes: false, detail: 'captainCap' },
-  'lunnaya-lapa': { suit: 'капитан', fur: '#F5E6C8', eyes: INK, eyeStyle: 'обычные', stripes: false, detail: 'crown' }
+  'lunnaya-lapa': { suit: 'капитан', fur: '#F5E6C8', eyes: INK, eyeStyle: 'обычные', stripes: false, detail: 'crown' },
+
+  // ----- Глава 2 -----
+  volna:       { suit: 'водный', fur: '#F4D9B0', eyes: INK, eyeStyle: 'обычные', stripes: false, detail: 'surfboard' },
+  kapel:       { suit: 'водный', fur: '#A7B8C9', eyes: INK, eyeStyle: 'мечтательные', stripes: false, detail: 'umbrella' },
+  yakor:       { suit: 'водный', fur: '#8A6A55', eyes: INK, eyeStyle: 'обычные', stripes: true, detail: 'anchor' },
+  zhemchug:    { suit: 'водный', fur: '#FFFFFF', eyes: '#4FA3E0', eyeStyle: 'обычные', stripes: false, detail: 'shell' },
+  zholud:      { suit: 'лесной', fur: '#E0A060', eyes: INK, eyeStyle: 'обычные', stripes: false, detail: 'acornCap' },
+  listik:      { suit: 'лесной', fur: '#D8CFC0', eyes: '#3E8E41', eyeStyle: 'подмигивает', stripes: false, detail: 'leafEar' },
+  svetlyachok: { suit: 'лесной', fur: '#5A5470', eyes: '#FFE066', eyeStyle: 'обычные', stripes: false, detail: 'lantern' },
+  kompas:      { suit: 'городской', fur: '#C2A27C', eyes: INK, eyeStyle: 'обычные', stripes: true, detail: 'compass' },
+  bublik:      { suit: 'городской', fur: '#F2C58A', eyes: INK, eyeStyle: 'обычные', stripes: false, detail: 'chefHat' },
+  radar:       { suit: 'городской', fur: '#9AA3B5', eyes: INK, eyeStyle: 'обычные', stripes: false, detail: 'headphones' },
+  zakat:       { suit: 'сумеречный', fur: '#E8A87C', eyes: '#7A4FD6', eyeStyle: 'мечтательные', stripes: false, detail: 'brush' },
+  orbita:      { suit: 'космический', fur: '#DCCFF7', eyes: '#FF6FA0', eyeStyle: 'обычные', stripes: false, detail: 'planetRing' },
+  'admiral-grom': { suit: 'капитан', fur: '#7D7D8C', eyes: INK, eyeStyle: 'обычные', stripes: false, detail: 'bicorne' },
+  tumannost:   { suit: 'капитан', fur: '#B9A6E0', eyes: MINT, eyeStyle: 'мечтательные', stripes: false, detail: 'telescope' }
 };
 
 // Счётчик для уникальных id внутри SVG (градиенты). Если на странице
@@ -300,6 +316,168 @@ const DETAILS = {
       back: ''
     };
   }
+};
+
+// =============================================================
+// Детали котов главы 2
+// =============================================================
+// Функции добавляются в тот же словарь DETAILS (см. выше)
+
+// Волна — сёрфингистка: доска для сёрфинга
+DETAILS.surfboard = function () {
+  return {
+    head: '',
+    front: '<g transform="rotate(-20 100 96)">' +
+      '<ellipse cx="100" cy="96" rx="9" ry="27" fill="#FF9E6B" stroke="' + INK + '" stroke-width="2"/>' +
+      '<line x1="100" y1="72" x2="100" y2="120" stroke="#FFFFFF" stroke-width="2.5"/></g>',
+    back: '<path d="M4 92 Q14 84 24 92 T44 92" stroke="#FFFFFF" stroke-width="3" fill="none" stroke-linecap="round"/>'
+  };
+};
+
+// Капель — любит дождик: зонтик и капли
+DETAILS.umbrella = function () {
+  return {
+    head: '',
+    front: '',
+    back: '<path d="M2 34 Q22 4 42 34 Q37 29 32 34 Q27 29 22 34 Q17 29 12 34 Q7 29 2 34 Z" fill="#FFD447" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round"/>' +
+      '<path d="M22 34 L22 54 Q22 60 17 58" stroke="' + INK + '" stroke-width="2.5" fill="none" stroke-linecap="round"/>' +
+      '<path d="M100 14 Q96 20 100 22 Q104 20 100 14 Z M110 34 Q106 40 110 42 Q114 40 110 34 Z" fill="#7CC8FF"/>'
+  };
+};
+
+// Якорь — надёжный боцман: якорь на груди
+DETAILS.anchor = function () {
+  return {
+    head: '',
+    front: '<circle cx="60" cy="100" r="3" fill="none" stroke="' + INK + '" stroke-width="2.5"/>' +
+      '<path d="M60 103 L60 118 M54 107 L66 107 M49 111 Q60 124 71 111" stroke="' + INK + '" stroke-width="3" fill="none" stroke-linecap="round"/>',
+    back: ''
+  };
+};
+
+// Жемчуг — собирает ракушки: ракушка с жемчужиной
+DETAILS.shell = function () {
+  return {
+    head: '',
+    front: '<path d="M84 110 Q96 82 108 110 Z" fill="#FFD6E4" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round"/>' +
+      '<path d="M96 110 L96 90 M90 110 L93 92 M102 110 L99 92" stroke="' + INK + '" stroke-width="1.2" opacity="0.6"/>' +
+      '<circle cx="96" cy="104" r="3.5" fill="#FFFFFF" stroke="' + INK + '" stroke-width="1"/>',
+    back: ''
+  };
+};
+
+// Жёлудь — маленький разведчик: шляпка от жёлудя
+DETAILS.acornCap = function () {
+  return {
+    head: '<path d="M34 46 Q60 16 86 46 Z" fill="#8A5A2B" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+      '<path d="M44 40 L52 30 M56 42 L64 28 M68 42 L74 33 M50 42 L42 34 M66 40 L58 30" stroke="#5E3A17" stroke-width="2" opacity="0.7"/>' +
+      '<path d="M60 22 L63 13" stroke="#5E3A17" stroke-width="3.5" stroke-linecap="round"/>',
+    front: '',
+    back: ''
+  };
+};
+
+// Листик — любит прятки: большой лист у уха
+DETAILS.leafEar = function () {
+  return {
+    head: '<path d="M68 44 Q88 12 102 28 Q94 52 68 44 Z" fill="#4CAF50" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round"/>' +
+      '<path d="M70 43 Q86 34 98 30" stroke="#2E7D32" stroke-width="1.8" fill="none"/>',
+    front: '',
+    back: ''
+  };
+};
+
+// Светлячок — освещает путь: фонарик со светом
+DETAILS.lantern = function () {
+  return {
+    head: '',
+    front: '<circle cx="98" cy="102" r="16" fill="#FFE066" opacity="0.35"/>' +
+      '<path d="M91 88 Q98 78 105 88" stroke="' + INK + '" stroke-width="2" fill="none"/>' +
+      '<rect x="90" y="88" width="16" height="22" rx="4" fill="#FFE066" stroke="' + INK + '" stroke-width="2"/>' +
+      '<line x1="90" y1="99" x2="106" y2="99" stroke="' + INK + '" stroke-width="1.2" opacity="0.5"/>',
+    back: ''
+  };
+};
+
+// Компас — никогда не теряется: компас на груди
+DETAILS.compass = function () {
+  return {
+    head: '',
+    front: '<circle cx="60" cy="109" r="10" fill="#FFFFFF" stroke="' + INK + '" stroke-width="2.5"/>' +
+      '<path d="M60 101 L63 109 L60 111 L57 109 Z" fill="#FF6B6B"/>' +
+      '<path d="M60 117 L63 109 L60 107 L57 109 Z" fill="#4A3F9E"/>',
+    back: ''
+  };
+};
+
+// Бублик — корабельный повар: поварской колпак и бублик
+DETAILS.chefHat = function () {
+  return {
+    head: '<path d="M40 46 L40 36 Q28 28 38 18 Q46 8 60 14 Q74 8 82 18 Q92 28 80 36 L80 46 Z" fill="#FFFFFF" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+      '<line x1="40" y1="40" x2="80" y2="40" stroke="' + INK + '" stroke-width="1.5" opacity="0.5"/>',
+    front: '<circle cx="98" cy="104" r="10" fill="#E8A860" stroke="' + INK + '" stroke-width="2"/>' +
+      '<circle cx="98" cy="104" r="3.5" fill="' + INK + '" opacity="0.8"/>',
+    back: ''
+  };
+};
+
+// Радар — ловит сигналы: большие наушники
+DETAILS.headphones = function () {
+  return {
+    head: '<path d="M30 60 Q28 22 60 22 Q92 22 90 60" stroke="#2E2468" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+      '<rect x="22" y="52" width="13" height="22" rx="6" fill="' + PINK + '" stroke="' + INK + '" stroke-width="2"/>' +
+      '<rect x="85" y="52" width="13" height="22" rx="6" fill="' + PINK + '" stroke="' + INK + '" stroke-width="2"/>',
+    front: '',
+    back: '<path d="M100 14 Q108 22 100 30 M106 8 Q118 22 106 36" stroke="' + MINT + '" stroke-width="2.5" fill="none" stroke-linecap="round"/>'
+  };
+};
+
+// Закат — художник: кисть и палитра
+DETAILS.brush = function () {
+  return {
+    head: '',
+    front: '<ellipse cx="22" cy="104" rx="13" ry="9" fill="#F5E6C8" stroke="' + INK + '" stroke-width="2"/>' +
+      '<circle cx="16" cy="102" r="2.5" fill="#FF6B6B"/><circle cx="23" cy="99" r="2.5" fill="#FFD447"/><circle cx="29" cy="104" r="2.5" fill="#7A4FD6"/>' +
+      '<line x1="88" y1="118" x2="104" y2="90" stroke="#8A5A2B" stroke-width="4" stroke-linecap="round"/>' +
+      '<ellipse cx="106" cy="86" rx="4" ry="6" fill="#FF9E6B" stroke="' + INK + '" stroke-width="1.5" transform="rotate(30 106 86)"/>',
+    back: ''
+  };
+};
+
+// Орбита — легендарная: кольцо вокруг, как у планеты, и маленькая планета
+DETAILS.planetRing = function () {
+  return {
+    head: '',
+    front: '',
+    back: '<ellipse cx="60" cy="62" rx="58" ry="15" fill="none" stroke="' + GOLD + '" stroke-width="4" opacity="0.8" transform="rotate(-15 60 62)"/>' +
+      '<circle cx="104" cy="16" r="8" fill="#FF9E6B" stroke="' + INK + '" stroke-width="1.5"/>' +
+      '<ellipse cx="104" cy="16" rx="13" ry="3.5" fill="none" stroke="' + GOLD + '" stroke-width="2"/>' +
+      sparkle(16, 22, 4) + sparkle(12, 86, 3)
+  };
+};
+
+// Адмирал Гром — адмиральская двууголка
+DETAILS.bicorne = function () {
+  return {
+    head: '<path d="M24 48 Q60 6 96 48 Q60 36 24 48 Z" fill="' + INK + '" stroke="' + GOLD + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+      '<circle cx="60" cy="34" r="6" fill="' + GOLD + '" stroke="' + INK + '" stroke-width="1.5"/>' +
+      // пышные усы
+      '<path d="M54 76 Q44 82 34 76 M66 76 Q76 82 86 76" stroke="' + FUR_LIGHT + '" stroke-width="3" fill="none" stroke-linecap="round"/>',
+    front: star(96, 104, 5, GOLD) + star(24, 104, 5, GOLD),
+    back: ''
+  };
+};
+
+// Капитан Туманность — знает все звёзды: подзорная труба
+DETAILS.telescope = function () {
+  return {
+    head: '',
+    front: '<g transform="rotate(-35 96 102)">' +
+      '<rect x="80" y="96" width="30" height="11" rx="3" fill="#B9A6E0" stroke="' + INK + '" stroke-width="2"/>' +
+      '<rect x="108" y="93" width="8" height="17" rx="2" fill="' + GOLD + '" stroke="' + INK + '" stroke-width="2"/></g>' +
+      star(24, 104, 5, GOLD),
+    back: sparkle(104, 14, 5) + sparkle(16, 24, 3.5) + sparkle(110, 40, 2.5)
+  };
 };
 
 // Шестерёнка: круг с зубцами и дыркой в центре

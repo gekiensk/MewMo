@@ -209,6 +209,13 @@ function showHelpers() {
     name.textContent = cat.name;
     button.appendChild(face);
     button.appendChild(name);
+    // Коты, улетевшие домой на первом корабле, помогают по рации
+    if (isOnRadio(save, cat.id)) {
+      const radio = document.createElement('span');
+      radio.className = 'helper-radio';
+      radio.textContent = '📻 на связи по рации';
+      button.appendChild(radio);
+    }
     button.addEventListener('click', function () {
       // toggleHelper из logic.js: не больше двух помощников
       activeEncounter.helpers = toggleHelper(activeEncounter.helpers, cat.id);

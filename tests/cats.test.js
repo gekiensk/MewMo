@@ -9,10 +9,31 @@ const { GESTURES, RARITY_CHANCES } = require('../logic.js');
 
 const FIELDS = ['id', 'name', 'type', 'rarity', 'character', 'favoriteGesture', 'fact'];
 
-test('в каталоге 10 котов (8 обычных + 2 сумеречных)', function () {
-  assert.strictEqual(CATS.length, 10);
-  const twilight = CATS.filter(function (cat) { return cat.type === 'сумеречный'; });
-  assert.strictEqual(twilight.length, 2);
+test('в каталоге 22 кота: 10 в главе 1 и 12 в главе 2', function () {
+  assert.strictEqual(CATS.length, 22);
+  const first = CATS.filter(function (cat) { return cat.chapter === 1; });
+  const second = CATS.filter(function (cat) { return cat.chapter === 2; });
+  assert.strictEqual(first.length, 10);
+  assert.strictEqual(second.length, 12);
+  assert.strictEqual(first.filter(function (cat) { return cat.type === 'сумеречный'; }).length, 2);
+  // глава 2: 4 водных, 3 лесных, 3 городских, 1 сумеречный, 1 легендарный
+  const count = function (type) { return second.filter(function (cat) { return cat.type === type; }).length; };
+  assert.strictEqual(count('водный'), 4);
+  assert.strictEqual(count('лесной'), 3);
+  assert.strictEqual(count('городской'), 3);
+  assert.strictEqual(count('сумеречный'), 1);
+  assert.strictEqual(second.filter(function (cat) { return cat.rarity === 'легендарный'; }).length, 1);
+});
+
+test('у каждого кота есть глава (1 или 2)', function () {
+  for (const cat of CATS) {
+    assert.ok(cat.chapter === 1 || cat.chapter === 2, cat.name);
+  }
+});
+
+test('факты о кошках не повторяются', function () {
+  const facts = CATS.map(function (cat) { return cat.fact; });
+  assert.strictEqual(new Set(facts).size, facts.length);
 });
 
 test('у всех котов заполнены все поля', function () {

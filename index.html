@@ -52,6 +52,7 @@
   <section id="home" class="home hidden" aria-label="Убежище корабля">
     <div id="home-scene" class="home-scene"></div>
     <div id="home-cats" class="home-cats"></div>
+    <p id="home-more" class="home-more hidden"></p>
     <p id="home-empty" class="home-empty hidden">Пока в убежище пусто. Скоро прилетит гость — или погуляй и найди котов!</p>
   </section>
 
@@ -175,6 +176,11 @@
 
       <!-- Главный вид: счётчики и сетка котов -->
       <div id="album-main">
+        <!-- Вкладки глав (видны, когда открыта глава 2) -->
+        <div id="album-tabs" class="album-tabs hidden">
+          <button class="album-tab" data-chapter="1" aria-pressed="false">Глава 1</button>
+          <button class="album-tab" data-chapter="2" aria-pressed="false">Глава 2</button>
+        </div>
         <h2 id="album-title" class="screen-title album-title">Экипаж</h2>
         <p id="album-fish" class="album-fish"></p>
         <div class="repair">

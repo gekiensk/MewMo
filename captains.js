@@ -45,7 +45,7 @@ function updateCaptain() {
 function maybeSpawnCaptain(now) {
   // canSpawnCaptain из logic.js проверяет все правила появления
   const allowed = canSpawnCaptain({
-    crewCount: crewCount(save, CATS),
+    crewCount: crewCount(save, chapterCats(CATS, save.chapter)), // экипаж текущей главы
     captain: captainState,
     nextCaptainAt: save.nextCaptainAt,
     beaconCount: beacons.length,
@@ -54,7 +54,7 @@ function maybeSpawnCaptain(now) {
   if (!allowed) return;
 
   const beacon = beacons[Math.floor(Math.random() * beacons.length)];
-  const data = chooseCaptain(CAPTAINS, save, Math.random);
+  const data = chooseCaptain(chapterCats(CAPTAINS, save.chapter), save, Math.random); // капитаны главы
   captainState = makeCaptain(data.id, beacon.id, now);
   captainPosition = beacon.position;
 

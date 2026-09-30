@@ -378,7 +378,8 @@ function addCapsule(position) {
     element: element,
     // кот выбирается с учётом редкости, того, что рядом на карте,
     // и времени (сумеречные коты — только в последний час до заката)
-    cat: pickCatForPlace(CATS, { terrain: readTerrain(position), twilight: isTwilightNow() }, Math.random),
+    // и главы (в главе 2 иногда попадаются «отставшие» коты главы 1)
+    cat: pickCatForChapter(CATS, save, { terrain: readTerrain(position), twilight: isTwilightNow() }, Math.random),
     shyUntil: 0
   };
   capsules.push(capsule);
@@ -468,11 +469,15 @@ function catchCat(capsule) {
 
   // applyCatWin из logic.js: новый кот → в экипаж и деталь корабля,
   // знакомый кот → просто рад встрече и дарит рыбок
-  const result = applyCatWin(save, capsule.cat.id);
+  const isLatecomer = catChapter(capsule.cat) < save.chapter; // кот из прошлой главы
+  const result = applyCatWin(save, capsule.cat.id, capsule.cat);
   save = result.save;
   saveGame();
 
-  if (result.reward.isNew) {
+  if (result.reward.isNew && isLatecomer) {
+    playSound('crew');
+    showToast('Отставший кот нашёлся! ' + capsule.cat.name + ' теперь с тобой. +1 🔩');
+  } else if (result.reward.isNew) {
     playSound('crew');
     showToast(capsule.cat.name + ' теперь в твоём экипаже! +' + result.reward.parts + ' 🔩 деталь корабля');
   } else {
@@ -614,7 +619,9 @@ function setStatus(text) {
 
 function updateStatus() {
   // Счётчик берётся из сохранения: сколько котов каталога в экипаже
-  statusText.textContent = statusMessage + ' Экипаж: ' + crewCount(save, CATS) + ' из ' + CATS.length + '.';
+  // Считаем котов текущей главы
+  const cats = chapterCats(CATS, save.chapter);
+  statusText.textContent = statusMessage + ' Экипаж: ' + crewCount(save, cats) + ' из ' + cats.length + '.';
 }
 
 // Всплывающая подсказка внизу экрана. Держится TOAST_TIME и исчезает.

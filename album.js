@@ -19,6 +19,18 @@ const albumMain = document.getElementById('album-main');
 const albumCatView = document.getElementById('album-cat');
 const albumConfirm = document.getElementById('album-confirm');
 const albumLaunchConfirm = document.getElementById('album-launch-confirm');
+
+// Какую главу сейчас показывает альбом (вкладки «Глава 1» / «Глава 2»)
+let albumChapter = 1;
+
+// Вкладки глав: data-chapter хранит номер главы
+const albumTabs = document.querySelectorAll('.album-tab');
+for (let i = 0; i < albumTabs.length; i++) {
+  albumTabs[i].addEventListener('click', function () {
+    albumChapter = Number(albumTabs[i].dataset.chapter);
+    renderAlbum();
+  });
+}
 const albumGrid = document.getElementById('album-grid');
 
 // ----- Кнопки -----
@@ -58,6 +70,7 @@ document.addEventListener('keydown', function (event) {
 // Открыть и закрыть
 // =============================================================
 function openAlbum() {
+  albumChapter = save.chapter; // открываем на текущей главе
   albumWindow.classList.remove('hidden');
   showAlbumMain();
   document.getElementById('album-close').focus();
@@ -85,9 +98,22 @@ function showAlbumMain() {
 // Рисуем главный вид альбома
 // =============================================================
 function renderAlbum() {
-  // Заголовок: сколько котов найдено из скольких
+  // Коты и капитаны выбранной главы
+  const cats = chapterCats(CATS, albumChapter);         // logic.js
+  const captains = chapterCats(CAPTAINS, albumChapter);
+
+  // Вкладки глав видны, когда открыта глава 2 или дальше
+  document.getElementById('album-tabs').classList.toggle('hidden', save.chapter < 2);
+  for (let i = 0; i < albumTabs.length; i++) {
+    const chosen = Number(albumTabs[i].dataset.chapter) === albumChapter;
+    albumTabs[i].setAttribute('aria-pressed', chosen ? 'true' : 'false');
+    // вкладки будущих глав не показываем
+    albumTabs[i].classList.toggle('hidden', Number(albumTabs[i].dataset.chapter) > save.chapter);
+  }
+
+  // Заголовок: сколько котов главы найдено из скольких
   document.getElementById('album-title').textContent =
-    'Экипаж: ' + crewCount(save, CATS) + ' из ' + CATS.length;
+    'Экипаж: ' + crewCount(save, cats) + ' из ' + cats.length;
 
   // Рыбки
   document.getElementById('album-fish').textContent =
@@ -113,18 +139,26 @@ function renderAlbum() {
 
   // Сетка котов: сначала очищаем, потом добавляем по клетке на кота
   albumGrid.textContent = '';
-  for (let i = 0; i < CATS.length; i++) {
-    albumGrid.appendChild(makeAlbumCell(CATS[i], save.crew));
+  for (let i = 0; i < cats.length; i++) {
+    albumGrid.appendChild(makeAlbumCell(cats[i], save.crew));
   }
 
   // Отдельный ряд «Капитаны»
   document.getElementById('album-captains-title').textContent =
-    'Капитаны: ' + countMet(save.captains, CAPTAINS) + ' из ' + CAPTAINS.length;
+    'Капитаны: ' + countMet(save.captains, captains) + ' из ' + captains.length;
   const captainsGrid = document.getElementById('album-captains');
   captainsGrid.textContent = '';
-  for (let i = 0; i < CAPTAINS.length; i++) {
-    captainsGrid.appendChild(makeAlbumCell(CAPTAINS[i], save.captains));
+  for (let i = 0; i < captains.length; i++) {
+    captainsGrid.appendChild(makeAlbumCell(captains[i], save.captains));
   }
+}
+
+// Маленькая подпись в клетке альбома («Вернулся домой» и т. п.)
+function addCellNote(cell, text) {
+  const note = document.createElement('span');
+  note.className = 'album-note';
+  note.textContent = text;
+  cell.appendChild(note);
 }
 
 // Сколько из списка list уже встречено (есть в словаре counts)
@@ -164,6 +198,12 @@ function makeAlbumCell(cat, crewCounts) {
     cell.appendChild(circle);
     cell.appendChild(name);
     cell.appendChild(stars);
+    // Улетел домой на первом корабле / отставший, нашёлся позже
+    if (isOnRadio(save, cat.id)) {
+      addCellNote(cell, '🏠 Вернулся домой');
+    } else if (save.latecomers.includes(cat.id)) {
+      addCellNote(cell, '🧭 Нашёлся!');
+    }
     // Сердечки дружбы (режим «Дом»), если кот хоть раз стал другом
     const level = friendshipLevel(save, cat.id);
     if (level > 0) {

@@ -307,6 +307,30 @@ async function launchScenario(browser) {
   expect(state.flew === 3, name + ': домой улетели не все коты экипажа');
   // Прогулка продолжается: координаты приходят
   await moveTo(page, context, ROUTE[2], 'точку после взлёта');
+
+  // Глава 2: в капсулах коты главы 2 (или отставшие главы 1, которых ещё не нашли)
+  const capsuleCats = await page.evaluate(function () {
+    return capsules.map(function (c) { return { chapter: catChapter(c.cat), found: isInCrew(save, c.cat.id) }; });
+  });
+  expect(capsuleCats.length > 0, name + ': в главе 2 нет капсул');
+  expect(capsuleCats.every(function (c) { return c.chapter === 2 || !c.found; }),
+    name + ': в капсулах главы 2 попался уже найденный кот главы 1');
+
+  // Альбом: вкладки глав, у улетевших — «Вернулся домой», шкала — 30 деталей
+  await page.click('#crew-button');
+  expect(await page.isVisible('#album-tabs'), name + ': в альбоме нет вкладок глав');
+  const repair = await page.textContent('#album-repair-text');
+  expect(repair.includes('из 30'), name + ': в главе 2 шкала ремонта не на 30 деталей (' + repair + ')');
+  await page.click('.album-tab[data-chapter="1"]');
+  const notes = await page.locator('#album-grid .album-note').count();
+  expect(notes === 3, name + ': у улетевших котов нет отметки «Вернулся домой» (нашлось ' + notes + ')');
+  await page.click('#album-close');
+
+  // Убежище главы 2 открывается без ошибок
+  await page.click('#settings-button');
+  await page.click('#toggle-mode');
+  const home = await waitFor(page, function () { return gameMode === 'home'; }, null, 5000);
+  expect(home, name + ': не открылось убежище в главе 2');
   await context.close();
 }
 

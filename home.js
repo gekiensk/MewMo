@@ -101,7 +101,8 @@ function hideHome() {
 function checkGuests(announce) {
   const before = save.guests.list.length;
   const hourOf = function (ms) { return new Date(ms).getHours(); }; // местный час
-  save.guests = updateGuests(save.guests, Date.now(), CATS, hourOf, Math.random); // logic.js
+  // Гости — коты текущей главы и «отставшие» (logic.js)
+  save.guests = updateGuests(save.guests, Date.now(), CATS, hourOf, Math.random, save);
   saveGame();
   if (save.guests.list.length > before) {
     renderHome();
@@ -118,13 +119,17 @@ function checkGuests(announce) {
 function renderHome() {
   homeCats.textContent = '';
 
-  // Коты из экипажа (обычные и капитаны), по местам на полу
-  const crew = CATS.concat(CAPTAINS).filter(function (cat) {
-    return (save.crew[cat.id] || 0) > 0 || (save.captains[cat.id] || 0) > 0;
-  });
-  for (let i = 0; i < crew.length && i < CREW_SLOTS.length; i++) {
+  // Коты на полу: экипаж текущей главы, найденные отставшие и капитаны
+  // главы. Мест 12 — если котов больше, показываем самых дружных
+  // (shelterCats из logic.js), а про остальных пишем «ещё N — в альбоме».
+  const shelter = shelterCats(CATS.concat(CAPTAINS), save, CREW_SLOTS.length);
+  const crew = shelter.shown;
+  for (let i = 0; i < crew.length; i++) {
     homeCats.appendChild(makeHomeCat(crew[i], CREW_SLOTS[i], false));
   }
+  const more = document.getElementById('home-more');
+  more.textContent = 'Ещё ' + shelter.hidden + ' — в альбоме «Экипаж»';
+  more.classList.toggle('hidden', shelter.hidden === 0);
 
   // Гости
   for (let i = 0; i < save.guests.list.length && i < GUEST_SLOTS.length; i++) {
@@ -183,7 +188,7 @@ function openGuest(cat) {
 
 // Победа над гостем (вызывается из encounter.js)
 function guestWon(cat) {
-  const result = applyCatWin(save, cat.id); // logic.js: новый → деталь, знакомый → рыбки
+  const result = applyCatWin(save, cat.id, cat); // logic.js: новый → деталь, знакомый → рыбки
   save = result.save;
   save.guests = removeGuest(save.guests, cat.id);
   saveGame();

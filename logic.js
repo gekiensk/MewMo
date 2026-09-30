@@ -417,10 +417,15 @@ function crewCount(save, cats) {
 // Новый кот вступает в экипаж и приносит деталь корабля.
 // Знакомый кот просто рад встрече и дарит рыбок (второй раз в экипаж
 // он не добавляется, только растёт счётчик встреч).
-function applyCatWin(save, catId) {
+// cat (необязательно) — сам кот из каталога: если это новый кот из
+// прошлой главы («отставший»), он запоминается в списке latecomers.
+function applyCatWin(save, catId, cat) {
   const result = copySave(save);
   const isNew = !isInCrew(save, catId);
   const reward = { isNew: isNew, parts: 0, fish: 0 };
+  if (isNew && cat && catChapter(cat) < save.chapter && !result.latecomers.includes(catId)) {
+    result.latecomers.push(catId);
+  }
 
   result.crew[catId] = (result.crew[catId] || 0) + 1;
   if (isNew) {
@@ -504,6 +509,68 @@ function launchShip(save, allCats) {
   result.parts = save.parts - partsNeeded(chapter);
   result.chapter = chapter + 1;
   return result;
+}
+
+const LATECOMER_CHANCE = 0.1; // «отставшие» коты прошлой главы — примерно в 10% капсул
+
+// Отставшие: коты прошлых глав, которых игрок так и не нашёл.
+// twilight — сейчас сумерки (иначе сумеречных не берём).
+function latecomerCats(cats, save, twilight) {
+  return cats.filter(function (cat) {
+    return catChapter(cat) < save.chapter &&
+      !isInCrew(save, cat.id) &&
+      (twilight || cat.type !== 'сумеречный');
+  });
+}
+
+// Выбор кота для капсулы (и для гостя) с учётом главы.
+// allCats — весь каталог котов (без капитанов), save — сохранение,
+// options — { terrain, twilight }, как у pickCatForPlace.
+// В главе 1 — коты главы 1. В главе 2 — коты главы 2, а примерно в 10%
+// случаев — отставший кот главы 1 (пока такие есть).
+function pickCatForChapter(allCats, save, options, random) {
+  const chapter = save.chapter || 1;
+  if (chapter > 1) {
+    const late = latecomerCats(allCats, save, options && options.twilight);
+    if (late.length > 0 && random() < LATECOMER_CHANCE) {
+      return pickCat(late, random); // по редкости, как обычно
+    }
+  }
+  return pickCatForPlace(chapterCats(allCats, chapter), options, random);
+}
+
+// Коты на полу убежища: экипаж текущей главы, найденные отставшие
+// и капитаны текущей главы. Если их больше, чем мест (max), — самые
+// дружные (по числу угощений), при равенстве — те, кого чаще встречали.
+// allCats — коты и капитаны.
+function shelterCats(allCats, save, max) {
+  const chapter = save.chapter || 1;
+  const list = allCats.filter(function (cat) {
+    const met = (save.crew[cat.id] || 0) + (save.captains[cat.id] || 0);
+    if (met === 0) return false;
+    return catChapter(cat) === chapter || save.latecomers.includes(cat.id);
+  });
+  // Сортировка: сначала дружба, потом число встреч, потом порядок каталога
+  const order = list.map(function (cat, index) { return { cat: cat, index: index }; });
+  order.sort(function (a, b) {
+    const friendA = save.friendship[a.cat.id] || 0;
+    const friendB = save.friendship[b.cat.id] || 0;
+    if (friendA !== friendB) return friendB - friendA;
+    const metA = (save.crew[a.cat.id] || 0) + (save.captains[a.cat.id] || 0);
+    const metB = (save.crew[b.cat.id] || 0) + (save.captains[b.cat.id] || 0);
+    if (metA !== metB) return metB - metA;
+    return a.index - b.index;
+  });
+  return {
+    shown: order.slice(0, max).map(function (item) { return item.cat; }),
+    hidden: Math.max(0, order.length - max)
+  };
+}
+
+// Кот «на связи по рации»: улетел домой на первом корабле, но может
+// помочь советом в бою с капитаном
+function isOnRadio(save, catId) {
+  return save.flewHome.includes(catId);
 }
 
 // Название значка: 'rescuer-1' → «Спасатель 1 ранга»
@@ -1245,7 +1312,9 @@ function pickGuest(cats, hour, random) {
 //   random — случайные числа.
 // Первый раз (nextAt = 0) гость прилетает сразу. Потом — каждые 3 часа.
 // Если в убежище уже 3 гостя, новый не прилетает (его прилёт пропадает).
-function updateGuests(guests, now, cats, hourOf, random) {
+// save (необязательно) — сохранение: тогда гости выбираются по главе
+// (коты текущей главы и отставшие, см. pickCatForChapter).
+function updateGuests(guests, now, cats, hourOf, random, save) {
   const result = { list: guests.list.slice(), nextAt: guests.nextAt };
   if (result.nextAt === 0) result.nextAt = now; // самый первый гость — сразу
   if (now < result.nextAt) return result;
@@ -1259,7 +1328,11 @@ function updateGuests(guests, now, cats, hourOf, random) {
   // сумеречного правила — по часам прилёта)
   for (let i = 0; i < newGuests; i++) {
     const arrivalTime = result.nextAt + (arrivals - newGuests + i) * GUEST_INTERVAL;
-    result.list.push(pickGuest(cats, hourOf(arrivalTime), random).id);
+    const hour = hourOf(arrivalTime);
+    const guest = save
+      ? pickCatForChapter(cats, save, { terrain: null, twilight: isTwilightHour(hour) }, random)
+      : pickGuest(cats, hour, random);
+    result.list.push(guest.id);
   }
   result.nextAt = result.nextAt + arrivals * GUEST_INTERVAL;
   return result;
@@ -1522,7 +1595,8 @@ if (typeof module !== 'undefined') {
     TREATS_PER_LEVEL, MAX_FRIENDSHIP, friendshipLevel, treatsToNextLevel, feedCat, friendshipHearts,
     QUEST_TYPES, QUESTS_PER_DAY, chooseDailyQuests, refreshQuests, applyQuestEvent, questRewardText,
     LAST_CHAPTER, CHAPTER_PARTS, LAUNCHABLE_CHAPTERS, partsNeeded, catChapter, chapterCats,
-    canLaunchShip, launchShip, badgeName,
+    canLaunchShip, launchShip, badgeName, LATECOMER_CHANCE, latecomerCats, pickCatForChapter,
+    shelterCats, isOnRadio,
     GPS_LOG_MAX, addLogEntry, formatClock, GPS_ERROR_NAMES, agoText, buildGpsReport
   };
 }

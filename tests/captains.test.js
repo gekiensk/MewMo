@@ -11,8 +11,10 @@ const FIELDS = ['id', 'name', 'type', 'rarity', 'character', 'favoriteGesture', 
 const MINUTE = 60 * 1000;
 
 // ----- Каталог -----
-test('два капитана, все поля заполнены, жесты правильные', function () {
-  assert.strictEqual(CAPTAINS.length, 2);
+test('по два капитана в каждой главе, все поля заполнены, жесты правильные', function () {
+  assert.strictEqual(CAPTAINS.length, 4);
+  assert.strictEqual(CAPTAINS.filter(function (c) { return c.chapter === 1; }).length, 2);
+  assert.strictEqual(CAPTAINS.filter(function (c) { return c.chapter === 2; }).length, 2);
   for (const captain of CAPTAINS) {
     for (const field of FIELDS) {
       assert.strictEqual(typeof captain[field], 'string', captain.name + ': ' + field);
@@ -93,6 +95,8 @@ test('проигрыш: капитан остаётся, повтор через
 });
 
 test('сначала приходят капитаны, которых ещё нет в экипаже', function () {
+  // капитаны главы 1
+  const CAPTAINS = logic.chapterCats(require('../cats.js').CAPTAINS, 1);
   const save = logic.emptySave();
   save.captains = { zvezdous: 1 };
   for (const r of [0, 0.5, 0.99]) {

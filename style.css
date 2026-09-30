@@ -1354,3 +1354,63 @@ body.mode-home .toast {
     transform: none;
   }
 }
+
+/* ===== Главы в альбоме ===== */
+.album-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 0 56px 8px 0; /* справа место для кнопки ✕ */
+}
+.album-tabs.hidden,
+.album-tab.hidden {
+  display: none;
+}
+.album-tab {
+  flex: 1;
+  min-height: 48px;
+  border: 3px solid var(--fur);
+  border-radius: 16px;
+  background: var(--space);
+  color: var(--fur);
+  font-family: var(--font);
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.album-tab[aria-pressed="true"] {
+  background: var(--star);
+  color: var(--space);
+  border-color: var(--star);
+}
+/* Подпись в клетке: «Вернулся домой», «Нашёлся!» */
+.album-note {
+  color: var(--mint);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Помощник «на связи по рации» */
+.helper-radio {
+  display: block;
+  color: var(--mint);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Убежище: «Ещё N — в альбоме» */
+.home-more {
+  position: absolute;
+  left: 50%;
+  top: 88%;
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: var(--space);
+  font-size: 14px;
+  translate: -50% 0;
+  white-space: nowrap;
+}
+.home-more.hidden {
+  display: none;
+}

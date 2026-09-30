@@ -1414,3 +1414,70 @@ body.mode-home .toast {
 .home-more.hidden {
   display: none;
 }
+
+/* ===== Обучение «Как играть» ===== */
+/* Поверх стартового экрана и игры, но под настройками */
+.tutorial {
+  position: absolute;
+  inset: 0;
+  z-index: 1450;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--space);
+  text-align: center;
+  box-sizing: border-box;
+}
+.tutorial.hidden,
+.tutorial .small-button.hidden {
+  display: none;
+}
+.tutorial-picture {
+  width: 100%;
+  max-width: 420px;
+}
+.tutorial-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+/* Крупный текст — чтобы легко читалось */
+.tutorial-text {
+  max-width: 30ch;
+  margin: 4px 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.tutorial-text.tutorial-safety {
+  padding: 10px 14px;
+  border: 2px dashed var(--mint);
+  border-radius: 18px;
+}
+.tutorial-count {
+  margin: 0;
+  color: var(--star);
+  font-size: 16px;
+}
+.tutorial-next {
+  width: 100%;
+  max-width: 360px;
+}
+
+/* Подсказка новичку в мини-игре */
+.tip {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: var(--star);
+  color: var(--space);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.tip.hidden {
+  display: none;
+}

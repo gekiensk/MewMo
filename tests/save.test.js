@@ -41,7 +41,9 @@ test('записанное сохранение читается обратно 
     chaptersDone: [1],
     badges: ['rescuer-1'],
     flewHome: ['bul', 'moh'],
-    latecomers: ['iskra']
+    latecomers: ['iskra'],
+    tutorialSeen: true,
+    tipEncounters: 1
   };
   assert.strictEqual(logic.writeSave(storage, save), true);
   assert.ok(logic.SAVE_KEY in storage.data, 'ключ ' + logic.SAVE_KEY);

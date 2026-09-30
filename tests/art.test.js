@@ -38,6 +38,13 @@ test('у каждого кота своя деталь', function () {
   assert.strictEqual(new Set(details).size, all.length);
 });
 
+test('все 6 картинок обучения — SVG', function () {
+  assert.strictEqual(art.TUTORIAL_PICTURE_COUNT, 6);
+  for (let i = 0; i < art.TUTORIAL_PICTURE_COUNT; i++) {
+    assert.ok(looksLikeSvg(art.tutorialPicture(i)), 'картинка ' + (i + 1));
+  }
+});
+
 test('неизвестный кот не ломает игру', function () {
   assert.ok(looksLikeSvg(art.catPortrait('нет-такого')));
 });

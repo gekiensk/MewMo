@@ -17,7 +17,9 @@
 //   4. Сценарий «Нет разрешения»: геолокация запрещена → окно с инструкцией.
 //   5. Сценарий «Финал главы»: 20 деталей → «Запустить корабль» → взлёт →
 //      вступление к главе 2.
-//   6. Любая ошибка в консоли браузера = провал.
+//   6. Сценарий «Обучение»: первый запуск → 6 картинок → подсказка в первой
+//      встрече → «Как играть» в настройках.
+//   7. Любая ошибка в консоли браузера = провал.
 //   В конце печатает «ВСЁ ХОРОШО» или список проблем.
 //
 // Что нужно: Node.js, Python 3 и Playwright с браузером Chromium.
@@ -335,6 +337,54 @@ async function launchScenario(browser) {
 }
 
 // =============================================================
+// Сценарий 4: обучение «Как играть» и подсказки новичку
+// =============================================================
+async function tutorialScenario(browser) {
+  const name = 'Обучение';
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+    geolocation: { longitude: ROUTE[0][0], latitude: ROUTE[0][1], accuracy: 10 },
+    permissions: ['geolocation']
+  });
+  await stubExternal(context);
+  const page = await context.newPage();
+  page.setDefaultTimeout(8000);
+  watchErrors(page, name);
+  await page.goto(URL);
+
+  // Первый запуск — обучение само появляется; листаем 6 картинок
+  expect(await page.isVisible('#tutorial'), name + ': при первом запуске нет обучения');
+  for (let i = 0; i < 5; i++) await page.click('#tutorial-next');
+  const last = await page.textContent('#tutorial-text');
+  expect(last.includes('взрослым'), name + ': на последней картинке нет напоминания о безопасности');
+  await page.click('#tutorial-next'); // «Начать!»
+  expect(await page.isHidden('#tutorial'), name + ': обучение не закрылось');
+
+  // После перезагрузки обучение само не появляется
+  await page.reload();
+  expect(await page.isHidden('#tutorial'), name + ': обучение появилось второй раз');
+
+  // Подсказка в первой встрече с котом
+  await page.click('#start-button');
+  await moveTo(page, context, ROUTE[1], 'первую точку');
+  await page.evaluate(function () {
+    const capsule = capsules[0];
+    movePlayer(capsulePosition(capsule), 5);
+    capsule.element.click();
+  });
+  await page.click('#intro-next');
+  expect(await page.isVisible('#signal-tip'), name + ': в первой встрече нет подсказки «Поймай сигнал»');
+  await page.click('#encounter-close');
+
+  // Настройки → «❓ Как играть» — обучение снова
+  await page.click('#settings-button');
+  await page.click('#open-tutorial');
+  expect(await page.isVisible('#tutorial'), name + ': «Как играть» в настройках не открывает обучение');
+  await page.click('#tutorial-skip');
+  await context.close();
+}
+
+// =============================================================
 // Запуск
 // =============================================================
 async function main() {
@@ -357,6 +407,8 @@ async function main() {
     await deniedScenario(browser);
     console.log('Сценарий 3: финал главы 1 — запуск корабля…');
     await launchScenario(browser);
+    console.log('Сценарий 4: обучение «Как играть» и подсказки…');
+    await tutorialScenario(browser);
   } catch (error) {
     problems.push('Проверка упала: ' + error.message.split('\n')[0]);
   } finally {

@@ -117,8 +117,13 @@ function startEncounter(target) {
     hintEarned: false,
     helpers: [],
     battle: createBattle(isCaptain ? CAPTAIN_WINS_NEEDED : WINS_NEEDED, []),
-    signal: null
+    signal: null,
+    showTips: needsEncounterTips(save) // подсказки — только в первые 2 встречи (logic.js)
   };
+  if (activeEncounter.showTips) {
+    save.tipEncounters = save.tipEncounters + 1; // эта встреча — «с подсказками»
+    saveGame();
+  }
 
   // Заполняем экран «Кот рядом!»
   const cat = target.cat;
@@ -266,6 +271,8 @@ function startSignal() {
   signalZone.style.width = (settings.zoneWidth * 100) + '%';
 
   signalResult.textContent = '';
+  // Подсказка для новичка (первые 2 встречи)
+  setTip('signal-tip', activeEncounter.showTips ? '👉 Нажми «Поймать!», когда огонёк в зелёной зоне!' : '');
   signalButton.classList.remove('hidden');
   signalNext.classList.add('hidden');
   showScreen('screen-signal');
@@ -331,6 +338,10 @@ function startRps() {
 
   document.getElementById('rps-goal').textContent = 'Играем до ' + WINS_WORDS[winsNeeded] + ' побед!';
   rpsRound.textContent = 'Выбери жест!';
+  // Подсказка для новичка (первые 2 встречи)
+  setTip('rps-tip', activeEncounter.showTips
+    ? '👉 Выбери жест. Подсказка: 🐾 Лапка бьёт ✂️ Коготь, ✂️ Коготь бьёт 🧶 Клубок, 🧶 Клубок бьёт 🐾 Лапку.'
+    : '');
   hideHelperCalls();
   setGestureButtonsEnabled(true);
   updateScore();
@@ -541,6 +552,13 @@ function startCelebration() {
   celebrate.classList.remove('celebrate-go');
   void celebrate.offsetWidth;
   celebrate.classList.add('celebrate-go');
+}
+
+// Показать подсказку новичку (или спрятать, если text пустой)
+function setTip(id, text) {
+  const tip = document.getElementById(id);
+  tip.textContent = text;
+  tip.classList.toggle('hidden', text === '');
 }
 
 // =============================================================

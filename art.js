@@ -701,7 +701,119 @@ function launchScene(crewIds) {
     '</svg>';
 }
 
+// =============================================================
+// Картинки обучения «Как играть» (6 штук)
+// =============================================================
+// Холст 400×300. tutorialPicture(0) … tutorialPicture(5).
+const TUTORIAL_PICTURE_COUNT = 6;
+
+// Вставить маленькую картинку SVG (портрет, капсулу) внутрь большой:
+// меняем начало тега <svg class="…"> на <svg x y width height>
+function placeSvg(svgText, x, y, width, height) {
+  return svgText.replace(/^<svg class="[^"]*"/, '<svg x="' + x + '" y="' + y + '" width="' + width + '" height="' + height + '"');
+}
+
+// Звёздное небо для картинок обучения
+function tutorialSky() {
+  const stars = [[30, 30], [80, 70], [150, 25], [260, 40], [330, 80], [370, 20], [210, 90], [50, 140], [360, 150]];
+  let sky = '<rect width="400" height="300" rx="24" fill="#1E1747"/>';
+  for (let i = 0; i < stars.length; i++) {
+    sky = sky + '<circle cx="' + stars[i][0] + '" cy="' + stars[i][1] + '" r="' + (i % 2 === 0 ? 2.5 : 1.5) + '" fill="#FFFFFF"/>';
+  }
+  return sky;
+}
+
+// Силуэты домов (город внизу картинки)
+function tutorialCity() {
+  return '<path d="M0 300 L0 230 L40 230 L40 200 L80 200 L80 240 L120 240 L120 180 L165 180 L165 235 L210 235 L210 205 L250 205 L250 245 L290 245 L290 190 L335 190 L335 230 L400 230 L400 300 Z" fill="#2E2468"/>' +
+    '<rect x="130" y="195" width="10" height="10" fill="#FFD447"/><rect x="150" y="215" width="10" height="10" fill="#FFD447"/>' +
+    '<rect x="300" y="205" width="10" height="10" fill="#FFD447"/><rect x="220" y="215" width="10" height="10" fill="#FFD447"/>';
+}
+
+function tutorialPicture(index) {
+  const open = '<svg class="tutorial-svg" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">';
+  let body = '';
+
+  if (index === 0) {
+    // 1. Корабль котов разбился: наклонённый корабль, дым и звёзды-искры
+    body = tutorialSky() +
+      '<path d="M40 300 Q200 230 360 300 Z" fill="#7EDC8A"/>' +
+      '<g transform="rotate(35 200 150)">' +
+      '<path d="M165 230 L165 110 Q165 60 200 40 Q235 60 235 110 L235 230 Z" fill="#FFD447" stroke="#F7F3FF" stroke-width="4"/>' +
+      '<path d="M180 55 L186 30 L198 45 Z M220 55 L214 30 L202 45 Z" fill="#FF8FB1" stroke="#F7F3FF" stroke-width="3" stroke-linejoin="round"/>' +
+      '<circle cx="200" cy="120" r="20" fill="#120E33" stroke="#F7F3FF" stroke-width="4"/>' +
+      '<path d="M165 200 L140 240 L165 230 Z M235 200 L260 240 L235 230 Z" fill="#FF8FB1" stroke="#F7F3FF" stroke-width="3"/>' +
+      '</g>' +
+      '<circle cx="110" cy="120" r="22" fill="#8C86A8" opacity="0.7"/><circle cx="85" cy="95" r="16" fill="#8C86A8" opacity="0.55"/>' +
+      '<circle cx="65" cy="70" r="11" fill="#8C86A8" opacity="0.4"/>' +
+      sparkle(300, 90, 10) + sparkle(270, 250, 8) + sparkle(120, 230, 7);
+  } else if (index === 1) {
+    // 2. Коты разлетелись в капсулах над городом
+    body = tutorialSky() + tutorialCity() +
+      placeSvg(capsuleIcon(), 60, 60, 50, 68) +
+      placeSvg(capsuleIcon(), 175, 20, 50, 68) +
+      placeSvg(capsuleIcon(), 290, 70, 50, 68) +
+      '<path d="M85 140 Q80 170 90 190 M200 95 Q205 140 190 170 M315 150 Q320 180 310 200" stroke="#FFD447" stroke-width="3" stroke-dasharray="6 8" fill="none" stroke-linecap="round"/>';
+  } else if (index === 2) {
+    // 3. Ты — Земной спасатель: кот благодарит, большая звезда-значок
+    body = tutorialSky() +
+      '<circle cx="140" cy="160" r="90" fill="#FFF1B8"/>' +
+      placeSvg(catPortrait('iskra'), 60, 80, 160, 160) +
+      star(300, 140, 60, GOLD) +
+      '<text x="300" y="150" text-anchor="middle" font-size="30" font-weight="800" font-family="sans-serif" fill="#1E1747">1</text>';
+  } else if (index === 3) {
+    // 4. Подойди к капсуле и поймай сигнал
+    body = tutorialSky() +
+      placeSvg(capsuleIcon(), 40, 50, 90, 122) +
+      '<path d="M150 110 L200 110" stroke="#F7F3FF" stroke-width="5" stroke-linecap="round"/>' +
+      '<path d="M192 100 L206 110 L192 120" stroke="#F7F3FF" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<text x="85" y="200" text-anchor="middle" font-size="22" font-weight="800" font-family="sans-serif" fill="#6EE7C8">≤ 40 м</text>' +
+      // шкала «Поймай сигнал»: зелёная зона и огонёк в ней
+      '<rect x="220" y="85" width="160" height="50" rx="25" fill="#1E1747" stroke="#F7F3FF" stroke-width="4"/>' +
+      '<rect x="285" y="89" width="40" height="42" fill="#6EE7C8"/>' +
+      '<circle cx="305" cy="110" r="14" fill="#FFD447" stroke="#F7F3FF" stroke-width="3"/>' +
+      '<rect x="240" y="170" width="120" height="50" rx="25" fill="#FF8FB1"/>' +
+      '<text x="300" y="203" text-anchor="middle" font-size="22" font-weight="800" font-family="sans-serif" fill="#1E1747">Поймать!</text>';
+  } else if (index === 4) {
+    // 5. Лапка, Коготь, Клубок: кто кого бьёт (стрелки по кругу)
+    const circle = function (x, y, icon, label) {
+      return '<circle cx="' + x + '" cy="' + y + '" r="42" fill="#FF8FB1" stroke="#F7F3FF" stroke-width="4"/>' +
+        '<text x="' + x + '" y="' + (y + 13) + '" text-anchor="middle" font-size="38">' + icon + '</text>' +
+        '<text x="' + x + '" y="' + (y + 66) + '" text-anchor="middle" font-size="20" font-weight="800" font-family="sans-serif" fill="#F7F3FF">' + label + '</text>';
+    };
+    const arrow = function (x1, y1, x2, y2) {
+      return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="#FFD447" stroke-width="5" stroke-linecap="round" marker-end="url(#tut-arrow)"/>';
+    };
+    body = '<defs><marker id="tut-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto">' +
+      '<path d="M0 0 L10 5 L0 10 Z" fill="#FFD447"/></marker></defs>' +
+      '<rect width="400" height="300" rx="24" fill="#2E2468"/>' +
+      circle(200, 62, '🐾', 'Лапка') + circle(90, 200, '✂️', 'Коготь') + circle(310, 200, '🧶', 'Клубок') +
+      // стрелка «кто бьёт → кого»: Лапка → Коготь → Клубок → Лапка
+      arrow(165, 95, 118, 150) + arrow(140, 205, 255, 205) + arrow(285, 150, 238, 95);
+  } else {
+    // 6. Альбом и ремонт корабля + безопасность: гуляем со взрослым
+    body = tutorialSky() +
+      // шкала ремонта
+      '<text x="200" y="45" text-anchor="middle" font-size="20" font-weight="800" font-family="sans-serif" fill="#F7F3FF">Ремонт корабля</text>' +
+      '<rect x="80" y="58" width="240" height="26" rx="13" fill="#1E1747" stroke="#F7F3FF" stroke-width="4"/>' +
+      '<rect x="84" y="62" width="150" height="18" rx="9" fill="#6EE7C8"/>' +
+      // взрослый и ребёнок держатся за руки
+      '<circle cx="150" cy="130" r="18" fill="#F7F3FF"/><path d="M128 250 L132 160 Q150 148 168 160 L172 250 Z" fill="#7CC8FF"/>' +
+      '<circle cx="225" cy="165" r="14" fill="#F7F3FF"/><path d="M208 250 L211 188 Q225 178 239 188 L242 250 Z" fill="#FFD447"/>' +
+      '<path d="M170 190 Q190 205 210 200" stroke="#F7F3FF" stroke-width="6" fill="none" stroke-linecap="round"/>' +
+      // глазки по сторонам
+      '<path d="M270 150 Q290 135 310 150 Q290 165 270 150 Z" fill="#F7F3FF"/><circle cx="290" cy="150" r="6" fill="#1E1747"/>' +
+      '<path d="M270 190 L320 190 M300 180 L320 190 L300 200" stroke="#6EE7C8" stroke-width="4" fill="none" stroke-linecap="round"/>' +
+      '<path d="M130 190 L80 190 M100 180 L80 190 L100 200" stroke="#6EE7C8" stroke-width="4" fill="none" stroke-linecap="round"/>' +
+      '<rect x="0" y="255" width="400" height="45" fill="#3A2F7A"/>';
+  }
+  return open + body + '</svg>';
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 if (typeof module !== 'undefined') {
-  module.exports = { CAT_LOOKS, SUIT_COLORS, catPortrait, capsuleIcon, beaconIcon, shelterScene, launchScene };
+  module.exports = {
+    CAT_LOOKS, SUIT_COLORS, catPortrait, capsuleIcon, beaconIcon, shelterScene, launchScene,
+    TUTORIAL_PICTURE_COUNT, tutorialPicture
+  };
 }

@@ -243,7 +243,9 @@ function gpsSearchState(info) {
 //   chaptersDone: [],         // пройденные главы
 //   badges: ['rescuer-1'],    // значки игрока
 //   flewHome: ['bul'],        // коты, улетевшие домой на первом корабле
-//   latecomers: ['moh']       // «отставшие» коты главы 1, найденные в главе 2
+//   latecomers: ['moh'],      // «отставшие» коты главы 1, найденные в главе 2
+//   tutorialSeen: true,       // обучение «Как играть» уже показано
+//   tipEncounters: 2          // в скольких встречах уже были подсказки
 // }
 //
 // Старые сохранения (без новых полей) продолжают работать: cleanSave
@@ -276,7 +278,9 @@ function emptySave() {
     chaptersDone: [],
     badges: [],
     flewHome: [],
-    latecomers: []
+    latecomers: [],
+    tutorialSeen: false,
+    tipEncounters: 0
   };
 }
 
@@ -362,6 +366,13 @@ function cleanSave(data) {
   save.badges = cleanStringList(data.badges);
   save.flewHome = cleanStringList(data.flewHome);
   save.latecomers = cleanStringList(data.latecomers);
+  // Обучение. Если в старом сохранении этих полей нет, но игрок уже
+  // играл (есть коты, рыбки или детали) — обучение и подсказки ему
+  // не нужны: он и так умеет играть.
+  const alreadyPlayed = Object.keys(save.crew).length > 0 || save.fish > 0 || save.parts > 0;
+  save.tutorialSeen = typeof data.tutorialSeen === 'boolean' ? data.tutorialSeen : alreadyPlayed;
+  save.tipEncounters = isCount(data.tipEncounters) ? data.tipEncounters
+    : (alreadyPlayed ? TIP_ENCOUNTERS : 0);
   return save;
 }
 
@@ -571,6 +582,21 @@ function shelterCats(allCats, save, max) {
 // помочь советом в бою с капитаном
 function isOnRadio(save, catId) {
   return save.flewHome.includes(catId);
+}
+
+// =============================================================
+// Обучение «Как играть»
+// =============================================================
+const TIP_ENCOUNTERS = 2; // подсказки в мини-играх — только в первые 2 встречи
+
+// Показывать ли обучение при запуске игры
+function shouldShowTutorial(save) {
+  return !save.tutorialSeen;
+}
+
+// Нужны ли подсказки в этой встрече (первые 2 встречи)
+function needsEncounterTips(save) {
+  return save.tipEncounters < TIP_ENCOUNTERS;
 }
 
 // Название значка: 'rescuer-1' → «Спасатель 1 ранга»
@@ -1596,7 +1622,7 @@ if (typeof module !== 'undefined') {
     QUEST_TYPES, QUESTS_PER_DAY, chooseDailyQuests, refreshQuests, applyQuestEvent, questRewardText,
     LAST_CHAPTER, CHAPTER_PARTS, LAUNCHABLE_CHAPTERS, partsNeeded, catChapter, chapterCats,
     canLaunchShip, launchShip, badgeName, LATECOMER_CHANCE, latecomerCats, pickCatForChapter,
-    shelterCats, isOnRadio,
+    shelterCats, isOnRadio, TIP_ENCOUNTERS, shouldShowTutorial, needsEncounterTips,
     GPS_LOG_MAX, addLogEntry, formatClock, GPS_ERROR_NAMES, agoText, buildGpsReport
   };
 }

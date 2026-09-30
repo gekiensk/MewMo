@@ -106,6 +106,8 @@
       <div id="screen-signal" class="screen hidden">
         <h2 class="screen-title">Поймай сигнал</h2>
         <p class="screen-text">Нажми «Поймать!», когда огонёк будет в зелёной зоне. Попытка одна!</p>
+        <!-- Подсказка новичку (первые 2 встречи) -->
+        <p id="signal-tip" class="tip hidden"></p>
         <!-- Шкала: зелёная зона и бегущий огонёк -->
         <div class="signal-bar">
           <div id="signal-zone" class="signal-zone"></div>
@@ -125,6 +127,7 @@
           🧶 В Клубке запутывается Лапка.<br>
           <span id="rps-goal">Играем до двух побед!</span>
         </p>
+        <p id="rps-tip" class="tip hidden"></p>
         <p id="rps-hint" class="hint hidden"></p>
         <p id="rps-score" class="score"></p>
         <p id="rps-round" class="result-text" aria-live="polite"></p>
@@ -278,6 +281,17 @@
     <button id="launch-skip" class="small-button launch-skip">Пропустить</button>
   </section>
 
+  <!-- ===== Обучение «Как играть» =====
+       Картинки рисует art.js (tutorialPicture), тексты — tutorial.js -->
+  <section id="tutorial" class="tutorial hidden" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+    <h2 id="tutorial-title" class="screen-title">Как играть</h2>
+    <div id="tutorial-picture" class="tutorial-picture"></div>
+    <p id="tutorial-text" class="tutorial-text" aria-live="polite"></p>
+    <p id="tutorial-count" class="tutorial-count"></p>
+    <button id="tutorial-next" class="big-button tutorial-next">Дальше</button>
+    <button id="tutorial-skip" class="small-button">Пропустить</button>
+  </section>
+
   <!-- ===== Экран «На сегодня всё!» =====
        Появляется, когда закончилось время игры, выбранное взрослым.
        Убрать его можно только через раздел «Для взрослых». -->
@@ -300,6 +314,7 @@
         <p id="vibration-note" class="screen-text small-text hidden">Этот телефон не умеет вибрировать.</p>
         <button id="toggle-mode" class="big-button">🏠 Играть дома</button>
         <p id="mode-note" class="screen-text small-text hidden">Прогулку выключил взрослый — играем дома.</p>
+        <button id="open-tutorial" class="big-button toggle-button" aria-pressed="false">❓ Как играть</button>
         <button id="open-gps-check" class="big-button toggle-button" aria-pressed="false">📍 Проверить GPS</button>
         <button id="open-adult" class="small-button">Для взрослых</button>
       </div>
@@ -388,6 +403,8 @@
   <script src="encounter.js"></script>
   <!-- album.js — альбом экипажа (пользуется помощниками из encounter.js) -->
   <script src="album.js"></script>
+  <!-- tutorial.js — обучение «Как играть» -->
+  <script src="tutorial.js"></script>
   <!-- launch.js — финал главы: запуск корабля -->
   <script src="launch.js"></script>
   <!-- quests.js — ежедневные задания -->

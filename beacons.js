@@ -197,6 +197,7 @@ function openBeacon(beacon) {
   if (reward.parts > 0) {
     text = text + ' и деталь корабля 🔩';
   }
+  playSound('reward');
   showToast(text + '!');
   updateBeaconLooks();
 }

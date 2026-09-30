@@ -80,6 +80,7 @@ centerButton.addEventListener('click', function () {
 // Запуск игры
 // =============================================================
 function startGame() {
+  initSound(); // звук можно включить только по нажатию (sound.js)
   startScreen.classList.add('hidden'); // прячем стартовый экран
   createMap(DEFAULT_POSITION);
 
@@ -437,8 +438,10 @@ function catchCat(capsule) {
   saveGame();
 
   if (result.reward.isNew) {
+    playSound('crew');
     showToast(capsule.cat.name + ' теперь в твоём экипаже! +' + result.reward.parts + ' 🔩 деталь корабля');
   } else {
+    playSound('reward');
     showToast(capsule.cat.name + ' рад встрече! +' + result.reward.fish + ' 🐟');
   }
   updateStatus();

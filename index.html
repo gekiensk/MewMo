@@ -47,7 +47,7 @@
       <!-- Экран 1: «Кот рядом!» -->
       <div id="screen-intro" class="screen">
         <h2 id="intro-title" class="screen-title">Кот рядом!</h2>
-        <div id="intro-circle" class="cat-circle"></div>
+        <div id="intro-circle" class="cat-circle sway"></div>
         <p id="intro-name" class="cat-name"></p>
         <p id="intro-stars" class="stars"></p>
         <p id="intro-text" class="screen-text hidden"></p>
@@ -101,7 +101,13 @@
       <!-- Экран 4: победа — «Кот найден!» -->
       <div id="screen-win" class="screen hidden">
         <h2 id="win-title" class="screen-title">Кот найден!</h2>
-        <div id="win-circle" class="cat-circle"></div>
+        <!-- Круг с котом и звёздочки вокруг него (анимация победы) -->
+        <div id="win-celebrate" class="celebrate">
+          <div id="win-circle" class="cat-circle"></div>
+          <span class="celebrate-star">★</span><span class="celebrate-star">★</span>
+          <span class="celebrate-star">★</span><span class="celebrate-star">★</span>
+          <span class="celebrate-star">★</span><span class="celebrate-star">★</span>
+        </div>
         <p id="win-name" class="cat-name"></p>
         <p id="win-stars" class="stars"></p>
         <p id="win-info" class="screen-text"></p>
@@ -190,6 +196,8 @@
   <script src="cats.js"></script>
   <!-- art.js — картинки в SVG: портреты котов, капсула, маяк -->
   <script src="art.js"></script>
+  <!-- sound.js — звуки, синтезированные в коде (Web Audio API) -->
+  <script src="sound.js"></script>
   <!-- encounter.js — окно «Знакомство с котом» (мини-игры) -->
   <script src="encounter.js"></script>
   <!-- album.js — альбом экипажа (пользуется помощниками из encounter.js) -->

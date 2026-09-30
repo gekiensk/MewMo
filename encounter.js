@@ -130,6 +130,7 @@ function startEncounter(target) {
 
   encounterWindow.classList.remove('hidden');
   showScreen('screen-intro');
+  playSound('meow'); // «мяу-чирп» — кот появился (sound.js)
   document.getElementById('intro-next').focus();
 }
 
@@ -281,6 +282,7 @@ function catchSignal() {
   const cat = activeEncounter.cat;
 
   if (hit) {
+    playSound('signal');
     activeEncounter.hintEarned = true;
     signalResult.textContent = 'Сигнал пойман! Подсказка: ' + cat.name + ' любит ' +
       GESTURE_ICONS[cat.favoriteGesture] + ' ' + GESTURE_ACCUSATIVE[cat.favoriteGesture] + '.';
@@ -341,6 +343,8 @@ function playRound(playerGesture) {
 
   rpsRound.textContent = text;
   updateScore();
+  if (result === 'победа') playSound('roundWin');
+  if (result === 'поражение') playSound('roundLose');
 
   if (battle.pendingLoss) {
     showHelperCalls();
@@ -459,6 +463,7 @@ function showWinScreen() {
   document.getElementById('win-info').textContent = 'Тип: ' + cat.type + '. Характер: ' + cat.character + '.';
   document.getElementById('win-fact').textContent = cat.fact;
   showScreen('screen-win');
+  startCelebration();
   document.getElementById('win-take').focus();
 }
 
@@ -495,6 +500,17 @@ function catGotShy() {
   } else {
     makeCatShy(encounter.capsule);  // функция из game.js
   }
+}
+
+// Анимация победы: кот подпрыгивает, вокруг разлетаются звёздочки.
+// Чтобы анимация сыграла заново, класс сначала убираем, потом ставим.
+// Между этим браузер должен «заметить» изменение — для этого читаем
+// offsetWidth (это заставляет браузер пересчитать вид элемента).
+function startCelebration() {
+  const celebrate = document.getElementById('win-celebrate');
+  celebrate.classList.remove('celebrate-go');
+  void celebrate.offsetWidth;
+  celebrate.classList.add('celebrate-go');
 }
 
 // =============================================================

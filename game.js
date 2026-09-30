@@ -264,15 +264,18 @@ function onPosition(pos) {
   demoMode = false; // GPS заработал — выходим из демо-режима
 
   // Первый ответ GPS: если капсулы уже лежат вокруг демо-точки,
-  // убираем их — новые появятся рядом с настоящим местом игрока
-  if (!hasGps) {
-    hasGps = true;
-    removeAllCapsules();
-  }
+  // их надо убрать — новые появятся рядом с настоящим местом игрока
+  const firstFix = !hasGps;
+  hasGps = true;
 
+  // Сначала самое важное: точка игрока и строка состояния.
+  // Остальное (капсулы, маяки, камера) — в movePlayer, «со страховкой».
   const lngLat = [pos.coords.longitude, pos.coords.latitude]; // сначала долгота!
-  movePlayer(lngLat, pos.coords.accuracy);
   setStatus('Ты здесь. Точность: ' + Math.round(pos.coords.accuracy) + ' м.');
+  if (firstFix) {
+    safely('убрать демо-капсулы', removeAllCapsules); // gps.js
+  }
+  movePlayer(lngLat, pos.coords.accuracy);
 }
 
 // GPS не смог определить местоположение
@@ -300,17 +303,20 @@ function onPositionError(error) {
 // =============================================================
 // Перемещение игрока
 // =============================================================
+// Сначала двигаем точку игрока. Всё остальное — «со страховкой»
+// (safely из gps.js): если, например, в капсулах случится ошибка,
+// она попадёт в журнал диагностики, а GPS и точка игрока продолжат работать.
 function movePlayer(lngLat, accuracy) {
   playerMarker.setLngLat(lngLat);
-  drawAccuracyCircle(lngLat, accuracy || 0);
+  safely('круг точности', function () { drawAccuracyCircle(lngLat, accuracy || 0); });
 
   // Убираем далёкие капсулы, добавляем новые и обновляем их свечение
-  refreshCapsules(lngLat);
+  safely('капсулы', function () { refreshCapsules(lngLat); });
   // Маяки у реальных мест (beacons.js)
-  refreshBeacons(false);
+  safely('маяки', function () { refreshBeacons(false); });
 
   if (followPlayer) {
-    map.easeTo({ center: lngLat }); // плавно двигаем карту за игроком
+    safely('камера', function () { map.easeTo({ center: lngLat }); }); // карта едет за игроком
   }
 }
 
@@ -532,13 +538,14 @@ function removeTwilightCapsules() {
 }
 
 // То, что делаем раз в секунду (только на прогулке)
+// Каждая часть — «со страховкой»: ошибка в одной не мешает остальным.
 function everySecond() {
   if (gameMode !== 'walk') return;
-  checkTwilight();
-  updateCapsuleLooks();
-  updateBeaconLooks();   // таймеры перезарядки (beacons.js)
-  refreshBeacons(false); // сам решит, пора ли пересчитывать
-  updateCaptain();       // капитаны у маяков (captains.js)
+  safely('сумерки', checkTwilight);
+  safely('вид капсул', updateCapsuleLooks);
+  safely('вид маяков', updateBeaconLooks);                          // таймеры перезарядки (beacons.js)
+  safely('маяки', function () { refreshBeacons(false); });          // сам решит, пора ли пересчитывать
+  safely('капитан', updateCaptain);                                 // капитаны у маяков (captains.js)
 }
 
 // =============================================================

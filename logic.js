@@ -1275,6 +1275,31 @@ function questRewardText(reward) {
   return parts.join(' и ');
 }
 
+// =============================================================
+// Журнал диагностики GPS
+// =============================================================
+// Журнал живёт только в памяти, пока открыта страница, и никуда
+// не сохраняется. КООРДИНАТ В НЁМ НЕТ: только время, событие и текст ошибки.
+
+const GPS_LOG_MAX = 50; // храним не больше 50 последних записей
+
+// Добавляет запись в журнал. Возвращает новый массив (старые записи
+// сверх GPS_LOG_MAX выбрасываются). entry — { time, event, error }.
+function addLogEntry(log, entry) {
+  const result = log.concat([{
+    time: entry.time,
+    event: String(entry.event || ''),
+    error: String(entry.error || '')
+  }]);
+  return result.slice(Math.max(0, result.length - GPS_LOG_MAX));
+}
+
+// Время для журнала: «14:05:09» (по часам телефона). date — объект Date.
+function formatClock(date) {
+  function two(n) { return (n < 10 ? '0' : '') + n; }
+  return two(date.getHours()) + ':' + two(date.getMinutes()) + ':' + two(date.getSeconds());
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -1305,6 +1330,7 @@ if (typeof module !== 'undefined') {
     makeParentQuestion, checkParentAnswer,
     GUEST_INTERVAL, MAX_GUESTS, isTwilightHour, pickGuest, updateGuests, removeGuest,
     TREATS_PER_LEVEL, MAX_FRIENDSHIP, friendshipLevel, treatsToNextLevel, feedCat, friendshipHearts,
-    QUEST_TYPES, QUESTS_PER_DAY, chooseDailyQuests, refreshQuests, applyQuestEvent, questRewardText
+    QUEST_TYPES, QUESTS_PER_DAY, chooseDailyQuests, refreshQuests, applyQuestEvent, questRewardText,
+    GPS_LOG_MAX, addLogEntry, formatClock
   };
 }

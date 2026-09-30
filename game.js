@@ -152,11 +152,15 @@ function createMap(position) {
 
   // Событие 'load' наступает, когда стиль карты загрузился.
   // Только после этого можно добавлять на карту свои слои.
+  // Каждая часть — «со страховкой» (safely из gps.js): если, например,
+  // не получилось добавить здания, круг точности GPS всё равно появится.
   map.on('load', function () {
-    add3dBuildings();
-    addAccuracyCircle();
-    mapReady = true;
-    drawAccuracyCircle(lastAccuracy.center, lastAccuracy.radius);
+    safely('объёмные здания', add3dBuildings);
+    safely('круг точности', function () {
+      addAccuracyCircle();
+      mapReady = true;
+      drawAccuracyCircle(lastAccuracy.center, lastAccuracy.radius);
+    });
   });
 
   // Если игрок сам двигает карту пальцем — перестаём за ним следить
@@ -180,6 +184,12 @@ function add3dBuildings() {
     if (layers[i].type === 'fill-extrusion') {
       return; // здания уже есть — ничего не делаем
     }
+  }
+
+  // Здания берутся из данных OpenMapTiles. Если такого источника в стиле
+  // нет (например, стиль карты не загрузился целиком) — зданий не будет
+  if (!map.getSource('openmaptiles')) {
+    return;
   }
 
   // Если вдруг их нет — добавляем свой слой зданий

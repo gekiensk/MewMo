@@ -76,3 +76,55 @@ test('ошибка TIMEOUT до первых координат не включ�
   assert.strictEqual(logic.gpsErrorAction(true, false), 'слабый сигнал');
   assert.strictEqual(logic.gpsErrorAction(false, true), 'демо');
 });
+
+// ----- Отчёт «Проверить GPS» -----
+function reportInfo(changes) {
+  const now = new Date(2026, 8, 30, 14, 5, 9).getTime();
+  return Object.assign({
+    now: now, supported: true, secure: true, permission: 'granted', mode: 'walk',
+    demo: false, watching: true, fixCount: 12, lastFixAt: now - 3000, accuracy: 15.4,
+    lastError: { code: 3, message: 'Timeout expired', time: now - 40000 },
+    log: [{ time: now - 60000, event: 'запуск слежения', error: 'прогулка' }],
+    browser: 'Тестовый браузер'
+  }, changes);
+}
+
+test('отчёт показывает состояние GPS', function () {
+  const text = logic.buildGpsReport(reportInfo({}));
+  assert.ok(text.includes('Время: 14:05:09'));
+  assert.ok(text.includes('Браузер умеет геолокацию: да'));
+  assert.ok(text.includes('Защищённое соединение (https): да'));
+  assert.ok(text.includes('Разрешение: разрешено'));
+  assert.ok(text.includes('Координаты приходили: 12 раз'));
+  assert.ok(text.includes('Последние координаты: 3 с назад'));
+  assert.ok(text.includes('Точность: 15 м'));
+  assert.ok(text.includes('код 3 (TIMEOUT'));
+  assert.ok(text.includes('14:04:09 запуск слежения — прогулка'));
+});
+
+test('отчёт без координат и без ошибок', function () {
+  const text = logic.buildGpsReport(reportInfo({ fixCount: 0, lastFixAt: 0, lastError: null, log: [], permission: undefined }));
+  assert.ok(text.includes('Последние координаты: ещё не было'));
+  assert.ok(text.includes('Последняя ошибка: нет'));
+  assert.ok(text.includes('Разрешение: неизвестно'));
+  assert.ok(text.includes('пусто'));
+});
+
+test('координаты никогда не попадают в отчёт', function () {
+  // Даже если по ошибке передать координаты — функция их не берёт
+  const text = logic.buildGpsReport(reportInfo({
+    latitude: 55.755812, longitude: 37.617304, coords: { latitude: 55.755812, longitude: 37.617304 }
+  }));
+  assert.ok(!text.includes('55.75'));
+  assert.ok(!text.includes('37.61'));
+});
+
+test('в отчёт попадают только 10 последних событий журнала', function () {
+  const now = new Date(2026, 8, 30, 12, 0, 0).getTime();
+  const log = [];
+  for (let i = 0; i < 20; i++) log.push({ time: now, event: 'событие-' + i, error: '' });
+  const text = logic.buildGpsReport(reportInfo({ now: now, log: log }));
+  assert.ok(!/событие-9$/m.test(text)); // «событие-9» в конце строки — его быть не должно
+  assert.ok(text.includes('событие-10'));
+  assert.ok(text.includes('событие-19'));
+});

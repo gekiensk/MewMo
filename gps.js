@@ -174,3 +174,103 @@ document.getElementById('gps-help-retry').addEventListener('click', function () 
   startGps('кнопка «Попробовать снова»');
 });
 document.getElementById('gps-help-close').addEventListener('click', hideGpsHelp);
+
+// =============================================================
+// Окно «Проверить GPS» (в настройках, без родительского замка)
+// =============================================================
+// Показывает состояние GPS и последние события журнала. КООРДИНАТ
+// НЕ ПОКАЗЫВАЕТ. Текст собирает buildGpsReport из logic.js.
+
+let gpsPermissionState = '';  // 'granted', 'denied', 'prompt' или '' (неизвестно)
+let gpsReportTimer = null;    // обновление окна раз в секунду
+
+// Узнать состояние разрешения, если браузер умеет (navigator.permissions)
+function checkGpsPermission() {
+  try {
+    if (!navigator.permissions || !navigator.permissions.query) return;
+    navigator.permissions.query({ name: 'geolocation' }).then(function (status) {
+      gpsPermissionState = status.state;
+      // Если разрешение поменяют, пока игра открыта, — узнаем об этом
+      status.onchange = function () {
+        gpsPermissionState = status.state;
+        logGps('разрешение изменилось', status.state);
+      };
+    }).catch(function () {
+      gpsPermissionState = '';
+    });
+  } catch (error) {
+    gpsPermissionState = '';
+  }
+}
+
+// Собрать текст отчёта (только то, что нужно, без координат)
+function gpsReportText() {
+  return buildGpsReport({ // logic.js
+    now: Date.now(),
+    supported: 'geolocation' in navigator,
+    secure: window.isSecureContext === true,
+    permission: gpsPermissionState,
+    mode: gameMode,
+    demo: demoMode,
+    watching: watchId !== null,
+    fixCount: gpsFixCount,
+    lastFixAt: gpsLastFixAt,
+    accuracy: gpsLastAccuracy,
+    lastError: gpsLastError,
+    log: gpsLog,
+    browser: navigator.userAgent
+  });
+}
+
+function openGpsCheck() {
+  checkGpsPermission();
+  showSettingsView(document.getElementById('settings-gps')); // settings.js
+  renderGpsReport();
+  // Пока окно открыто, обновляем его раз в секунду («5 с назад» и т. п.)
+  if (!gpsReportTimer) gpsReportTimer = setInterval(renderGpsReport, 1000);
+}
+
+function renderGpsReport() {
+  const view = document.getElementById('settings-gps');
+  const closed = view.classList.contains('hidden') || settingsWindow.classList.contains('hidden');
+  if (closed) {
+    // Окно закрыли — перестаём обновлять
+    clearInterval(gpsReportTimer);
+    gpsReportTimer = null;
+    return;
+  }
+  document.getElementById('gps-report').textContent = gpsReportText();
+}
+
+// «Скопировать отчёт»: чтобы игрок мог прислать его разработчику
+function copyGpsReport() {
+  const text = gpsReportText();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () {
+      showToast('Отчёт скопирован. Его можно отправить разработчику.');
+    }).catch(function () {
+      showToast('Не получилось скопировать. Выдели текст отчёта пальцем и скопируй.');
+    });
+  } else {
+    showToast('Не получилось скопировать. Выдели текст отчёта пальцем и скопируй.');
+  }
+}
+
+document.getElementById('open-gps-check').addEventListener('click', openGpsCheck);
+document.getElementById('gps-copy').addEventListener('click', copyGpsReport);
+document.getElementById('gps-back').addEventListener('click', function () {
+  showSettingsView(document.getElementById('settings-main'));
+});
+document.getElementById('gps-restart').addEventListener('click', function () {
+  if (gameMode !== 'walk') {
+    showToast('GPS работает только на прогулке. Дома координаты не нужны.');
+    return;
+  }
+  gpsPermissionDenied = false;
+  startGps('кнопка «Перезапустить GPS»');
+  renderGpsReport();
+  showToast('GPS перезапущен.');
+});
+
+// Сразу при загрузке узнаём, разрешена ли геолокация (если браузер умеет)
+checkGpsPermission();

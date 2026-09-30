@@ -934,6 +934,7 @@ button:focus-visible {
 #settings-main.hidden,
 #settings-lock.hidden,
 #settings-adult.hidden,
+#settings-gps.hidden,
 .small-text.hidden,
 .small-button.hidden {
   display: none;
@@ -1197,4 +1198,21 @@ body.mode-home .toast {
 }
 .help-steps {
   font-size: 15px;
+}
+
+/* Отчёт «Проверка GPS»: моноширинный шрифт, строки переносятся */
+.gps-report {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--space);
+  color: var(--fur);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: left;
+  white-space: pre-wrap;   /* длинные строки переносятся */
+  word-break: break-word;
+  user-select: text;       /* текст можно выделить и скопировать пальцем */
+  -webkit-user-select: text;
 }

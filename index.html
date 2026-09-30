@@ -264,7 +264,17 @@
         <p id="vibration-note" class="screen-text small-text hidden">Этот телефон не умеет вибрировать.</p>
         <button id="toggle-mode" class="big-button">🏠 Играть дома</button>
         <p id="mode-note" class="screen-text small-text hidden">Прогулку выключил взрослый — играем дома.</p>
+        <button id="open-gps-check" class="big-button toggle-button" aria-pressed="false">📍 Проверить GPS</button>
         <button id="open-adult" class="small-button">Для взрослых</button>
+      </div>
+
+      <!-- Проверка GPS (без родительского замка). Координаты не показываем. -->
+      <div id="settings-gps" class="hidden">
+        <h2 class="screen-title">Проверка GPS</h2>
+        <pre id="gps-report" class="gps-report"></pre>
+        <button id="gps-copy" class="big-button">Скопировать отчёт</button>
+        <button id="gps-restart" class="big-button toggle-button" aria-pressed="false">Перезапустить GPS</button>
+        <button id="gps-back" class="small-button">Назад</button>
       </div>
 
       <!-- Родительский замок -->

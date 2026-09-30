@@ -1333,6 +1333,69 @@ function formatClock(date) {
   return two(date.getHours()) + ':' + two(date.getMinutes()) + ':' + two(date.getSeconds());
 }
 
+// Названия ошибок геолокации по коду
+const GPS_ERROR_NAMES = {
+  1: 'PERMISSION_DENIED — нет разрешения',
+  2: 'POSITION_UNAVAILABLE — место недоступно',
+  3: 'TIMEOUT — нет ответа вовремя'
+};
+
+// Названия состояний разрешения (navigator.permissions)
+const PERMISSION_NAMES = {
+  granted: 'разрешено',
+  denied: 'запрещено',
+  prompt: 'браузер спросит'
+};
+
+// Сколько времени прошло: «5 с назад», «3 мин назад»
+function agoText(ms) {
+  const seconds = Math.max(0, Math.round(ms / 1000));
+  if (seconds < 120) return seconds + ' с назад';
+  return Math.round(seconds / 60) + ' мин назад';
+}
+
+// Текст отчёта «Проверить GPS». info — только то, что нужно для отчёта:
+// { now, supported, secure, permission, mode, demo, watching, fixCount,
+//   lastFixAt, accuracy, lastError: { code, message, time } | null,
+//   log: [{ time, event, error }], browser }.
+// КООРДИНАТ В ОТЧЁТЕ НЕТ: функция берёт из info только поля выше.
+function buildGpsReport(info) {
+  const yesNo = function (value) { return value ? 'да' : 'нет'; };
+  const modes = { walk: 'прогулка', home: 'дом', '': 'стартовый экран' };
+  const lines = [];
+  lines.push('MewMo — проверка GPS');
+  lines.push('Время: ' + formatClock(new Date(info.now)));
+  lines.push('Браузер умеет геолокацию: ' + yesNo(info.supported));
+  lines.push('Защищённое соединение (https): ' + yesNo(info.secure));
+  lines.push('Разрешение: ' + (PERMISSION_NAMES[info.permission] || 'неизвестно'));
+  lines.push('Режим: ' + (modes[info.mode] || info.mode) + '. Демо-режим: ' + yesNo(info.demo));
+  lines.push('Слежение запущено: ' + yesNo(info.watching));
+  lines.push('Координаты приходили: ' + info.fixCount + ' ' + pluralRu(info.fixCount, 'раз', 'раза', 'раз'));
+  if (info.lastFixAt) {
+    lines.push('Последние координаты: ' + agoText(info.now - info.lastFixAt));
+    lines.push('Точность: ' + Math.round(info.accuracy) + ' м');
+  } else {
+    lines.push('Последние координаты: ещё не было');
+  }
+  if (info.lastError) {
+    lines.push('Последняя ошибка: код ' + info.lastError.code + ' (' +
+      (GPS_ERROR_NAMES[info.lastError.code] || 'неизвестная') + ')' +
+      (info.lastError.message ? ' — ' + info.lastError.message : '') +
+      ', ' + agoText(info.now - info.lastError.time));
+  } else {
+    lines.push('Последняя ошибка: нет');
+  }
+  lines.push('Журнал (последние 10 событий):');
+  const last = info.log.slice(-10);
+  if (last.length === 0) lines.push('  пусто');
+  for (let i = 0; i < last.length; i++) {
+    lines.push('  ' + formatClock(new Date(last[i].time)) + ' ' + last[i].event +
+      (last[i].error ? ' — ' + last[i].error : ''));
+  }
+  lines.push('Браузер: ' + (info.browser || 'неизвестно'));
+  return lines.join('\n');
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -1364,6 +1427,6 @@ if (typeof module !== 'undefined') {
     GUEST_INTERVAL, MAX_GUESTS, isTwilightHour, pickGuest, updateGuests, removeGuest,
     TREATS_PER_LEVEL, MAX_FRIENDSHIP, friendshipLevel, treatsToNextLevel, feedCat, friendshipHearts,
     QUEST_TYPES, QUESTS_PER_DAY, chooseDailyQuests, refreshQuests, applyQuestEvent, questRewardText,
-    GPS_LOG_MAX, addLogEntry, formatClock
+    GPS_LOG_MAX, addLogEntry, formatClock, GPS_ERROR_NAMES, agoText, buildGpsReport
   };
 }

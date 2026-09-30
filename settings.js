@@ -130,7 +130,7 @@ function closeSettings() {
 
 // В окне три вида: главный, замок и раздел для взрослых
 function showSettingsView(view) {
-  const views = [settingsMain, settingsLock, settingsAdult];
+  const views = [settingsMain, settingsLock, settingsAdult, document.getElementById('settings-gps')];
   for (let i = 0; i < views.length; i++) {
     views[i].classList.toggle('hidden', views[i] !== view);
   }

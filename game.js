@@ -41,6 +41,7 @@ let capsules = [];       // список капсул, которые лежат
 let hasGps = false;      // приходил ли уже хоть раз ответ от GPS
 let statusMessage = '';  // текст строки состояния (без счётчика котов)
 let toastTimer = null;   // таймер, который прячет подсказку
+let wasTwilight = false; // были ли сумерки при прошлой проверке
 
 // ----- Сохранение -----
 // Хранилище браузера (localStorage). В некоторых браузерах (например,
@@ -338,8 +339,9 @@ function addCapsule(position) {
   const capsule = {
     marker: marker,
     element: element,
-    // кот выбирается с учётом редкости и того, что рядом на карте
-    cat: pickCatForPlace(CATS, { terrain: readTerrain(position) }, Math.random),
+    // кот выбирается с учётом редкости, того, что рядом на карте,
+    // и времени (сумеречные коты — только в последний час до заката)
+    cat: pickCatForPlace(CATS, { terrain: readTerrain(position), twilight: isTwilightNow() }, Math.random),
     shyUntil: 0
   };
   capsules.push(capsule);
@@ -462,8 +464,45 @@ function removeAllCapsules() {
   capsules = [];
 }
 
+// Сейчас последний час до заката там, где стоит игрок?
+// Закат считается прямо на телефоне (isTwilightTime из logic.js),
+// координаты никуда не отправляются.
+function isTwilightNow() {
+  const position = playerPosition();
+  return isTwilightTime(Date.now(), position[0], position[1]);
+}
+
+// Следит за сумерками: когда они начались — подсказка,
+// когда солнце село — сумеречные коты улетают из капсул
+function checkTwilight() {
+  const twilight = isTwilightNow();
+  if (twilight && !wasTwilight) {
+    showToast('Скоро закат! Появляются сумеречные коты. Вернись домой до темноты!');
+  }
+  if (!twilight && wasTwilight) {
+    removeTwilightCapsules();
+  }
+  wasTwilight = twilight;
+}
+
+// Убирает капсулы с сумеречными котами (кроме той, где идёт знакомство)
+// и раскладывает на их место обычные
+function removeTwilightCapsules() {
+  const twilightCapsules = capsules.filter(function (capsule) {
+    const inEncounter = activeEncounter && activeEncounter.capsule === capsule;
+    return capsule.cat.type === 'сумеречный' && !inEncounter;
+  });
+  for (let i = 0; i < twilightCapsules.length; i++) {
+    removeCapsule(twilightCapsules[i]);
+  }
+  if (twilightCapsules.length > 0) {
+    refreshCapsules(playerPosition());
+  }
+}
+
 // То, что делаем раз в секунду
 function everySecond() {
+  checkTwilight();
   updateCapsuleLooks();
   updateBeaconLooks();   // таймеры перезарядки (beacons.js)
   refreshBeacons(false); // сам решит, пора ли пересчитывать

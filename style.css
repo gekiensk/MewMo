@@ -517,6 +517,7 @@ button:focus-visible {
 .circle-forest    { background: #7EDC8A; } /* лесной — зелёный */
 .circle-city      { background: var(--star); } /* городской — жёлтый */
 .circle-legendary { background: var(--nose); } /* легендарный — розовый */
+.circle-twilight  { background: linear-gradient(160deg, #9B7BE0, #FF9E6B); } /* сумеречный — закатный */
 .circle-captain   { background: linear-gradient(135deg, var(--star), var(--nose)); } /* капитан — золотой */
 .cat-circle.shy   { background: var(--space); }
 

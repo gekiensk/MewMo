@@ -9,8 +9,10 @@ const { GESTURES, RARITY_CHANCES } = require('../logic.js');
 
 const FIELDS = ['id', 'name', 'type', 'rarity', 'character', 'favoriteGesture', 'fact'];
 
-test('в каталоге 8 котов', function () {
-  assert.strictEqual(CATS.length, 8);
+test('в каталоге 10 котов (8 обычных + 2 сумеречных)', function () {
+  assert.strictEqual(CATS.length, 10);
+  const twilight = CATS.filter(function (cat) { return cat.type === 'сумеречный'; });
+  assert.strictEqual(twilight.length, 2);
 });
 
 test('у всех котов заполнены все поля', function () {
@@ -41,7 +43,7 @@ test('редкость — одна из известных', function () {
 });
 
 test('тип — один из известных', function () {
-  const types = ['водный', 'лесной', 'городской', 'космический'];
+  const types = ['водный', 'лесной', 'городской', 'космический', 'сумеречный'];
   for (const cat of CATS) {
     assert.ok(types.includes(cat.type), cat.name + ': ' + cat.type);
   }

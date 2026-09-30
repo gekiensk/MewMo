@@ -518,6 +518,102 @@ function formatTimeLeft(ms) {
 }
 
 // =============================================================
+// Время заката (формула NOAA)
+// =============================================================
+// Считаем закат прямо в браузере по дате и координатам — без интернета
+// и без сторонних сервисов, координаты никуда не уходят.
+// Формулы — из «солнечного калькулятора» NOAA (Национальное управление
+// океанических и атмосферных исследований США). Точность — около минуты.
+
+const DAY_MS = 24 * 60 * 60 * 1000;   // миллисекунд в сутках
+const TWILIGHT_TIME = 60 * 60 * 1000; // «сумерки» в игре — последний час до заката
+const TWILIGHT_CHANCE = 0.3;          // в сумерки ~30% капсул — с сумеречными котами
+
+function degToRad(deg) { return deg * Math.PI / 180; }
+function radToDeg(rad) { return rad * 180 / Math.PI; }
+
+// Положение Солнца в момент ms (миллисекунды, как Date.now()).
+// Возвращает склонение Солнца (в градусах) и «уравнение времени»
+// (в минутах — насколько солнечные часы спешат или отстают).
+function sunPosition(ms) {
+  const julianDay = ms / DAY_MS + 2440587.5;          // юлианский день
+  const t = (julianDay - 2451545) / 36525;            // юлианские века от 2000 года
+
+  // Средняя долгота и средняя аномалия Солнца (градусы)
+  const meanLong = (280.46646 + t * (36000.76983 + t * 0.0003032)) % 360;
+  const meanAnomaly = 357.52911 + t * (35999.05029 - 0.0001537 * t);
+  // Эксцентриситет орбиты Земли
+  const eccent = 0.016708634 - t * (0.000042037 + 0.0000001267 * t);
+
+  // Уравнение центра и истинная долгота Солнца
+  const m = degToRad(meanAnomaly);
+  const center = Math.sin(m) * (1.914602 - t * (0.004817 + 0.000014 * t)) +
+    Math.sin(2 * m) * (0.019993 - 0.000101 * t) +
+    Math.sin(3 * m) * 0.000289;
+  const trueLong = meanLong + center;
+
+  // Видимая долгота (поправка на нутацию)
+  const omega = degToRad(125.04 - 1934.136 * t);
+  const apparentLong = trueLong - 0.00569 - 0.00478 * Math.sin(omega);
+
+  // Наклон земной оси
+  const meanObliq = 23 + (26 + (21.448 - t * (46.815 + t * (0.00059 - t * 0.001813))) / 60) / 60;
+  const obliq = meanObliq + 0.00256 * Math.cos(omega);
+
+  // Склонение Солнца
+  const declination = radToDeg(Math.asin(Math.sin(degToRad(obliq)) * Math.sin(degToRad(apparentLong))));
+
+  // Уравнение времени (минуты)
+  const y = Math.pow(Math.tan(degToRad(obliq) / 2), 2);
+  const l0 = degToRad(meanLong);
+  const eqTime = 4 * radToDeg(
+    y * Math.sin(2 * l0) -
+    2 * eccent * Math.sin(m) +
+    4 * eccent * y * Math.sin(m) * Math.cos(2 * l0) -
+    0.5 * y * y * Math.sin(4 * l0) -
+    1.25 * eccent * eccent * Math.sin(2 * m)
+  );
+
+  return { declination: declination, eqTime: eqTime };
+}
+
+// Время заката (в мс, как Date.now()) для суток dayMs (любой момент
+// этих суток по UTC) в точке [lng, lat] (долгота, широта).
+// Если в этот день Солнце не заходит (полярный день) или не встаёт
+// (полярная ночь) — возвращает null.
+function sunsetTime(dayMs, lng, lat) {
+  const dayStart = Math.floor(dayMs / DAY_MS) * DAY_MS; // полночь по UTC
+  // Сначала считаем для полудня, потом уточняем для найденного заката
+  let sunsetMinutes = 720;
+  for (let step = 0; step < 2; step++) {
+    const sun = sunPosition(dayStart + sunsetMinutes * 60000);
+    // Часовой угол заката: 90.833° — это центр Солнца на 0.833° ниже
+    // горизонта (учтены преломление воздуха и размер диска Солнца)
+    const cosHourAngle =
+      Math.cos(degToRad(90.833)) / (Math.cos(degToRad(lat)) * Math.cos(degToRad(sun.declination))) -
+      Math.tan(degToRad(lat)) * Math.tan(degToRad(sun.declination));
+    if (cosHourAngle < -1 || cosHourAngle > 1) return null; // полярный день или ночь
+    const hourAngle = radToDeg(Math.acos(cosHourAngle));
+    // Солнечный полдень по UTC (в минутах от полуночи) + половина светового дня
+    sunsetMinutes = 720 - 4 * lng - sun.eqTime + 4 * hourAngle;
+  }
+  return dayStart + Math.round(sunsetMinutes * 60000);
+}
+
+// Идёт ли сейчас «последний час до заката» в точке [lng, lat].
+// Смотрим закаты вчера, сегодня и завтра по UTC: в разных часовых поясах
+// местный вечер может приходиться на другие сутки по UTC.
+function isTwilightTime(now, lng, lat) {
+  for (let offset = -1; offset <= 1; offset++) {
+    const sunset = sunsetTime(now + offset * DAY_MS, lng, lat);
+    if (sunset !== null && now >= sunset - TWILIGHT_TIME && now < sunset) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// =============================================================
 // Что рядом на карте: вода, зелень или город
 // =============================================================
 // Данные карты приходят в формате GeoJSON: у каждой фигуры есть
@@ -672,12 +768,23 @@ function terrainNear(point, features, radius) {
   return 'город';
 }
 
-// Выбирает кота с учётом места.
-// options.terrain — 'вода', 'зелень', 'город' или null (данных карты нет).
-// Сначала, как и раньше, редкость. Потом в 60% случаев — кот подходящего
+// Выбирает кота с учётом места и времени.
+// options.terrain  — 'вода', 'зелень', 'город' или null (данных карты нет);
+// options.twilight — true, если сейчас последний час до заката.
+// Сумеречные коты бывают только в сумерки: тогда примерно в 30% капсул
+// сумеречный кот. В остальное время их в выборе нет совсем.
+// Дальше, как и раньше, редкость. Потом в 60% случаев — кот подходящего
 // типа этой редкости, иначе — любой кот этой редкости.
 // Легендарная Комета выпадает где угодно с обычным шансом.
-function pickCatForPlace(cats, options, random) {
+function pickCatForPlace(allCats, options, random) {
+  const twilightCats = allCats.filter(function (cat) { return cat.type === 'сумеречный'; });
+  if (options && options.twilight && twilightCats.length > 0 && random() < TWILIGHT_CHANCE) {
+    // Сумеречный кот: тоже с учётом редкости (редкий — реже)
+    return pickCat(twilightCats, random);
+  }
+  // Все остальные коты, кроме сумеречных
+  const cats = allCats.filter(function (cat) { return cat.type !== 'сумеречный'; });
+
   const rarity = pickRarity(random);
   const sameRarity = cats.filter(function (cat) { return cat.rarity === rarity; });
   let choices = sameRarity.length > 0 ? sameRarity : cats;
@@ -863,6 +970,7 @@ if (typeof module !== 'undefined') {
     applyBeaconReward, formatTimeLeft,
     TERRAIN_RADIUS, PLACE_TYPE_CHANCE, TERRAIN_CAT_TYPE, terrainKind,
     distanceToGeometry, terrainNear, pickCatForPlace,
+    DAY_MS, TWILIGHT_TIME, TWILIGHT_CHANCE, sunPosition, sunsetTime, isTwilightTime,
     createBattle, battleRound, battleUseHelper, battleAcceptLoss,
     CAPTAIN_MIN_CREW, CAPTAIN_LIFETIME, CAPTAIN_NEXT_DELAY, CAPTAIN_RETRY_DELAY,
     CAPTAIN_WINS_NEEDED, MAX_HELPERS, CAPTAIN_PARTS,

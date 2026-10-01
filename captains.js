@@ -124,7 +124,7 @@ function captainWon(state) {
   save = result.save;
   saveGame();
   removeCaptain();
-  playSound('crew');
+  playSound('captainWin'); // мягкие «фанфары» победы над капитаном
   if (result.reward.isNew) {
     showToast(data.name + ' вступил в экипаж! +' + result.reward.parts + ' детали 🔩');
   } else {

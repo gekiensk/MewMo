@@ -30,7 +30,7 @@ test('испорченные настройки заменяются значе�
     playTime: { day: 5, seconds: -3, bonusMinutes: 'много' }
   });
   const save = logic.loadSave(fakeStorage({ [logic.SAVE_KEY]: text }));
-  assert.deepStrictEqual(save.settings, { sound: true, vibration: false, dailyLimit: 0, homeOnly: false });
+  assert.deepStrictEqual(save.settings, { soundLevel: 'обычно', vibration: false, dailyLimit: 0, homeOnly: false });
   assert.deepStrictEqual(save.playTime, { day: '', seconds: 0, bonusMinutes: 0 });
 });
 
@@ -109,4 +109,16 @@ test('проверка ответа родительского замка', func
   assert.strictEqual(logic.checkParentAnswer(q, '92.0'), false);
   assert.strictEqual(logic.checkParentAnswer(q, '9 2'), false);
   assert.strictEqual(logic.checkParentAnswer(q, '-92'), false);
+});
+
+test('громкость: старое «выкл» → «Выкл», старое «вкл» → «Обычно»', function () {
+  const load = function (settings) {
+    const text = JSON.stringify({ settings: settings });
+    return logic.loadSave(fakeStorage({ [logic.SAVE_KEY]: text })).settings.soundLevel;
+  };
+  assert.strictEqual(load({ sound: false }), 'выкл');
+  assert.strictEqual(load({ sound: true }), 'обычно');
+  assert.strictEqual(load({}), 'обычно');
+  assert.strictEqual(load({ soundLevel: 'тихо' }), 'тихо');
+  assert.strictEqual(load({ soundLevel: 'громко!' }), 'обычно');
 });

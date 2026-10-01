@@ -28,7 +28,7 @@ test('записанное сохранение читается обратно 
     crew: { bul: 2, moh: 1 }, captains: { cap: 1 },
     fish: 12, parts: 3, beaconCooldowns: { 'poi-5': 1700000000000 },
     nextCaptainAt: 1700000000000,
-    settings: { sound: false, vibration: true, dailyLimit: 60, homeOnly: true },
+    settings: { soundLevel: 'тихо', vibration: true, dailyLimit: 60, homeOnly: true },
     playTime: { day: '2026-09-30', seconds: 125, bonusMinutes: 15 },
     guests: { list: ['bul', 'sumrak'], nextAt: 1700000000000 },
     friendship: { bul: 7 },

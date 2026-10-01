@@ -258,12 +258,13 @@ const REPEAT_CAT_FISH = 3;         // награда за повторную в�
 
 // Настройки по умолчанию
 const DEFAULT_SETTINGS = {
-  sound: true,       // звук включён
+  soundLevel: 'обычно', // громкость: 'выкл', 'тихо' или 'обычно'
   vibration: true,   // вибрация включена
   dailyLimit: 0,     // ограничение времени в день, минут (0 — выключено)
   homeOnly: false    // «Только режим „Дом“» (прогулка недоступна)
 };
 const DAILY_LIMIT_CHOICES = [0, 30, 60, 90]; // варианты ограничения (минуты)
+const SOUND_LEVELS = ['выкл', 'тихо', 'обычно'];   // варианты громкости
 
 // Пустое сохранение: игра с нуля
 function emptySave() {
@@ -298,7 +299,13 @@ function cleanStringList(data) {
 function cleanSettings(data) {
   const settings = Object.assign({}, DEFAULT_SETTINGS);
   if (!data || typeof data !== 'object' || Array.isArray(data)) return settings;
-  if (typeof data.sound === 'boolean') settings.sound = data.sound;
+  // Звук. Раньше было «вкл/выкл» (поле sound): старое «выкл» → 'выкл',
+  // старое «вкл» → 'обычно'.
+  if (SOUND_LEVELS.includes(data.soundLevel)) {
+    settings.soundLevel = data.soundLevel;
+  } else if (data.sound === false) {
+    settings.soundLevel = 'выкл';
+  }
   if (typeof data.vibration === 'boolean') settings.vibration = data.vibration;
   if (DAILY_LIMIT_CHOICES.includes(data.dailyLimit)) settings.dailyLimit = data.dailyLimit;
   if (typeof data.homeOnly === 'boolean') settings.homeOnly = data.homeOnly;
@@ -1664,7 +1671,7 @@ if (typeof module !== 'undefined') {
     CAPTAIN_WINS_NEEDED, MAX_HELPERS, CAPTAIN_PARTS,
     isCaptainActive, canSpawnCaptain, chooseCaptain, makeCaptain, captainAfterLoss,
     captainRetryLeft, applyCaptainWin, availableHelpers, toggleHelper,
-    DEFAULT_SETTINGS, DAILY_LIMIT_CHOICES, LIMIT_WARNING_SECONDS, BONUS_MINUTES,
+    DEFAULT_SETTINGS, DAILY_LIMIT_CHOICES, SOUND_LEVELS, LIMIT_WARNING_SECONDS, BONUS_MINUTES,
     localDayKey, addPlayTime, playedToday, timeLimitState, addBonusTime,
     makeParentQuestion, checkParentAnswer,
     GUEST_INTERVAL, MAX_GUESTS, isTwilightHour, pickGuest, updateGuests, removeGuest,

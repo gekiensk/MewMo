@@ -4,14 +4,24 @@
 // Все звуки синтезируются прямо здесь, в коде: никаких аудиофайлов.
 // Звук — это колебания. «Осциллятор» (oscillator) делает колебания
 // нужной частоты (высоты), а «усилитель» (gain) — нужной громкости.
-// Меняя частоту и громкость во времени, получаем «мяу», «дзынь» и мелодии.
+//
+// После теста с ребёнком звуки стали мягче:
+//   • только мягкие формы волны — синусоида ('sine') и треугольник ('triangle');
+//   • плавное нарастание и затухание (без щелчков);
+//   • ниже по высоте и короче;
+//   • вдвое тише, а в настройках — «Выкл», «Тихо», «Обычно»;
+//   • обычные нажатия кнопок звука не издают — звучат только важные
+//     моменты: кот появился, кот в экипаже, награда, победа над
+//     капитаном, взлёт корабля (и звуки внутри мини-игр).
 //
 // Правило браузеров: звук можно включить только после того, как
 // человек что-то нажал. Поэтому initSound() вызывается из обработчика
 // кнопки «Гулять» / «Играть дома».
 
 // ----- Настройки -----
-const MASTER_VOLUME = 0.12; // общая громкость (от 0 до 1) — тихо
+// Общая громкость для «Обычно» и «Тихо» (от 0 до 1)
+const VOLUME_BY_LEVEL = { 'обычно': 0.06, 'тихо': 0.03, 'выкл': 0 };
+const ATTACK = 0.04; // нарастание звука, секунды (плавно, без щелчка)
 
 // ----- Состояние -----
 let audioContext = null; // «звуковая система» браузера, создаётся по нажатию
@@ -26,7 +36,7 @@ function initSound() {
   try {
     audioContext = new AudioContextClass();
     masterGain = audioContext.createGain();
-    masterGain.gain.value = MASTER_VOLUME;
+    masterGain.gain.value = VOLUME_BY_LEVEL['обычно'];
     masterGain.connect(audioContext.destination);
   } catch (error) {
     audioContext = null; // не получилось — играем без звука
@@ -34,34 +44,38 @@ function initSound() {
 }
 
 // Можно ли сейчас играть звук: звук включён браузером и в настройках.
-// isSoundOn() — из game.js (читает настройки из сохранения).
+// isSoundOn() и soundLevel() — из settings.js (читают сохранение).
 function canPlaySound() {
   if (!audioContext) return false;
   if (typeof isSoundOn === 'function' && !isSoundOn()) return false;
+  // Громкость — по настройке «Тихо» / «Обычно»
+  if (typeof soundLevel === 'function') {
+    masterGain.gain.value = VOLUME_BY_LEVEL[soundLevel()] || VOLUME_BY_LEVEL['обычно'];
+  }
   // Телефон мог «усыпить» звук, пока вкладка была в фоне
   if (audioContext.state === 'suspended') audioContext.resume();
   return true;
 }
 
-// Одна нота.
+// Одна мягкая нота.
 //   frequency — высота в герцах (440 — нота «ля»);
 //   start     — через сколько секунд начать (0 — сейчас);
-//   duration  — сколько секунд звучит;
-//   type      — форма волны: 'sine' (мягкий), 'triangle' (звонче), 'square' (резкий);
+//   duration  — сколько секунд звучит (вместе с затуханием);
+//   type      — 'sine' (самый мягкий) или 'triangle' (чуть звонче);
 //   volume    — громкость ноты (от 0 до 1, умножается на общую);
 //   slideTo   — если задано, высота плавно съезжает к этой частоте.
 function playNote(frequency, start, duration, type, volume, slideTo) {
   const now = audioContext.currentTime + start;
   const oscillator = audioContext.createOscillator();
   const gain = audioContext.createGain();
-  oscillator.type = type;
+  oscillator.type = type === 'triangle' ? 'triangle' : 'sine'; // только мягкие волны
   oscillator.frequency.setValueAtTime(frequency, now);
   if (slideTo) {
     oscillator.frequency.exponentialRampToValueAtTime(slideTo, now + duration);
   }
-  // Громкость: быстро нарастает и плавно затихает — так нет щелчков
+  // Громкость: плавно нарастает (ATTACK) и плавно затихает до конца ноты
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(volume, now + 0.02);
+  gain.gain.exponentialRampToValueAtTime(volume, now + ATTACK);
   gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
   oscillator.connect(gain);
   gain.connect(masterGain);
@@ -69,67 +83,69 @@ function playNote(frequency, start, duration, type, volume, slideTo) {
   oscillator.stop(now + duration + 0.05);
 }
 
-// «Мяу-чирп»: высота быстро поднимается и опускается, как кошачье «мр-мяу»
-function playMeow() {
-  const now = audioContext.currentTime;
-  const oscillator = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-  oscillator.type = 'triangle';
-  oscillator.frequency.setValueAtTime(600, now);
-  oscillator.frequency.exponentialRampToValueAtTime(1100, now + 0.12);
-  oscillator.frequency.exponentialRampToValueAtTime(700, now + 0.38);
-  gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(0.7, now + 0.04);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
-  oscillator.connect(gain);
-  gain.connect(masterGain);
-  oscillator.start(now);
-  oscillator.stop(now + 0.45);
-}
+// Ноты (частоты в герцах) — чтобы мелодии было проще читать
+const NOTE = {
+  C4: 262, D4: 294, E4: 330, F4: 349, G4: 392, A4: 440, B4: 494,
+  C5: 523, D5: 587, E5: 659, G5: 784
+};
 
 // Все звуки игры по названию
 const SOUNDS = {
-  // кот появился
-  meow: function () { playMeow(); },
-  // щелчок кнопки — очень короткий и тихий
-  click: function () { playNote(1400, 0, 0.04, 'triangle', 0.25); },
-  // «пойман сигнал» — два быстрых звонких «дзынь» вверх
-  signal: function () {
-    playNote(880, 0, 0.12, 'triangle', 0.6);
-    playNote(1320, 0.1, 0.18, 'triangle', 0.6);
+  // кот появился: мягкое «мр-мяу» — нота плавно поднимается и опускается
+  meow: function () {
+    const now = audioContext.currentTime;
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(420, now);
+    oscillator.frequency.exponentialRampToValueAtTime(620, now + 0.12);
+    oscillator.frequency.exponentialRampToValueAtTime(460, now + 0.32);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.6, now + ATTACK);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
+    oscillator.connect(gain);
+    gain.connect(masterGain);
+    oscillator.start(now);
+    oscillator.stop(now + 0.4);
   },
-  // победа в раунде — весёлый аккорд по нотам вверх
-  roundWin: function () {
-    playNote(523, 0, 0.12, 'triangle', 0.6);
-    playNote(659, 0.09, 0.12, 'triangle', 0.6);
-    playNote(784, 0.18, 0.2, 'triangle', 0.6);
-  },
-  // проигрыш раунда — мягкий, не обидный: тихо съезжает вниз
-  roundLose: function () {
-    playNote(440, 0, 0.35, 'sine', 0.4, 330);
-  },
-  // кот вступил в экипаж — весёлая мелодия из 6 нот
+  // кот в экипаже: спокойная мелодия из 5 нот (до-ми-соль-ми-до)
   crew: function () {
-    const melody = [523, 659, 784, 659, 784, 1047]; // до, ми, соль, ми, соль, до
+    const melody = [NOTE.C4, NOTE.E4, NOTE.G4, NOTE.E4, NOTE.C5];
     for (let i = 0; i < melody.length; i++) {
       const last = i === melody.length - 1;
-      playNote(melody[i], i * 0.13, last ? 0.4 : 0.14, 'triangle', 0.55);
+      playNote(melody[i], i * 0.16, last ? 0.45 : 0.2, 'triangle', 0.5);
     }
   },
-  // взлёт корабля: низкий гул, который растёт, а потом весёлая мелодия
-  launch: function () {
-    playNote(55, 0, 3.2, 'sawtooth', 0.35, 220);
-    playNote(82, 0.3, 2.9, 'triangle', 0.3, 330);
-    const melody = [523, 659, 784, 1047, 784, 1047];
-    for (let i = 0; i < melody.length; i++) {
-      playNote(melody[i], 3.3 + i * 0.16, i === melody.length - 1 ? 0.6 : 0.18, 'triangle', 0.5);
-    }
-  },
-  // награда (маяк, рыбки) — блестящее «дзынь-дзынь-дзынь»
+  // награда (маяк, рыбки, задание): три тихие ноты, как колокольчик
   reward: function () {
-    playNote(1047, 0, 0.1, 'sine', 0.5);
-    playNote(1319, 0.07, 0.1, 'sine', 0.5);
-    playNote(1568, 0.14, 0.22, 'sine', 0.5);
+    playNote(NOTE.E5, 0, 0.18, 'sine', 0.45);
+    playNote(NOTE.G5 * 0.75, 0.1, 0.18, 'sine', 0.45); // ре5 ~ 588 Гц
+    playNote(NOTE.C5, 0.2, 0.35, 'sine', 0.45);
+  },
+  // победа над капитаном: маленькие «фанфары», но тихие и мягкие
+  captainWin: function () {
+    const melody = [NOTE.G4, NOTE.C5, NOTE.E5, NOTE.D5, NOTE.E5, NOTE.G5];
+    const lengths = [0.15, 0.15, 0.3, 0.15, 0.15, 0.5];
+    let time = 0;
+    for (let i = 0; i < melody.length; i++) {
+      playNote(melody[i], time, lengths[i] + 0.05, 'triangle', 0.45);
+      time = time + lengths[i];
+    }
+  },
+  // взлёт корабля: мягкий низкий гул, который поднимается, а потом мелодия
+  launch: function () {
+    playNote(110, 0, 3.0, 'sine', 0.4, 220);
+    playNote(165, 0.4, 2.6, 'triangle', 0.2, 330);
+    const melody = [NOTE.C4, NOTE.E4, NOTE.G4, NOTE.C5, NOTE.G4, NOTE.C5];
+    for (let i = 0; i < melody.length; i++) {
+      playNote(melody[i], 3.1 + i * 0.18, i === melody.length - 1 ? 0.6 : 0.22, 'triangle', 0.45);
+    }
+  },
+  // Короткая мягкая нота для мини-игр (светлячки, ритм и т. п.).
+  // Вызывается через playTone(частота), а не через playSound.
+  // Мягкий «не получилось» — одна тихая низкая нота
+  oops: function () {
+    playNote(NOTE.E4, 0, 0.3, 'sine', 0.35, NOTE.C4);
   }
 };
 
@@ -137,20 +153,21 @@ const SOUNDS = {
 // она сама проверяет, включена ли вибрация и умеет ли телефон.
 const VIBRATIONS = {
   meow: 20,
-  signal: 30,
-  roundWin: 40,
-  crew: [80, 60, 80],
-  reward: 50
+  crew: [60, 50, 60],
+  reward: 40,
+  captainWin: [80, 60, 80],
+  launch: [150, 100, 150]
 };
 
 // Сыграть звук по названию: playSound('meow').
 // Заодно телефон коротко вибрирует (если вибрация включена),
-// даже когда звук выключен.
+// даже когда звук выключен. Названия, которых нет в SOUNDS
+// (раньше были «щелчок», «сигнал» и т. п.), просто ничего не делают.
 function playSound(name) {
   if (VIBRATIONS[name] && typeof vibrate === 'function') {
     vibrate(VIBRATIONS[name]);
   }
-  if (!canPlaySound() || !SOUNDS[name]) return;
+  if (!SOUNDS[name] || !canPlaySound()) return;
   try {
     SOUNDS[name]();
   } catch (error) {
@@ -158,9 +175,12 @@ function playSound(name) {
   }
 }
 
-// Щелчок на любую кнопку игры
-document.addEventListener('click', function (event) {
-  if (event.target.closest && event.target.closest('button')) {
-    playSound('click');
+// Одна мягкая нота для мини-игр: playTone(392, 0.25)
+function playTone(frequency, duration) {
+  if (!canPlaySound()) return;
+  try {
+    playNote(frequency, 0, duration || 0.25, 'sine', 0.5);
+  } catch (error) {
+    // без звука — не страшно
   }
-});
+}

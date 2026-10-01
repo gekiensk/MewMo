@@ -309,7 +309,12 @@
 
       <div id="settings-main">
         <h2 id="settings-title" class="screen-title">Настройки</h2>
-        <button id="toggle-sound" class="big-button toggle-button" aria-pressed="true">🔊 Звук: вкл</button>
+        <p class="screen-text small-text">🔊 Звук:</p>
+        <div class="limit-buttons sound-buttons">
+          <button class="limit-button sound-button" data-level="выкл">Выкл</button>
+          <button class="limit-button sound-button" data-level="тихо">Тихо</button>
+          <button class="limit-button sound-button" data-level="обычно">Обычно</button>
+        </div>
         <button id="toggle-vibration" class="big-button toggle-button" aria-pressed="true">📳 Вибрация: вкл</button>
         <p id="vibration-note" class="screen-text small-text hidden">Этот телефон не умеет вибрировать.</p>
         <button id="toggle-mode" class="big-button">🏠 Играть дома</button>

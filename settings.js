@@ -31,11 +31,16 @@ let warnedDay = '';          // в какой день уже предупред
 // ----- Кнопки -----
 document.getElementById('settings-button').addEventListener('click', openSettings);
 document.getElementById('settings-close').addEventListener('click', closeSettings);
-document.getElementById('toggle-sound').addEventListener('click', function () {
-  save.settings.sound = !save.settings.sound;
-  saveGame();
-  renderSettings();
-});
+// Громкость: три кнопки «Выкл», «Тихо», «Обычно» (data-level в HTML)
+const soundButtons = document.querySelectorAll('.sound-button');
+for (let i = 0; i < soundButtons.length; i++) {
+  soundButtons[i].addEventListener('click', function () {
+    save.settings.soundLevel = soundButtons[i].dataset.level;
+    saveGame();
+    renderSettings();
+    playSound('reward'); // послушать, как звучит (при «Выкл» — тишина)
+  });
+}
 document.getElementById('toggle-vibration').addEventListener('click', function () {
   save.settings.vibration = !save.settings.vibration;
   saveGame();
@@ -96,7 +101,12 @@ document.addEventListener('keydown', function (event) {
 // Для других файлов: включён ли звук и вибрация
 // =============================================================
 function isSoundOn() {
-  return save.settings.sound;
+  return save.settings.soundLevel !== 'выкл';
+}
+
+// Громкость для sound.js: 'выкл', 'тихо' или 'обычно'
+function soundLevel() {
+  return save.settings.soundLevel;
 }
 
 function isVibrationOn() {
@@ -148,7 +158,10 @@ function setToggle(button, label, on) {
 }
 
 function renderSettings() {
-  setToggle(document.getElementById('toggle-sound'), '🔊 Звук', save.settings.sound);
+  for (let i = 0; i < soundButtons.length; i++) {
+    const chosen = soundButtons[i].dataset.level === save.settings.soundLevel;
+    soundButtons[i].setAttribute('aria-pressed', chosen ? 'true' : 'false');
+  }
   setToggle(document.getElementById('toggle-vibration'), '📳 Вибрация', save.settings.vibration);
   // Если телефон не умеет вибрировать — честно пишем об этом
   document.getElementById('vibration-note').classList.toggle('hidden', !!navigator.vibrate);

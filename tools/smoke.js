@@ -532,7 +532,7 @@ const ROBOTS = {
   pattern: function () {
     const flies = document.querySelectorAll('.firefly');
     if (flies.length === 0) { window.__seen = []; window.__wasLit = -1; return; }
-    const hud = document.querySelector('.game-hud').textContent;
+    const hud = document.querySelector('#screen-game .game-hud').textContent;
     window.__seen = window.__seen || [];
     let lit = -1;
     flies.forEach(function (fly, i) { if (fly.classList.contains('lit')) lit = i; });
@@ -653,6 +653,8 @@ async function minigameScenario(browser) {
   await context.close();
 }
 
+const PLAY_POINTS_SMOKE = 2; // очков дружбы за игру с котом (PLAY_POINTS в logic.js)
+
 // Плашка-подсказка при первом входе в занятие: должна быть видна,
 // «Понятно!» её убирает
 async function closeHintPlaque(page, name, what) {
@@ -736,6 +738,44 @@ async function homeScenario(browser) {
   await page.click('#repair-puzzle-back');
   await page.click('#repair-close');
 
+  // ----- Игры с котами: «Лазерная указка», потом «Мячик» -----
+  await page.click('#home-play');
+  await checkContrast(page, 'игры с котами');
+  await closeHintPlaque(page, name, 'игры с котами');
+  await page.locator('.play-cat-button').first().click();
+  await page.click('#play-laser');
+  const field = await page.locator('#play-field').boundingBox();
+  await page.mouse.move(field.x + 40, field.y + 40);
+  await page.mouse.down();
+  for (let i = 0; i < 12; i++) {
+    await page.mouse.move(field.x + 40 + i * 20, field.y + 40 + i * 10);
+    await page.waitForTimeout(50);
+  }
+  await page.mouse.up();
+  // не ждём 30 секунд: «перематываем» время игры к концу
+  await page.evaluate(function () { playGame.elapsed = PLAY_SECONDS - 0.1; });
+  const played = await waitFor(page, function () {
+    return !document.getElementById('play-end').classList.contains('hidden');
+  }, null, 3000);
+  expect(played, name + ': игра «Лазерная указка» не закончилась');
+  const points = await page.evaluate(function () { return save.friendship.bul || 0; });
+  expect(points === PLAY_POINTS_SMOKE, name + ': за игру не дали ' + PLAY_POINTS_SMOKE + ' очка дружбы (' + points + ')');
+  await checkContrast(page, 'конец игры с котом');
+  await page.click('#play-again');
+  await page.click('#play-ball');
+  const ballField = await page.locator('#play-field').boundingBox();
+  await page.mouse.move(ballField.x + ballField.width / 2, ballField.y + ballField.height - 60);
+  await page.mouse.down();
+  await page.mouse.move(ballField.x + ballField.width / 2 - 30, ballField.y + ballField.height - 180, { steps: 3 });
+  await page.mouse.up();
+  const fetched = await waitFor(page, function () { return playGame && playGame.count >= 1; }, null, 8000);
+  expect(fetched, name + ': кот не принёс мячик');
+  await page.evaluate(function () { playGame.elapsed = PLAY_SECONDS - 0.1; });
+  await waitFor(page, function () { return !document.getElementById('play-end').classList.contains('hidden'); }, null, 3000);
+  const again = await page.evaluate(function () { return save.friendship.bul || 0; });
+  expect(again === PLAY_POINTS_SMOKE, name + ': вторая игра за день дала очки (' + again + ')');
+  await page.click('#play-done');
+
   await context.close();
 }
 
@@ -768,7 +808,7 @@ async function main() {
     await contrastScenario(browser);
     console.log('Сценарий 6: мини-игры — играет «робот»…');
     await minigameScenario(browser);
-    console.log('Сценарий 7: дом — кухня, ремонт…');
+    console.log('Сценарий 7: дом — кухня, ремонт, игры с котами…');
     await homeScenario(browser);
   } catch (error) {
     problems.push('Проверка упала: ' + error.message.split('\n')[0]);

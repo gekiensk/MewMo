@@ -42,7 +42,7 @@ function openRepair() {
   repairWindow.classList.remove('hidden');
   showRepairMain();
   // Первое знакомство с ремонтом — плашка-подсказка (minigames.js)
-  showHintPlaque('repair', repairMain, 'Ремонт корабля',
+  showHintPlaque('repair', repairMain, 'Как это работает',
     'Детали находятся на прогулке, а устанавливаются здесь. Нажми «Установить деталь» ' +
     'и поверни кусочки картинки, чтобы она стала целой.');
 }

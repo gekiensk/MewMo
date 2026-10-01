@@ -86,3 +86,8 @@ test('картинки ремонта: отсеки для пазла и кор�
   assert.ok(looksLikeSvg(art.repairShipPicture(0.5)));
   assert.ok(looksLikeSvg(art.repairShipPicture(1)));
 });
+
+test('картинки игр с котами — SVG', function () {
+  assert.ok(looksLikeSvg(art.laserDotSprite()));
+  assert.ok(looksLikeSvg(art.toyBallSprite()));
+});

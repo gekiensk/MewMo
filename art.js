@@ -933,6 +933,27 @@ function repairShipPicture(share) {
 }
 
 // =============================================================
+// Игры с котами: точка «лазерной указки» и мячик
+// =============================================================
+// Мягкая розовая точка со свечением. Холст 40×40.
+function laserDotSprite() {
+  return '<svg class="sprite" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    '<circle cx="20" cy="20" r="18" fill="' + PINK + '" fill-opacity="0.35"/>' +
+    '<circle cx="20" cy="20" r="11" fill="' + PINK + '" fill-opacity="0.6"/>' +
+    '<circle cx="20" cy="20" r="6" fill="#FFFFFF"/>' +
+    '</svg>';
+}
+
+// Мячик-клубок: мятный с полосками и звёздочкой. Холст 40×40.
+function toyBallSprite() {
+  return '<svg class="sprite" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    '<circle cx="20" cy="20" r="17" fill="' + MINT + '" stroke="' + INK + '" stroke-width="2.5"/>' +
+    '<path d="M6 14 Q20 22 34 14 M6 26 Q20 18 34 26" stroke="#FAF7F2" stroke-width="3" fill="none"/>' +
+    star(20, 20, 5, GOLD) +
+    '</svg>';
+}
+
+// =============================================================
 // Картинки обучения «Как играть» (6 штук)
 // =============================================================
 // Холст 400×300. tutorialPicture(0) … tutorialPicture(5).
@@ -1047,6 +1068,6 @@ if (typeof module !== 'undefined') {
     CAT_LOOKS, SUIT_COLORS, catPortrait, capsuleIcon, beaconIcon, shelterScene, launchScene,
     TUTORIAL_PICTURE_COUNT, tutorialPicture, fishSprite, bubbleSprite, basketSprite,
     fireflySprite, starSprite, ingredientIcon, treatIcon, bowlPicture, doughPicture, ovenPicture,
-    COMPARTMENT_NAMES, compartmentPicture, repairShipPicture
+    COMPARTMENT_NAMES, compartmentPicture, repairShipPicture, laserDotSprite, toyBallSprite
   };
 }

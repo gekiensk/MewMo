@@ -57,6 +57,7 @@
     <div id="home-bar" class="home-bar">
       <button id="home-kitchen" class="home-bar-button">🍳<br>Кухня</button>
       <button id="home-repair" class="home-bar-button">🔧<br>Ремонт</button>
+      <button id="home-play" class="home-bar-button">🎾<br>Игры</button>
     </div>
     <p id="home-empty" class="home-empty hidden">Пока в убежище пусто. Скоро прилетит гость — или погуляй и найди котов!</p>
   </section>
@@ -79,6 +80,7 @@
       <!-- Угощения с кухни (рисует home.js) -->
       <div id="care-treats" class="care-treats"></div>
       <button id="care-feed" class="big-button">Угостить рыбкой 🐟 (+1)</button>
+      <button id="care-play" class="big-button">🎾 Поиграть</button>
     </div>
   </section>
 
@@ -117,6 +119,46 @@
         <p class="screen-text small-text">Нажимай на кусочки, чтобы повернуть их. Собери картинку отсека!</p>
         <div id="repair-puzzle" class="repair-puzzle"></div>
         <button id="repair-puzzle-back" class="big-button">Назад</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Игры с котами (режим «Дом») =====
+       «Лазерная указка» и «Мячик» (play.js). Проиграть нельзя. -->
+  <section id="play" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="play-title">
+    <div class="overlay-card">
+      <button id="play-close" class="close-button" aria-label="Закрыть игры">✕</button>
+      <h2 id="play-title" class="screen-title">Игры с котами</h2>
+      <!-- Выбор кота -->
+      <div id="play-pick"></div>
+      <!-- Выбор игры -->
+      <div id="play-choose" class="hidden">
+        <div id="play-cat-circle" class="cat-circle"></div>
+        <p id="play-cat-name" class="cat-name"></p>
+        <p id="play-reward-note" class="screen-text small-text"></p>
+        <button id="play-laser" class="play-choice">
+          <span id="play-laser-icon" class="play-choice-icon"></span>
+          <span><b>Лазерная указка</b><br>Води пальцем — кот ловит точку</span>
+        </button>
+        <button id="play-ball" class="play-choice">
+          <span id="play-ball-icon" class="play-choice-icon"></span>
+          <span><b>Мячик</b><br>Смахни мячик пальцем — кот принесёт</span>
+        </button>
+        <button id="play-other" class="big-button">Другой кот</button>
+      </div>
+      <!-- Сама игра -->
+      <div id="play-game" class="hidden">
+        <p id="play-hud" class="game-hud"></p>
+        <div id="play-field" class="game-field play-field"></div>
+        <div class="repair-bar"><div id="play-time" class="repair-fill"></div></div>
+      </div>
+      <!-- Конец игры -->
+      <div id="play-end" class="hidden">
+        <div id="play-end-circle" class="cat-circle"></div>
+        <p id="play-end-text" class="score"></p>
+        <p id="play-end-note" class="screen-text small-text"></p>
+        <button id="play-again" class="big-button">Ещё поиграть</button>
+        <button id="play-done" class="big-button">Готово</button>
       </div>
     </div>
   </section>
@@ -457,6 +499,8 @@
   <script src="kitchen.js"></script>
   <!-- repair.js — ремонт корабля: установка деталей через пазл (режим «Дом») -->
   <script src="repair.js"></script>
+  <!-- play.js — игры с котами: «Лазерная указка» и «Мячик» (режим «Дом») -->
+  <script src="play.js"></script>
   <!-- home.js — режим «Дом»: убежище, гости, забота -->
   <script src="home.js"></script>
   <!-- gps.js — надёжный GPS и диагностика -->

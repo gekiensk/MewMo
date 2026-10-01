@@ -288,7 +288,8 @@ function emptySave() {
     treats: {},                        // готовые угощения: рецепт → сколько штук
     friendshipVersion: 2,              // 2 — дружба в очках (до этого — в угощениях)
     captainDay: '',                    // в какой день приходил последний капитан
-    walkToday: { day: '', meters: 0 }  // сколько метров пройдено сегодня (только число!)
+    walkToday: { day: '', meters: 0 }, // сколько метров пройдено сегодня (только число!)
+    playToday: { day: '', cats: [] }   // с какими котами сегодня уже играли (дружба +2 — раз в день)
   };
 }
 
@@ -417,6 +418,9 @@ function cleanSave(data) {
   const walk = data.walkToday;
   save.walkToday = (walk && typeof walk.day === 'string' && isCount(walk.meters))
     ? { day: walk.day, meters: walk.meters } : { day: '', meters: 0 };
+  const play = data.playToday;
+  save.playToday = (play && typeof play.day === 'string')
+    ? { day: play.day, cats: cleanStringList(play.cats) } : { day: '', cats: [] };
   return save;
 }
 
@@ -2242,6 +2246,89 @@ function puzzleSolved(turns) {
   return turns.every(function (turn) { return turn === 0; });
 }
 
+// =============================================================
+// Игры с котами (режим «Дом»): «Лазерная указка» и «Мячик»
+// =============================================================
+// Проиграть нельзя: игра длится PLAY_SECONDS секунд, кот просто бегает.
+// С каждым котом раз в день игра даёт +2 очка дружбы.
+const PLAY_POINTS = 2;         // очков дружбы за игру (раз в день с каждым котом)
+const PLAY_SECONDS = 30;       // сколько длится игра
+const LASER_CAT_SPEED = 220;   // скорость кота за точкой, пикселей в секунду
+const BALL_CAT_SPEED = 260;    // скорость кота за мячиком
+const BALL_MAX_SPEED = 900;    // самый быстрый бросок, пикселей в секунду
+const BALL_FRICTION = 1.6;     // как быстро мячик тормозит (чем больше, тем быстрее)
+const BALL_STOP_SPEED = 25;    // медленнее этого — мячик остановился
+
+// Можно ли сегодня получить очки за игру с этим котом
+function canGetPlayPoints(save, catId, dayKey) {
+  return save.playToday.day !== dayKey || !save.playToday.cats.includes(catId);
+}
+
+// Игра закончилась: если сегодня с этим котом ещё не играли — +2 очка.
+// Возвращает { save, given, levelUp, level } (given — дали ли очки).
+function applyPlayReward(save, catId, dayKey) {
+  if (!canGetPlayPoints(save, catId, dayKey)) {
+    return { save: save, given: false, levelUp: false, level: friendshipLevel(save, catId) };
+  }
+  const result = addFriendship(save, catId, PLAY_POINTS);
+  const cats = result.save.playToday.day === dayKey ? result.save.playToday.cats.slice() : [];
+  cats.push(catId);
+  result.save.playToday = { day: dayKey, cats: cats };
+  return { save: result.save, given: true, levelUp: result.levelUp, level: result.level };
+}
+
+// Скорость с учётом «уменьшить движение»: вдвое медленнее
+function playSpeed(speed, reducedMotion) {
+  return reducedMotion ? speed / 2 : speed;
+}
+
+// Кот бежит к цели: сдвигаем точку pos к target не дальше, чем speed × seconds.
+// pos и target — { x, y } в пикселях. Возвращает новое место.
+function chaseStep(pos, target, speed, seconds) {
+  const dx = target.x - pos.x;
+  const dy = target.y - pos.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const step = speed * seconds;
+  if (distance <= step) return { x: target.x, y: target.y };
+  return { x: pos.x + dx / distance * step, y: pos.y + dy / distance * step };
+}
+
+// Расстояние между двумя точками { x, y }
+function pointDistance(a, b) {
+  return Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
+}
+
+// Бросок мячика: палец сдвинулся на dx, dy пикселей за ms миллисекунд.
+// Возвращает скорость { vx, vy } (не быстрее BALL_MAX_SPEED).
+function throwVelocity(dx, dy, ms) {
+  const time = Math.max(ms, 30) / 1000;
+  let vx = dx / time;
+  let vy = dy / time;
+  const speed = Math.sqrt(vx * vx + vy * vy);
+  if (speed > BALL_MAX_SPEED) {
+    vx = vx / speed * BALL_MAX_SPEED;
+    vy = vy / speed * BALL_MAX_SPEED;
+  }
+  return { vx: vx, vy: vy };
+}
+
+// Мячик летит seconds секунд: тормозит и отскакивает от стенок поля
+// (width × height, radius — радиус мячика). ball — { x, y, vx, vy }.
+function ballStep(ball, seconds, width, height, radius) {
+  const slow = Math.exp(-BALL_FRICTION * seconds);
+  const next = { x: ball.x + ball.vx * seconds, y: ball.y + ball.vy * seconds, vx: ball.vx * slow, vy: ball.vy * slow };
+  if (next.x < radius) { next.x = radius; next.vx = Math.abs(next.vx); }
+  if (next.x > width - radius) { next.x = width - radius; next.vx = -Math.abs(next.vx); }
+  if (next.y < radius) { next.y = radius; next.vy = Math.abs(next.vy); }
+  if (next.y > height - radius) { next.y = height - radius; next.vy = -Math.abs(next.vy); }
+  return next;
+}
+
+// Мячик остановился?
+function ballStopped(ball) {
+  return Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy) < BALL_STOP_SPEED;
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -2274,6 +2361,8 @@ if (typeof module !== 'undefined') {
     TREATS_PER_LEVEL, MAX_FRIENDSHIP, friendshipLevel, treatsToNextLevel, feedCat, friendshipHearts,
     FRIEND_LEVEL_POINTS, FISH_POINTS, TREAT_POINTS, FAVORITE_POINTS, levelForPoints, pointsToNextLevel,
     migrateFriendship, addFriendship, feedTreat,
+    PLAY_POINTS, PLAY_SECONDS, LASER_CAT_SPEED, BALL_CAT_SPEED, BALL_MAX_SPEED, canGetPlayPoints,
+    applyPlayReward, playSpeed, chaseStep, pointDistance, throwVelocity, ballStep, ballStopped,
     PUZZLE_SMALL, PUZZLE_BIG, PUZZLE_BIG_FROM, spareParts, canInstallPart, installPart, puzzleSize,
     makePuzzle, turnPiece, puzzleSolved,
     RECIPES, MIX_TURNS, SHAPE_TAPS, BAKE_SECONDS, findRecipe, canCook, cookRecipe, mixAdd, mixProgress,

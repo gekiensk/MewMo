@@ -1886,3 +1886,121 @@ body.mode-home .toast {
   .puzzle-piece,
   .repair-puzzle { transition: none; }
 }
+
+/* ===== Игры с котами ===== */
+#play-pick.hidden,
+#play-choose.hidden,
+#play-game.hidden,
+#play-end.hidden {
+  display: none;
+}
+.play-cats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 8px 0;
+}
+.play-cat-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 120px;
+  padding: 8px 4px;
+  border: 3px solid var(--fur);
+  border-radius: 18px;
+  background: var(--space);
+  color: var(--fur);
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.play-cat-button .mini-circle {
+  width: 64px;
+  height: 64px;
+}
+.play-cat-mark {
+  color: var(--star);
+  font-size: 14px;
+}
+.play-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 80px;
+  margin: 8px 0;
+  padding: 8px 14px;
+  border: 3px solid var(--fur);
+  border-radius: 20px;
+  background: var(--space);
+  color: var(--fur);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+.play-choice b {
+  color: var(--star);
+  font-size: 19px;
+}
+.play-choice-icon {
+  flex: none;
+  width: 52px;
+  height: 52px;
+}
+.play-field {
+  height: 380px;
+  background: var(--space);
+}
+/* Кот, точка и мячик ставятся по центру своей точки (translate, не transform) */
+.play-pet,
+.play-dot,
+.play-toy {
+  position: absolute;
+  translate: -50% -50%;
+  pointer-events: none;
+}
+.play-pet {
+  width: 72px;
+  height: 72px;
+  border: 3px solid var(--fur);
+  border-radius: 50%;
+  overflow: hidden;
+}
+.play-pet .portrait {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.play-dot {
+  width: 40px;
+  height: 40px;
+}
+.play-toy {
+  width: 36px;
+  height: 36px;
+}
+.play-tip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 12px;
+  margin: 0;
+  color: var(--fur);
+  font-size: 17px;
+  font-weight: 700;
+  pointer-events: none;
+}
+/* Кот поймал — маленький прыжок */
+.play-pet.play-hop {
+  animation: play-hop 0.35s ease-out;
+}
+@keyframes play-hop {
+  50% { scale: 1.18; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .play-pet.play-hop { animation: none; }
+}

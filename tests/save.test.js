@@ -49,7 +49,8 @@ test('записанное сохранение читается обратно 
     treats: { 'star-cookie': 1 },
     friendshipVersion: 2,
     captainDay: '2026-10-01',
-    walkToday: { day: '2026-10-01', meters: 340 }
+    walkToday: { day: '2026-10-01', meters: 340 },
+    playToday: { day: '2026-10-01', cats: ['bul'] }
   };
   assert.strictEqual(logic.writeSave(storage, save), true);
   assert.ok(logic.SAVE_KEY in storage.data, 'ключ ' + logic.SAVE_KEY);

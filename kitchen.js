@@ -59,7 +59,7 @@ function showRecipes() {
   fish.textContent = 'У тебя 🐟 ' + save.fish;
   kitchenList.appendChild(fish);
   // Первое знакомство с кухней — плашка-подсказка (minigames.js)
-  showHintPlaque('kitchen', kitchenList, 'Кошачья кухня',
+  showHintPlaque('kitchen', kitchenList, 'Как это работает',
     'Выбери рецепт и приготовь угощение: смешай, слепи, испеки. ' +
     'Ингредиенты находятся только на прогулке — у маяков и в капсулах. ' +
     'Угощение дари коту в убежище: так дружба растёт быстрее.');

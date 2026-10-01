@@ -21,7 +21,8 @@
 //      встрече → «Как играть» в настройках.
 //   7. Сценарий «Контраст»: на всех главных экранах контраст текста
 //      не ниже 4.5:1 (крупный — 3:1), как требует WCAG AA.
-//   8. Любая ошибка в консоли браузера = провал.
+//   8. Сценарий «Мини-игры»: «робот» играет в мини-игры котов до победы.
+//   9. Любая ошибка в консоли браузера = провал.
 //   В конце печатает «ВСЁ ХОРОШО» или список проблем.
 //
 // Что нужно: Node.js, Python 3 и Playwright с браузером Chromium.
@@ -504,6 +505,80 @@ async function contrastScenario(browser) {
 }
 
 // =============================================================
+// Сценарий 6: мини-игры — сыграть и выиграть
+// =============================================================
+// «Робот» играет за ребёнка: в странице запускается маленькая программа,
+// которая каждые 50 мс делает то, что сделал бы игрок (двигает корзинку
+// под рыбку и т. п.). Так проверяем, что игру можно пройти до победы.
+const ROBOTS = {
+  // «Поймай рыбок»: корзинка — под самую нижнюю рыбку, подальше от пузырей
+  fish: function () {
+    const field = document.querySelector('.fish-field');
+    if (!field) return;
+    const rect = field.getBoundingClientRect();
+    let target = null;
+    let lowest = -1;
+    document.querySelectorAll('.fish-item[data-kind="рыбка"]').forEach(function (el) {
+      const r = el.getBoundingClientRect();
+      if (r.top > lowest) { lowest = r.top; target = r.left + r.width / 2; }
+    });
+    if (target === null) return;
+    field.dispatchEvent(new PointerEvent('pointermove', { clientX: target, clientY: rect.top + 10, bubbles: true }));
+  }
+};
+
+async function playEncounter(page, catId, label) {
+  // Открываем знакомство с нужным котом прямо в ближайшей капсуле
+  await page.evaluate(function (id) {
+    const capsule = capsules[0];
+    capsule.cat = findCat(id);
+    movePlayer(capsulePosition(capsule), 5);
+    capsule.element.click();
+  }, catId);
+  await page.click('#intro-next');
+  await page.click('#signal-button');
+  await page.click('#signal-next');
+  // Плашка с правилами (первая встреча с игрой)
+  const rules = page.locator('.game-rules .big-button');
+  if (await rules.count() > 0) await rules.click();
+  // Включаем «робота» для всех игр сразу (лишние просто ничего не найдут)
+  await page.evaluate(function (robots) {
+    window.__robots = robots.map(function (code) { return eval('(' + code + ')'); });
+    window.__robotTimer = setInterval(function () {
+      window.__robots.forEach(function (robot) { robot(); });
+      const rulesButton = document.querySelector('.game-rules .big-button');
+      if (rulesButton) rulesButton.click();
+    }, 50);
+  }, Object.values(ROBOTS).map(function (f) { return f.toString(); }));
+  const won = await waitFor(page, function () {
+    return !document.getElementById('screen-win').classList.contains('hidden');
+  }, null, 90000);
+  await page.evaluate(function () { clearInterval(window.__robotTimer); });
+  expect(won, 'Мини-игры: не удалось выиграть ' + label);
+  if (won) await page.click('#win-take');
+  else await page.click('#encounter-close');
+}
+
+async function minigameScenario(browser) {
+  const name = 'Мини-игры';
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+    geolocation: { longitude: ROUTE[0][0], latitude: ROUTE[0][1], accuracy: 10 },
+    permissions: ['geolocation']
+  });
+  await stubExternal(context);
+  const page = await context.newPage();
+  page.setDefaultTimeout(8000);
+  watchErrors(page, name);
+  await page.goto(URL);
+  await skipTutorial(page);
+  await page.click('#start-button');
+  await moveTo(page, context, ROUTE[1], 'первую точку');
+  await playEncounter(page, 'bul', '«Поймай рыбок» (водный кот)');
+  await context.close();
+}
+
+// =============================================================
 // Запуск
 // =============================================================
 async function main() {
@@ -530,6 +605,8 @@ async function main() {
     await tutorialScenario(browser);
     console.log('Сценарий 5: контраст текста на всех экранах…');
     await contrastScenario(browser);
+    console.log('Сценарий 6: мини-игры — играет «робот»…');
+    await minigameScenario(browser);
   } catch (error) {
     problems.push('Проверка упала: ' + error.message.split('\n')[0]);
   } finally {

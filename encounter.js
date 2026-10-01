@@ -5,9 +5,11 @@
 //   1. «Кот рядом!»           — кто сидит в капсуле
 //                               (или «Потерявшийся капитан!» у маяка);
 //   2. «Помощники»            — только для капитанов: выбери до двух котов
-//                               из экипажа, каждый даст «вторую попытку»;
-//   3. «Поймай сигнал»        — попал в зелёную зону → подсказка;
-//   4. «Лапка, Коготь, Клубок» — до двух побед (с капитаном — до трёх);
+//                               из экипажа, каждый поможет в игре своего типа;
+//   3. «Поймай сигнал»        — попал в зелёную зону → поблажка (+1 жизнь
+//                               или +3 секунды в мини-игре);
+//   4. Мини-игра кота          — своя у каждого типа (minigames.js);
+//                               у легендарных — две, у капитанов — три (2 из 3);
 //   5. «Кот найден!»          — если выиграл;
 //   6. «Ой!»                  — если проиграл (без наказания).
 //
@@ -20,24 +22,7 @@
 //   guestWon(cat), guestShy(cat) — то же для гостя в убежище (home.js).
 
 // ----- Настройки -----
-const WINS_NEEDED = 2;         // сколько побед нужно в «Лапка, Коготь, Клубок» с обычным котом
-const ROUND_PAUSE = 1400;      // пауза (мс) перед финальным экраном, чтобы прочитать итог раунда
-
-// Значки жестов
-const GESTURE_ICONS = { 'Лапка': '🐾', 'Коготь': '✂️', 'Клубок': '🧶' };
-
-// Жест в винительном падеже: «этот кот любит … Лапку / Коготь / Клубок»
-const GESTURE_ACCUSATIVE = { 'Лапка': 'Лапку', 'Коготь': 'Коготь', 'Клубок': 'Клубок' };
-
-// Почему жест победил (ключ — жест победителя)
-const WIN_REASONS = {
-  'Лапка': 'Лапка прижимает Коготь',
-  'Коготь': 'Коготь режет нитку Клубка',
-  'Клубок': 'Лапка запуталась в Клубке'
-};
-
-// Число побед словом: «Играем до двух побед!»
-const WINS_WORDS = { 2: 'двух', 3: 'трёх' };
+const RESULT_PAUSE = 900; // пауза (мс) перед экраном итога, чтобы прочитать «Получилось!»
 
 // ----- Состояние мини-игры -----
 // Пока окно закрыто — null. Когда открыто — объект с данными встречи:
@@ -45,9 +30,10 @@ const WINS_WORDS = { 2: 'двух', 3: 'трёх' };
 //   capsule    — капсула (для обычного кота);
 //   captain    — капитан на карте (для капитана);
 //   cat        — кот или капитан из cats.js;
-//   hintEarned — получил ли игрок подсказку в «Поймай сигнал»;
+//   plan       — какие мини-игры и сколько нужно выиграть (planMinigames);
+//   bonus      — поблажка за пойманный сигнал (signalBonus);
 //   helpers    — id выбранных помощников;
-//   battle     — состояние боя (createBattle из logic.js);
+//   finished   — '' (идёт), 'победа' или 'поражение';
 //   signal     — данные шкалы «Поймай сигнал».
 let activeEncounter = null;
 
@@ -59,11 +45,6 @@ const signalLight = document.getElementById('signal-light');
 const signalButton = document.getElementById('signal-button');
 const signalResult = document.getElementById('signal-result');
 const signalNext = document.getElementById('signal-next');
-const rpsHint = document.getElementById('rps-hint');
-const rpsScore = document.getElementById('rps-score');
-const rpsRound = document.getElementById('rps-round');
-const rpsHelpers = document.getElementById('rps-helpers');
-const gestureButtons = document.querySelectorAll('.gesture-button');
 const helperList = document.getElementById('helper-list');
 
 // ----- Кнопки окна -----
@@ -71,16 +52,9 @@ document.getElementById('encounter-close').addEventListener('click', closeButton
 document.getElementById('intro-next').addEventListener('click', introNext);
 document.getElementById('helpers-go').addEventListener('click', startSignal);
 signalButton.addEventListener('click', catchSignal);
-signalNext.addEventListener('click', startRps);
+signalNext.addEventListener('click', startGames);
 document.getElementById('win-take').addEventListener('click', takeCat);
 document.getElementById('lose-ok').addEventListener('click', catGotShy);
-
-for (let i = 0; i < gestureButtons.length; i++) {
-  gestureButtons[i].addEventListener('click', function () {
-    // data-gesture в HTML хранит название жеста этой кнопки
-    playRound(gestureButtons[i].dataset.gesture);
-  });
-}
 
 // Клавиша Esc на компьютере тоже закрывает окно
 document.addEventListener('keydown', function (event) {
@@ -114,9 +88,11 @@ function startEncounter(target) {
     capsule: target.capsule,
     captain: target.captain,
     cat: target.cat,
-    hintEarned: false,
+    plan: planMinigames(target.cat, Math.random), // logic.js
+    bonus: signalBonus(false),
     helpers: [],
-    battle: createBattle(isCaptain ? CAPTAIN_WINS_NEEDED : WINS_NEEDED, []),
+    finished: '',
+    flawless: true,
     signal: null,
     showTips: needsEncounterTips(save) // подсказки — только в первые 2 встречи (logic.js)
   };
@@ -137,10 +113,14 @@ function startEncounter(target) {
   document.getElementById('intro-name').textContent = cat.name;
   document.getElementById('intro-stars').textContent = starsText(cat.rarity);
   const introText = document.getElementById('intro-text');
-  introText.textContent = isCaptain
-    ? 'Капитан ищет свой корабль. Выиграй три раунда — и он вступит в экипаж!'
-    : '';
-  introText.classList.toggle('hidden', !isCaptain);
+  let intro = '';
+  if (isCaptain) {
+    intro = 'Капитан ищет свой корабль. Выиграй 2 мини-игры из 3 — и он вступит в экипаж!';
+  } else if (activeEncounter.plan.games.length > 1) {
+    intro = 'Легендарный кот! Две мини-игры подряд — выиграй обе.';
+  }
+  introText.textContent = intro;
+  introText.classList.toggle('hidden', intro === '');
 
   encounterWindow.classList.remove('hidden');
   showScreen('screen-intro');
@@ -150,6 +130,7 @@ function startEncounter(target) {
 
 function closeEncounter() {
   stopSignal();
+  stopMinigame(); // minigames.js
   encounterWindow.classList.add('hidden');
   activeEncounter = null;
 }
@@ -159,7 +140,7 @@ function closeEncounter() {
 // игра не закончена — просто закрываем, можно открыть снова.
 function closeButtonPressed() {
   if (!activeEncounter) return;
-  const finished = activeEncounter.battle.finished;
+  const finished = activeEncounter.finished;
   if (finished === 'победа') {
     takeCat();
   } else if (finished === 'поражение') {
@@ -302,14 +283,10 @@ function catchSignal() {
   stopSignal();
   const signal = activeEncounter.signal;
   const hit = isInGreenZone(signal.position, signal.zoneStart, signal.zoneWidth);
-  const cat = activeEncounter.cat;
-
   if (hit) {
-    playSound('signal');
     questEvent('signal'); // задание «Поймай сигнал» (quests.js)
-    activeEncounter.hintEarned = true;
-    signalResult.textContent = 'Сигнал пойман! Подсказка: ' + cat.name + ' любит ' +
-      GESTURE_ICONS[cat.favoriteGesture] + ' ' + GESTURE_ACCUSATIVE[cat.favoriteGesture] + '.';
+    activeEncounter.bonus = signalBonus(true); // logic.js
+    signalResult.textContent = 'Сигнал пойман! Поблажка в игре: +1 жизнь (или +3 секунды).';
   } else {
     signalResult.textContent = 'Сигнал ускользнул. Ничего страшного — играем дальше!';
   }
@@ -320,151 +297,37 @@ function catchSignal() {
 }
 
 // =============================================================
-// Часть 2: «Лапка, Коготь, Клубок»
+// Часть 2: мини-игры (minigames.js)
 // =============================================================
-function startRps() {
-  const cat = activeEncounter.cat;
-  const winsNeeded = activeEncounter.battle.winsNeeded;
-  // Бой начинается заново, с выбранными помощниками
-  activeEncounter.battle = createBattle(winsNeeded, activeEncounter.helpers);
-
-  if (activeEncounter.hintEarned) {
-    rpsHint.textContent = 'Подсказка: ' + cat.name + ' любит ' +
-      GESTURE_ICONS[cat.favoriteGesture] + ' ' + GESTURE_ACCUSATIVE[cat.favoriteGesture] + '.';
-    rpsHint.classList.remove('hidden');
-  } else {
-    rpsHint.classList.add('hidden');
-  }
-
-  document.getElementById('rps-goal').textContent = 'Играем до ' + WINS_WORDS[winsNeeded] + ' побед!';
-  rpsRound.textContent = 'Выбери жест!';
-  // Подсказка для новичка (первые 2 встречи)
-  setTip('rps-tip', activeEncounter.showTips
-    ? '👉 Выбери жест. Подсказка: 🐾 Лапка бьёт ✂️ Коготь, ✂️ Коготь бьёт 🧶 Клубок, 🧶 Клубок бьёт 🐾 Лапку.'
-    : '');
-  hideHelperCalls();
-  setGestureButtonsEnabled(true);
-  updateScore();
-  showScreen('screen-rps');
+function startGames() {
+  const plan = activeEncounter.plan;
+  // Помощники (против капитанов) помогают в игре своего типа (logic.js)
+  const helperCats = activeEncounter.helpers.map(function (id) { return findCat(id) || findCaptain(id); });
+  showScreen('screen-game');
+  document.getElementById('game-title').textContent = activeEncounter.cat.name + ': мини-игра';
+  runMinigames(plan.games, { // minigames.js
+    difficulty: minigameDifficulty(activeEncounter.cat.rarity),
+    bonus: activeEncounter.bonus,
+    perks: helperPerks(helperCats),
+    winsNeeded: plan.winsNeeded,
+    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  }, gamesFinished);
 }
 
-function playRound(playerGesture) {
-  const cat = activeEncounter.cat;
-  const catGesture = catChooseGesture(cat.favoriteGesture, Math.random);
-  const result = roundResult(playerGesture, catGesture);
-  activeEncounter.battle = battleRound(activeEncounter.battle, result); // logic.js
-  const battle = activeEncounter.battle;
-
-  // Что выбрали оба
-  let text = 'Ты: ' + GESTURE_ICONS[playerGesture] + ' ' + playerGesture +
-    '. ' + cat.name + ': ' + GESTURE_ICONS[catGesture] + ' ' + catGesture + '. ';
-
-  if (result === 'ничья') {
-    text = text + 'Ничья — переигрываем!';
-  } else if (result === 'победа') {
-    text = text + WIN_REASONS[playerGesture] + '. Очко тебе!';
-  } else if (battle.pendingLoss) {
-    text = text + WIN_REASONS[catGesture] + '. Позовёшь помощника?';
-  } else {
-    text = text + WIN_REASONS[catGesture] + '. Очко ' + (activeEncounter.kind === 'captain' ? 'капитану!' : 'коту!');
-  }
-
-  rpsRound.textContent = text;
-  updateScore();
-  if (result === 'победа') {
-    playSound('roundWin');
-    questEvent('roundWin'); // задание «Выиграй 5 раундов» (quests.js)
-  }
-  if (result === 'поражение') playSound('roundLose');
-
-  if (battle.pendingLoss) {
-    showHelperCalls();
-  } else if (battle.finished) {
-    finishRps(battle.finished);
-  }
-}
-
-// Раунд проигран, но есть помощники: показываем кнопки «Помоги, <имя>!»
-// и «Не надо». Жесты пока нажимать нельзя.
-function showHelperCalls() {
-  setGestureButtonsEnabled(false);
-  rpsHelpers.textContent = '';
-  const helpersLeft = activeEncounter.battle.helpersLeft;
-  for (let i = 0; i < helpersLeft.length; i++) {
-    const helper = findCat(helpersLeft[i]) || findCaptain(helpersLeft[i]);
-    const button = document.createElement('button');
-    button.className = 'big-button helper-call';
-    button.textContent = 'Помоги, ' + helper.name + '!';
-    button.addEventListener('click', function () {
-      useHelper(helper);
-    });
-    rpsHelpers.appendChild(button);
-  }
-  const refuse = document.createElement('button');
-  refuse.className = 'big-button helper-refuse';
-  refuse.textContent = 'Не надо, играем дальше';
-  refuse.addEventListener('click', acceptLoss);
-  rpsHelpers.appendChild(refuse);
-  rpsHelpers.classList.remove('hidden');
-  rpsHelpers.querySelector('button').focus();
-}
-
-function hideHelperCalls() {
-  rpsHelpers.textContent = '';
-  rpsHelpers.classList.add('hidden');
-}
-
-// Помощник дал вторую попытку: раунд не считается, переигрываем
-function useHelper(helper) {
-  activeEncounter.battle = battleUseHelper(activeEncounter.battle, helper.id);
-  rpsRound.textContent = helper.name + ' помогает! Раунд не считается — переигрываем.';
-  hideHelperCalls();
-  setGestureButtonsEnabled(true);
-  updateScore();
-}
-
-// Игрок отказался от помощи: очко сопернику
-function acceptLoss() {
-  activeEncounter.battle = battleAcceptLoss(activeEncounter.battle);
-  rpsRound.textContent = 'Очко ' + (activeEncounter.kind === 'captain' ? 'капитану.' : 'коту.');
-  hideHelperCalls();
-  updateScore();
-  if (activeEncounter.battle.finished) {
-    finishRps(activeEncounter.battle.finished);
-  } else {
-    setGestureButtonsEnabled(true);
-  }
-}
-
-function finishRps(outcome) {
-  setGestureButtonsEnabled(false); // пока ждём, жесты нажимать нельзя
-
-  // Небольшая пауза, чтобы игрок успел прочитать, чем кончился раунд
+// Мини-игры закончились: result — { outcome, flawless }
+function gamesFinished(result) {
   const encounter = activeEncounter;
+  if (!encounter) return;
+  encounter.finished = result.outcome;
+  encounter.flawless = result.flawless;
   setTimeout(function () {
-    // Если за это время окно закрыли — ничего не показываем
-    if (activeEncounter !== encounter) return;
-    if (outcome === 'победа') {
+    if (activeEncounter !== encounter) return; // окно уже закрыли
+    if (result.outcome === 'победа') {
       showWinScreen();
     } else {
       showLoseScreen();
     }
-  }, ROUND_PAUSE);
-}
-
-function updateScore() {
-  const battle = activeEncounter.battle;
-  let text = 'Счёт: ты ' + battle.playerWins + ' — ' + battle.catWins + ' ' + activeEncounter.cat.name;
-  if (activeEncounter.kind === 'captain') {
-    text = text + '. Помощников: ' + battle.helpersLeft.length;
-  }
-  rpsScore.textContent = text;
-}
-
-function setGestureButtonsEnabled(enabled) {
-  for (let i = 0; i < gestureButtons.length; i++) {
-    gestureButtons[i].disabled = !enabled;
-  }
+  }, RESULT_PAUSE);
 }
 
 // =============================================================
@@ -514,9 +377,6 @@ function showLoseScreen() {
 // Кнопка «Забрать в экипаж»
 function takeCat() {
   const encounter = activeEncounter;
-  // Победа без проигранных раундов — для задания «Выиграй встречу,
-  // не проиграв ни одного раунда»
-  const perfect = encounter.battle.catWins === 0;
   closeEncounter();
   if (encounter.kind === 'captain') {
     captainWon(encounter.captain); // функция из captains.js
@@ -527,7 +387,6 @@ function takeCat() {
   }
   // Ежедневные задания (quests.js)
   questEvent('catch');
-  if (perfect) questEvent('perfectWin');
 }
 
 // Кнопка «Хорошо» после проигрыша

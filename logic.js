@@ -282,6 +282,7 @@ function emptySave() {
     latecomers: [],
     tutorialSeen: false,
     tipEncounters: 0,
+    seenGames: [],                     // какие мини-игры и занятия уже объясняли (плашка-подсказка)
     captainDay: '',                    // в какой день приходил последний капитан
     walkToday: { day: '', meters: 0 }  // сколько метров пройдено сегодня (только число!)
   };
@@ -383,6 +384,7 @@ function cleanSave(data) {
   save.tipEncounters = isCount(data.tipEncounters) ? data.tipEncounters
     : (alreadyPlayed ? TIP_ENCOUNTERS : 0);
   save.captainDay = typeof data.captainDay === 'string' ? data.captainDay : '';
+  save.seenGames = cleanStringList(data.seenGames);
   const walk = data.walkToday;
   save.walkToday = (walk && typeof walk.day === 'string' && isCount(walk.meters))
     ? { day: walk.day, meters: walk.meters } : { day: '', meters: 0 };
@@ -1445,10 +1447,10 @@ const QUEST_TYPES = [
   { id: 'treat1', text: 'Угости любого кота', event: 'treat', goal: 1, place: 'дом', reward: { fish: 2, parts: 0 } },
   { id: 'treat3', text: 'Угости котов 3 раза', event: 'treat', goal: 3, place: 'дом', reward: { fish: 3, parts: 0 } },
   { id: 'beacon1', text: 'Зайди на маяк', event: 'beacon', goal: 1, place: 'прогулка', reward: { fish: 5, parts: 0 } },
-  { id: 'perfect1', text: 'Выиграй встречу, не проиграв ни одного раунда', event: 'perfectWin', goal: 1, place: 'везде', reward: { fish: 4, parts: 0 } },
+  { id: 'perfect1', text: 'Выиграй мини-игру, не потеряв ни одной жизни', event: 'perfectWin', goal: 1, place: 'везде', reward: { fish: 4, parts: 0 } },
   { id: 'signal2', text: 'Поймай сигнал 2 раза', event: 'signal', goal: 2, place: 'везде', reward: { fish: 3, parts: 0 } },
   { id: 'guest1', text: 'Познакомься с гостем в убежище', event: 'guest', goal: 1, place: 'дом', reward: { fish: 2, parts: 0 } },
-  { id: 'rounds5', text: 'Выиграй 5 раундов', event: 'roundWin', goal: 5, place: 'везде', reward: { fish: 4, parts: 0 } },
+  { id: 'games3', text: 'Выиграй 3 мини-игры', event: 'gameWin', goal: 3, place: 'везде', reward: { fish: 4, parts: 0 } },
   { id: 'walk500', text: 'Пройди 500 м на прогулке', event: 'walk', goal: 500, unit: 'м', place: 'прогулка', reward: { fish: 8, parts: 1 } }
 ];
 const QUESTS_PER_DAY = 3;
@@ -1721,6 +1723,155 @@ function commonOnly(cats) {
   return cats.filter(function (cat) { return cat.rarity === 'обычный'; });
 }
 
+// =============================================================
+// Мини-игры (вместо «Лапка, Коготь, Клубок»)
+// =============================================================
+// У каждого типа кота своя мини-игра. Сначала, как и раньше, «Поймай
+// сигнал»: попадание в зелёную зону даёт поблажку — +1 жизнь (или +3 секунды
+// в играх на время). Сложность зависит от редкости кота.
+
+// Какая мини-игра у какого типа кота
+const MINIGAME_BY_TYPE = {
+  'водный': 'fish',      // «Поймай рыбок»
+  'лесной': 'pattern',   // «Повтори узор»
+  'городской': 'rhythm', // «Ритм»
+  'сумеречный': 'stars'  // «Созвездие»
+};
+// Названия мини-игр для игрока
+const MINIGAME_NAMES = {
+  fish: 'Поймай рыбок',
+  pattern: 'Повтори узор',
+  rhythm: 'Ритм',
+  stars: 'Созвездие'
+};
+// Какие мини-игры уже готовы (остальные временно заменяются первой из списка)
+const READY_MINIGAMES = ['fish'];
+
+// Сложность мини-игры по редкости кота: 'обычный', 'редкий' или 'легендарный'
+// (у капитанов — 'легендарный')
+function minigameDifficulty(rarity) {
+  if (rarity === 'легендарный' || rarity === 'капитан') return 'легендарный';
+  if (rarity === 'редкий') return 'редкий';
+  return 'обычный';
+}
+
+// Если игра ещё не готова — первая готовая
+function readyGame(game) {
+  return READY_MINIGAMES.includes(game) ? game : READY_MINIGAMES[0];
+}
+
+// count разных случайных мини-игр (если готовых меньше — с повторами)
+function randomMinigames(count, random) {
+  const pool = Object.keys(MINIGAME_NAMES).map(readyGame).filter(function (game, i, list) {
+    return list.indexOf(game) === i;
+  });
+  const result = [];
+  while (result.length < count) {
+    const left = pool.filter(function (game) { return !result.includes(game); });
+    const choices = left.length > 0 ? left : pool;
+    result.push(choices[Math.floor(random() * choices.length)]);
+  }
+  return result;
+}
+
+// План встречи: какие мини-игры подряд и сколько нужно выиграть.
+//   обычный и редкий кот — 1 игра своего типа, нужно выиграть её;
+//   легендарный — 2 разные случайные игры подряд, нужно выиграть обе;
+//   капитан — 3 разные игры, нужно выиграть 2 из 3.
+function planMinigames(cat, random) {
+  if (cat.type === 'капитан') {
+    return { games: randomMinigames(3, random), winsNeeded: 2 };
+  }
+  if (cat.rarity === 'легендарный' || !MINIGAME_BY_TYPE[cat.type]) {
+    return { games: randomMinigames(2, random), winsNeeded: 2 };
+  }
+  return { games: [readyGame(MINIGAME_BY_TYPE[cat.type])], winsNeeded: 1 };
+}
+
+// Поблажка за пойманный сигнал: +1 жизнь или +3 секунды (смотря что есть в игре)
+function signalBonus(hit) {
+  return hit ? { extraLives: 1, extraSeconds: 3 } : { extraLives: 0, extraSeconds: 0 };
+}
+
+// Помощники (в бою с капитаном) помогают в игре своего типа:
+// водный — корзинка шире, лесной — узор показывают ещё раз,
+// городской — ритм медленнее, сумеречный — звёзды гаснут дольше.
+// helperCats — коты-помощники. Возвращает { fish, pattern, rhythm, stars }.
+function helperPerks(helperCats) {
+  const perks = { fish: false, pattern: false, rhythm: false, stars: false };
+  for (let i = 0; i < helperCats.length; i++) {
+    const game = MINIGAME_BY_TYPE[helperCats[i].type];
+    if (game) perks[game] = true;
+  }
+  return perks;
+}
+
+// Чем помогает кот (подпись в выборе помощников)
+const HELPER_HELP = {
+  fish: 'в «Поймай рыбок»: корзинка шире',
+  pattern: 'в «Повтори узор»: покажет узор ещё раз',
+  rhythm: 'в «Ритме»: музыка медленнее',
+  stars: 'в «Созвездии»: звёзды гаснут дольше'
+};
+function helperHelpText(cat) {
+  const game = MINIGAME_BY_TYPE[cat.type];
+  return game ? HELPER_HELP[game] : 'подбадривает (особой помощи нет)';
+}
+
+// ----- «Поймай рыбок» -----
+// Корзинка внизу двигается пальцем; падают рыбки и иногда пузыри.
+// Нужно поймать goal рыбок за duration секунд; пойманный пузырь — минус жизнь.
+function fishSettings(difficulty, bonus, wideBasket, reducedMotion) {
+  const table = {
+    'обычный':     { goal: 8,  fallTime: 3.2, spawnEvery: 0.9,  bubbleChance: 0.2 },
+    'редкий':      { goal: 10, fallTime: 2.7, spawnEvery: 0.8,  bubbleChance: 0.25 },
+    'легендарный': { goal: 12, fallTime: 2.3, spawnEvery: 0.7,  bubbleChance: 0.3 }
+  };
+  const base = table[difficulty] || table['обычный'];
+  const settings = {
+    goal: base.goal,
+    duration: 25,
+    lives: 2 + (bonus ? bonus.extraLives : 0),
+    fallTime: base.fallTime,
+    spawnEvery: base.spawnEvery,
+    bubbleChance: base.bubbleChance,
+    basketWidth: wideBasket ? 0.36 : 0.24 // доля ширины поля
+  };
+  // «Уменьшить движение»: всё падает вдвое медленнее, а рыбок нужно меньше
+  if (reducedMotion) {
+    settings.fallTime = settings.fallTime * 2;
+    settings.spawnEvery = settings.spawnEvery * 1.5;
+    settings.goal = Math.ceil(settings.goal * 0.75);
+  }
+  return settings;
+}
+
+// Новый падающий предмет: рыбка или пузырь, в случайном месте по ширине
+function makeFallingItem(settings, random, time) {
+  return {
+    kind: random() < settings.bubbleChance ? 'пузырь' : 'рыбка',
+    x: 0.08 + random() * 0.84, // от 0 (левый край) до 1 (правый)
+    born: time                  // когда появился (секунды)
+  };
+}
+
+// Где предмет по высоте: 0 — вверху, 1 — внизу
+function fallingY(item, time, fallTime) {
+  return (time - item.born) / fallTime;
+}
+
+// Попал ли предмет в корзинку (basketX — середина корзинки)
+function isCaughtByBasket(itemX, basketX, basketWidth) {
+  return Math.abs(itemX - basketX) <= basketWidth / 2;
+}
+
+// Итог «Поймай рыбок»: 'победа', 'проигрыш' или '' (игра идёт)
+function fishOutcome(caught, goal, lives, timeLeft) {
+  if (caught >= goal) return 'победа';
+  if (lives <= 0 || timeLeft <= 0) return 'проигрыш';
+  return '';
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -1756,6 +1907,9 @@ if (typeof module !== 'undefined') {
     canLaunchShip, launchShip, badgeName, LATECOMER_CHANCE, latecomerCats, pickCatForChapter,
     shelterCats, isOnRadio, TIP_ENCOUNTERS, shouldShowTutorial, needsEncounterTips,
     MAP_COLORS, mutedPaint,
+    MINIGAME_BY_TYPE, MINIGAME_NAMES, READY_MINIGAMES, minigameDifficulty, randomMinigames,
+    planMinigames, signalBonus, helperPerks, helperHelpText,
+    fishSettings, makeFallingItem, fallingY, isCaughtByBasket, fishOutcome,
     CAPSULE_TARGET, CAPSULE_RESPAWN_MIN, CAPSULE_RESPAWN_MAX, capsuleRespawnTime, capsulesToAdd,
     walkStepMeters, addWalkMeters, walkedToday, commonOnly,
     GPS_LOG_MAX, addLogEntry, formatClock, GPS_ERROR_NAMES, agoText, buildGpsReport

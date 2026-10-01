@@ -45,6 +45,12 @@ test('все 6 картинок обучения — SVG', function () {
   }
 });
 
+test('картинки мини-игр — SVG', function () {
+  assert.ok(looksLikeSvg(art.fishSprite()));
+  assert.ok(looksLikeSvg(art.bubbleSprite()));
+  assert.ok(looksLikeSvg(art.basketSprite()));
+});
+
 test('неизвестный кот не ломает игру', function () {
   assert.ok(looksLikeSvg(art.catPortrait('нет-такого')));
 });

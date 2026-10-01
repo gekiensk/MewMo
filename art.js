@@ -704,6 +704,36 @@ function launchScene(crewIds) {
 }
 
 // =============================================================
+// Картинки для мини-игр
+// =============================================================
+// Рыбка (для «Поймай рыбок»). Холст 40×28.
+function fishSprite() {
+  return '<svg class="sprite" viewBox="0 0 40 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    '<path d="M28 14 L39 5 L37 14 L39 23 Z" fill="#F6BE98" stroke="' + INK + '" stroke-width="1.5" stroke-linejoin="round"/>' +
+    '<ellipse cx="17" cy="14" rx="15" ry="10" fill="#F5D88E" stroke="' + INK + '" stroke-width="1.5"/>' +
+    '<path d="M14 6 Q18 14 14 22" stroke="#F6BE98" stroke-width="2" fill="none"/>' +
+    '<circle cx="8" cy="12" r="2.2" fill="' + INK + '"/><circle cx="8.6" cy="11.3" r="0.7" fill="#FFFFFF"/>' +
+    '</svg>';
+}
+
+// Пузырь (его ловить нельзя). Холст 32×32.
+function bubbleSprite() {
+  return '<svg class="sprite" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    '<circle cx="16" cy="16" r="13" fill="#DCEBF6" fill-opacity="0.5" stroke="#FAF7F2" stroke-width="2.5"/>' +
+    '<path d="M9 12 Q11 8 15 7" stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linecap="round"/>' +
+    '</svg>';
+}
+
+// Корзинка с кошачьими ушками. Холст 100×44.
+function basketSprite() {
+  return '<svg class="sprite" viewBox="0 0 100 44" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    '<path d="M14 10 L20 0 L28 10 Z M86 10 L80 0 L72 10 Z" fill="' + PINK + '"/>' +
+    '<path d="M4 10 L96 10 L86 42 L14 42 Z" fill="#E8C49A" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+    '<path d="M9 20 L91 20 M12 30 L88 30 M30 10 L34 42 M50 10 L50 42 M70 10 L66 42" stroke="#B98E62" stroke-width="2"/>' +
+    '</svg>';
+}
+
+// =============================================================
 // Картинки обучения «Как играть» (6 штук)
 // =============================================================
 // Холст 400×300. tutorialPicture(0) … tutorialPicture(5).
@@ -816,6 +846,6 @@ function tutorialPicture(index) {
 if (typeof module !== 'undefined') {
   module.exports = {
     CAT_LOOKS, SUIT_COLORS, catPortrait, capsuleIcon, beaconIcon, shelterScene, launchScene,
-    TUTORIAL_PICTURE_COUNT, tutorialPicture
+    TUTORIAL_PICTURE_COUNT, tutorialPicture, fishSprite, bubbleSprite, basketSprite
   };
 }

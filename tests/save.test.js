@@ -44,6 +44,7 @@ test('записанное сохранение читается обратно 
     latecomers: ['iskra'],
     tutorialSeen: true,
     tipEncounters: 1,
+    seenGames: ['fish'],
     captainDay: '2026-10-01',
     walkToday: { day: '2026-10-01', meters: 340 }
   };

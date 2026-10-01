@@ -118,26 +118,12 @@
         <button id="signal-next" class="big-button hidden">Дальше</button>
       </div>
 
-      <!-- Экран 3: «Лапка, Коготь, Клубок» -->
-      <div id="screen-rps" class="screen hidden">
-        <h2 class="screen-title">Лапка, Коготь, Клубок</h2>
-        <p class="screen-text rules">
-          🐾 Лапка прижимает Коготь.<br>
-          ✂️ Коготь режет нитку Клубка.<br>
-          🧶 В Клубке запутывается Лапка.<br>
-          <span id="rps-goal">Играем до двух побед!</span>
-        </p>
-        <p id="rps-tip" class="tip hidden"></p>
-        <p id="rps-hint" class="hint hidden"></p>
-        <p id="rps-score" class="score"></p>
-        <p id="rps-round" class="result-text" aria-live="polite"></p>
-        <div class="gesture-buttons">
-          <button class="gesture-button" data-gesture="Лапка">🐾<br>Лапка</button>
-          <button class="gesture-button" data-gesture="Коготь">✂️<br>Коготь</button>
-          <button class="gesture-button" data-gesture="Клубок">🧶<br>Клубок</button>
-        </div>
-        <!-- Кнопки «Помоги, <имя>!» — появляются, если раунд проигран, а помощник есть -->
-        <div id="rps-helpers" class="rps-helpers hidden"></div>
+      <!-- Экран 3: мини-игра кота (minigames.js рисует её внутри game-area) -->
+      <div id="screen-game" class="screen hidden">
+        <h2 id="game-title" class="screen-title">Мини-игра</h2>
+        <p id="game-progress" class="score"></p>
+        <div id="game-area" class="game-area"></div>
+        <p id="game-status" class="result-text" aria-live="polite"></p>
       </div>
 
       <!-- Экран 4: победа — «Кот найден!» -->
@@ -404,6 +390,8 @@
   <script src="art.js"></script>
   <!-- sound.js — звуки, синтезированные в коде (Web Audio API) -->
   <script src="sound.js"></script>
+  <!-- minigames.js — мини-игры знакомства с котом -->
+  <script src="minigames.js"></script>
   <!-- encounter.js — окно «Знакомство с котом» (мини-игры) -->
   <script src="encounter.js"></script>
   <!-- album.js — альбом экипажа (пользуется помощниками из encounter.js) -->

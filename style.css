@@ -603,30 +603,7 @@ button:focus-visible {
   font-weight: 800;
 }
 
-.gesture-buttons {
-  display: flex;
-  gap: 10px;
-}
 
-.gesture-button {
-  flex: 1;
-  min-height: 96px;
-  padding: 8px 4px;
-  border: 3px solid var(--fur);
-  border-radius: 20px;
-  background: var(--nose);
-  color: var(--space);
-  font-family: var(--font);
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.3;
-  cursor: pointer;
-}
-
-.gesture-button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
 
 /* ----- Помощники в бою с капитаном ----- */
 .helper-list {
@@ -1484,4 +1461,65 @@ body.mode-home .toast {
 }
 .tip.hidden {
   display: none;
+}
+
+/* ===== Мини-игры ===== */
+.game-area {
+  margin: 8px 0;
+}
+.game-hud {
+  margin: 4px 0 8px;
+  color: var(--star);
+  font-size: 18px;
+  font-weight: 800;
+}
+/* Плашка с правилами при первом знакомстве с игрой */
+.game-rules {
+  padding: 14px 16px;
+  border: 2px dashed var(--mint);
+  border-radius: 18px;
+  font-size: 18px;
+  line-height: 1.4;
+}
+.game-rules-title {
+  margin: 0 0 6px;
+  color: var(--star);
+  font-weight: 800;
+}
+/* Поле игры. touch-action: none — чтобы палец двигал корзинку,
+   а не прокручивал страницу */
+.game-field {
+  position: relative;
+  height: 340px;
+  border: 3px solid var(--fur);
+  border-radius: 20px;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* «Поймай рыбок»: голубая «вода» */
+.fish-field {
+  background: linear-gradient(#DCEBF6, #A9C8E6);
+}
+.fish-item {
+  position: absolute;
+  top: 0;
+  width: 40px;
+  height: 30px;
+  margin-left: -20px; /* центр предмета — в его точке */
+  pointer-events: none;
+}
+.fish-basket {
+  position: absolute;
+  bottom: 6px;
+  height: 44px;
+  translate: -50% 0; /* центр корзинки — в её точке */
+  pointer-events: none;
 }

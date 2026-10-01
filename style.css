@@ -1664,3 +1664,175 @@ body.mode-home .toast {
   margin: 4px 0 0;
   font-size: 14px;
 }
+
+/* ===== Занятия дома: панель кнопок внизу убежища ===== */
+.home-bar {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  gap: 8px;
+}
+.home-bar-button {
+  flex: 1;
+  min-height: 72px;
+  padding: 6px 2px;
+  border: 3px solid var(--fur);
+  border-radius: 18px;
+  background: var(--space);
+  color: var(--fur);
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+}
+/* Дома нижние углы заняты панелью — «Экипаж» и ⚙️ переезжают наверх */
+body.mode-home .crew-button {
+  top: calc(64px + env(safe-area-inset-top, 0px));
+  bottom: auto;
+}
+body.mode-home .settings-button {
+  top: calc(70px + env(safe-area-inset-top, 0px));
+  bottom: auto;
+}
+body.mode-home .toast {
+  bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ===== Угощения в карточке кота ===== */
+.care-treats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0;
+}
+.care-treat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 6px 12px;
+  border: 3px solid var(--fur);
+  border-radius: 16px;
+  background: var(--space);
+  color: var(--fur);
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.care-treat-favorite {
+  border-color: var(--nose);
+}
+.care-treat-icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+}
+
+/* ===== Кошачья кухня ===== */
+#kitchen-list.hidden,
+#kitchen-cook.hidden,
+#kitchen-back.hidden {
+  display: none;
+}
+.recipe {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: var(--space);
+  text-align: left;
+}
+.recipe-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 800;
+}
+.recipe-icon {
+  flex: none;
+  width: 48px;
+  height: 48px;
+}
+.recipe-needs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+  font-size: 15px;
+}
+.recipe-need {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 2px;
+  border-radius: 12px;
+  background: var(--space-2);
+}
+.recipe-need.missing {
+  border: 2px dashed var(--nose);
+}
+.recipe-need .pantry-icon {
+  width: 28px;
+  height: 28px;
+}
+.recipe .big-button {
+  min-height: 52px;
+  margin-top: 4px;
+  font-size: 18px;
+}
+.recipe .big-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.kitchen-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 260px;
+  margin: 8px 0;
+}
+.kitchen-bowl {
+  width: 240px;
+  height: 240px;
+  touch-action: none; /* палец мешает тесто, а не прокручивает страницу */
+  user-select: none;
+  -webkit-user-select: none;
+}
+.kitchen-dough {
+  width: 150px;
+  height: 150px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: scale 0.15s;
+}
+.kitchen-oven {
+  width: 220px;
+  height: 200px;
+}
+/* Духовка «печёт»: окошко мягко светится */
+.kitchen-oven .oven-light {
+  opacity: 0.6;
+}
+.kitchen-oven.baking .oven-light {
+  animation: oven-glow 1.6s ease-in-out infinite alternate;
+}
+@keyframes oven-glow {
+  from { opacity: 0.55; }
+  to   { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kitchen-oven.baking .oven-light { animation: none; opacity: 0.9; }
+  .kitchen-dough { transition: none; }
+}
+.kitchen-done {
+  width: 120px;
+  height: 120px;
+}

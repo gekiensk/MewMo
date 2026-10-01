@@ -284,6 +284,8 @@ function emptySave() {
     tipEncounters: 0,
     seenGames: [],                     // какие мини-игры и занятия уже объясняли (плашка-подсказка)
     pantry: {},                        // кладовая: ингредиент → сколько штук
+    treats: {},                        // готовые угощения: рецепт → сколько штук
+    friendshipVersion: 2,              // 2 — дружба в очках (до этого — в угощениях)
     captainDay: '',                    // в какой день приходил последний капитан
     walkToday: { day: '', meters: 0 }  // сколько метров пройдено сегодня (только число!)
   };
@@ -366,6 +368,14 @@ function cleanSave(data) {
   save.playTime = cleanPlayTime(data.playTime);
   save.guests = cleanGuests(data.guests);
   save.friendship = cleanCounts(data.friendship, 0);
+  // Старая дружба («5 рыбок — уровень») пересчитывается в очки так,
+  // чтобы уровни котов не изменились
+  save.friendshipVersion = 2;
+  if (data.friendshipVersion !== 2) {
+    Object.keys(save.friendship).forEach(function (id) {
+      save.friendship[id] = migrateFriendship(save.friendship[id]);
+    });
+  }
   save.quests = cleanQuests(data.quests);
   // Главы. Старое сохранение без номера главы — это глава 1.
   save.chapter = (Number.isInteger(data.chapter) && data.chapter >= 1 && data.chapter <= LAST_CHAPTER) ? data.chapter : 1;
@@ -386,6 +396,12 @@ function cleanSave(data) {
     : (alreadyPlayed ? TIP_ENCOUNTERS : 0);
   save.captainDay = typeof data.captainDay === 'string' ? data.captainDay : '';
   save.seenGames = cleanStringList(data.seenGames);
+  // Угощения: только известные рецепты
+  const treats = cleanCounts(data.treats, 1);
+  save.treats = {};
+  Object.keys(treats).forEach(function (id) {
+    if (findRecipe(id)) save.treats[id] = treats[id];
+  });
   // Кладовая: только известные ингредиенты
   const pantry = cleanCounts(data.pantry, 1);
   save.pantry = {};
@@ -1404,36 +1420,83 @@ function removeGuest(guests, catId) {
 // =============================================================
 // Режим «Дом»: забота и дружба
 // =============================================================
-const TREATS_PER_LEVEL = 5;   // каждые 5 угощений — новый уровень дружбы
+// Дружба считается в очках: рыбка — 1 очко, угощение с кухни — 3,
+// любимое угощение кота — 5. Уровни (максимум 5):
+//   1 — от 5 очков, 2 — от 15, 3 — от 30, 4 — от 50, 5 — от 75.
+const FRIEND_LEVEL_POINTS = [0, 5, 15, 30, 50, 75];
 const MAX_FRIENDSHIP = 5;     // самый высокий уровень дружбы
-const TREAT_COST = 1;         // угощение стоит 1 рыбку
+const TREAT_COST = 1;         // угостить рыбкой стоит 1 рыбку
+const FISH_POINTS = 1;        // очков дружбы за рыбку
+const TREAT_POINTS = 3;       // за угощение с кухни
+const FAVORITE_POINTS = 5;    // за любимое угощение
+const TREATS_PER_LEVEL = 5;   // как было раньше: 5 рыбок на уровень (нужно для пересчёта)
+
+// Уровень дружбы по очкам (0–5)
+function levelForPoints(points) {
+  let level = 0;
+  for (let i = 1; i < FRIEND_LEVEL_POINTS.length; i++) {
+    if (points >= FRIEND_LEVEL_POINTS[i]) level = i;
+  }
+  return level;
+}
 
 // Уровень дружбы кота (0–5)
 function friendshipLevel(save, catId) {
-  const treats = save.friendship[catId] || 0;
-  return Math.min(MAX_FRIENDSHIP, Math.floor(treats / TREATS_PER_LEVEL));
+  return levelForPoints(save.friendship[catId] || 0);
 }
 
-// Сколько угощений осталось до следующего уровня (0 — уровень максимальный)
+// Сколько очков осталось до следующего уровня (0 — уровень максимальный)
+function pointsToNextLevel(save, catId) {
+  const level = friendshipLevel(save, catId);
+  if (level >= MAX_FRIENDSHIP) return 0;
+  return FRIEND_LEVEL_POINTS[level + 1] - (save.friendship[catId] || 0);
+}
+// Старое имя функции (раньше считали угощения) — то же самое
 function treatsToNextLevel(save, catId) {
-  if (friendshipLevel(save, catId) >= MAX_FRIENDSHIP) return 0;
-  const treats = save.friendship[catId] || 0;
-  return TREATS_PER_LEVEL - (treats % TREATS_PER_LEVEL);
+  return pointsToNextLevel(save, catId);
 }
 
-// Угостить кота рыбкой. Возвращает { save, ok, levelUp, level }:
-//   ok      — false, если рыбок нет (тогда сохранение не меняется);
-//   levelUp — true, если дружба выросла на уровень.
+// Пересчёт старой дружбы (до очков: «5 рыбок — уровень») в очки так,
+// чтобы уровень у кота остался тем же
+function migrateFriendship(oldTreats) {
+  const oldLevel = Math.min(MAX_FRIENDSHIP, Math.floor(oldTreats / TREATS_PER_LEVEL));
+  const extra = oldLevel < MAX_FRIENDSHIP ? oldTreats % TREATS_PER_LEVEL : 0;
+  return FRIEND_LEVEL_POINTS[oldLevel] + extra;
+}
+
+// Добавить коту очки дружбы. Возвращает { save, levelUp, level }.
+function addFriendship(save, catId, points) {
+  const before = friendshipLevel(save, catId);
+  const result = copySave(save);
+  result.friendship[catId] = (result.friendship[catId] || 0) + points;
+  const after = friendshipLevel(result, catId);
+  return { save: result, levelUp: after > before, level: after };
+}
+
+// Угостить кота рыбкой (1 очко). Возвращает { save, ok, levelUp, level }:
+//   ok — false, если рыбок нет (тогда сохранение не меняется).
 function feedCat(save, catId) {
   if (save.fish < TREAT_COST) {
     return { save: save, ok: false, levelUp: false, level: friendshipLevel(save, catId) };
   }
-  const before = friendshipLevel(save, catId);
-  const result = copySave(save);
-  result.fish = result.fish - TREAT_COST;
-  result.friendship[catId] = (result.friendship[catId] || 0) + 1;
-  const after = friendshipLevel(result, catId);
-  return { save: result, ok: true, levelUp: after > before, level: after };
+  const paid = copySave(save);
+  paid.fish = paid.fish - TREAT_COST;
+  const result = addFriendship(paid, catId, FISH_POINTS);
+  return { save: result.save, ok: true, levelUp: result.levelUp, level: result.level };
+}
+
+// Угостить кота угощением с кухни: 3 очка, любимое — 5.
+// favoriteTreat — любимое угощение этого кота (из cats.js).
+function feedTreat(save, catId, recipeId, favoriteTreat) {
+  if (!((save.treats[recipeId] || 0) > 0)) {
+    return { save: save, ok: false, levelUp: false, level: friendshipLevel(save, catId), favorite: false };
+  }
+  const favorite = recipeId === favoriteTreat;
+  const paid = copySave(save);
+  paid.treats[recipeId] = paid.treats[recipeId] - 1;
+  if (paid.treats[recipeId] === 0) delete paid.treats[recipeId];
+  const result = addFriendship(paid, catId, favorite ? FAVORITE_POINTS : TREAT_POINTS);
+  return { save: result.save, ok: true, levelUp: result.levelUp, level: result.level, favorite: favorite };
 }
 
 // Сердечки дружбы: ♥♥♡♡♡
@@ -2052,6 +2115,70 @@ function ingredientsText(list) {
   return list.map(function (id) { return findIngredient(id).name; }).join(', ');
 }
 
+// =============================================================
+// Кошачья кухня
+// =============================================================
+// Рецепты из 2–3 ингредиентов (иногда ещё нужны рыбки).
+// Готовка — 3 шага: смешать (водить пальцем по кругу), слепить
+// (нажать несколько раз), испечь (подождать 10 секунд).
+const RECIPES = [
+  { id: 'star-cookie', name: 'Звёздное печенье', needs: { flour: 1, sugar: 1 }, fish: 0 },
+  { id: 'moon-pudding', name: 'Лунный пудинг', needs: { milk: 1, sugar: 1 }, fish: 0 },
+  { id: 'mint-jelly', name: 'Мятное желе', needs: { mint: 1, milk: 1 }, fish: 0 },
+  { id: 'berry-pie', name: 'Ягодный пирожок', needs: { flour: 1, berry: 1 }, fish: 0 },
+  { id: 'fish-cake', name: 'Рыбный кекс', needs: { flour: 1, milk: 1 }, fish: 2 },
+  { id: 'comet-candy', name: 'Кометная конфета', needs: { sugar: 1, berry: 1, mint: 1 }, fish: 0 }
+];
+const MIX_TURNS = 3;      // смешать: 3 круга пальцем
+const SHAPE_TAPS = 6;     // слепить: 6 нажатий
+const BAKE_SECONDS = 10;  // испечь: 10 секунд
+
+function findRecipe(id) {
+  return RECIPES.find(function (recipe) { return recipe.id === id; });
+}
+
+// Хватает ли ингредиентов и рыбок на рецепт
+function canCook(save, recipe) {
+  const ids = Object.keys(recipe.needs);
+  for (let i = 0; i < ids.length; i++) {
+    if ((save.pantry[ids[i]] || 0) < recipe.needs[ids[i]]) return false;
+  }
+  return save.fish >= recipe.fish;
+}
+
+// Приготовить: ингредиенты и рыбки уходят, угощение — в запас.
+// Возвращает новое сохранение (или то же, если не хватает).
+function cookRecipe(save, recipeId) {
+  const recipe = findRecipe(recipeId);
+  if (!recipe || !canCook(save, recipe)) return save;
+  const result = copySave(save);
+  const ids = Object.keys(recipe.needs);
+  for (let i = 0; i < ids.length; i++) {
+    result.pantry[ids[i]] = result.pantry[ids[i]] - recipe.needs[ids[i]];
+    if (result.pantry[ids[i]] === 0) delete result.pantry[ids[i]];
+  }
+  result.fish = result.fish - recipe.fish;
+  result.treats[recipeId] = (result.treats[recipeId] || 0) + 1;
+  return result;
+}
+
+// «Смешать»: палец водит по кругу вокруг центра миски.
+// state — { lastAngle, total }; angle — угол пальца (радианы, Math.atan2).
+// Считаем, на сколько повернулся палец (со знаком): туда-сюда не засчитывается.
+function mixAdd(state, angle) {
+  if (state.lastAngle === null) return { lastAngle: angle, total: state.total };
+  let delta = angle - state.lastAngle;
+  // Переход через «стык» углов (π → −π) — это маленький шаг, а не почти круг
+  if (delta > Math.PI) delta = delta - 2 * Math.PI;
+  if (delta < -Math.PI) delta = delta + 2 * Math.PI;
+  return { lastAngle: angle, total: state.total + delta };
+}
+
+// Сколько смешано: от 0 до 1 (1 — готово)
+function mixProgress(state) {
+  return Math.min(1, Math.abs(state.total) / (MIX_TURNS * 2 * Math.PI));
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -2082,6 +2209,9 @@ if (typeof module !== 'undefined') {
     makeParentQuestion, checkParentAnswer,
     GUEST_INTERVAL, MAX_GUESTS, isTwilightHour, pickGuest, updateGuests, removeGuest,
     TREATS_PER_LEVEL, MAX_FRIENDSHIP, friendshipLevel, treatsToNextLevel, feedCat, friendshipHearts,
+    FRIEND_LEVEL_POINTS, FISH_POINTS, TREAT_POINTS, FAVORITE_POINTS, levelForPoints, pointsToNextLevel,
+    migrateFriendship, addFriendship, feedTreat,
+    RECIPES, MIX_TURNS, SHAPE_TAPS, BAKE_SECONDS, findRecipe, canCook, cookRecipe, mixAdd, mixProgress,
     QUEST_TYPES, QUESTS_PER_DAY, chooseDailyQuests, refreshQuests, applyQuestEvent, questRewardText,
     LAST_CHAPTER, CHAPTER_PARTS, LAUNCHABLE_CHAPTERS, partsNeeded, catChapter, chapterCats,
     canLaunchShip, launchShip, badgeName, LATECOMER_CHANCE, latecomerCats, pickCatForChapter,

@@ -120,21 +120,22 @@ test('гость, прилетевший вечером, может быть с�
 });
 
 // ----- Дружба -----
-test('каждые 5 угощений — новый уровень дружбы, максимум 5', function () {
+test('дружба в очках: рыбка — 1 очко, уровни 5/15/30/50/75, максимум 5', function () {
   let save = logic.emptySave();
   save.fish = 100;
   let levelUps = 0;
-  for (let i = 1; i <= 30; i++) {
+  for (let i = 1; i <= 80; i++) {
     const result = logic.feedCat(save, 'bul');
-    assert.strictEqual(result.ok, true);
     if (result.levelUp) levelUps++;
     save = result.save;
     if (i === 4) assert.strictEqual(logic.friendshipLevel(save, 'bul'), 0);
     if (i === 5) assert.strictEqual(logic.friendshipLevel(save, 'bul'), 1);
+    if (i === 15) assert.strictEqual(logic.friendshipLevel(save, 'bul'), 2);
+    if (i === 74) assert.strictEqual(logic.friendshipLevel(save, 'bul'), 4);
   }
   assert.strictEqual(logic.friendshipLevel(save, 'bul'), 5);
   assert.strictEqual(levelUps, 5);
-  assert.strictEqual(save.fish, 70); // каждое угощение — 1 рыбка
+  assert.strictEqual(save.fish, 20); // каждое угощение рыбкой — 1 рыбка
   assert.strictEqual(logic.treatsToNextLevel(save, 'bul'), 0);
   assert.strictEqual(logic.friendshipHearts(2), '♥♥♡♡♡');
 });

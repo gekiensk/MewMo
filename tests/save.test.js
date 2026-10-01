@@ -46,6 +46,8 @@ test('записанное сохранение читается обратно 
     tipEncounters: 1,
     seenGames: ['fish'],
     pantry: { flour: 2, milk: 1 },
+    treats: { 'star-cookie': 1 },
+    friendshipVersion: 2,
     captainDay: '2026-10-01',
     walkToday: { day: '2026-10-01', meters: 340 }
   };

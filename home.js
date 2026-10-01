@@ -233,23 +233,64 @@ function renderCare() {
   document.getElementById('care-hearts').textContent = friendshipHearts(level);
   const left = treatsToNextLevel(save, cat.id);
   document.getElementById('care-info').textContent = left > 0
-    ? 'Дружба: уровень ' + level + ' из 5. До следующего сердечка: ' + left + ' ' + pluralRu(left, 'угощение', 'угощения', 'угощений') + '.'
+    ? 'Дружба: уровень ' + level + ' из 5. До следующего сердечка: ' + left + ' ' + pluralRu(left, 'очко', 'очка', 'очков') + '.'
     : 'Дружба: уровень 5 из 5 — лучшие друзья!';
+  renderCareTreats();
   document.getElementById('care-character').textContent = 'Характер: ' + cat.character + '.';
   document.getElementById('care-fish').textContent = 'У тебя 🐟 ' + save.fish;
 }
 
 function feedCareCat() {
-  const result = feedCat(save, careCat.id); // logic.js
+  const result = feedCat(save, careCat.id); // logic.js: рыбка — 1 очко
   if (!result.ok) {
     showToast('Рыбок нет. Их дают маяки, задания и повторные встречи с котами.');
     return;
   }
+  catIsHappy(result, '');
+}
+
+// Угощения с кухни: кнопка на каждое, что есть в запасе.
+// Любимое угощение кота — с сердечком и +5 очков, остальные — +3.
+function renderCareTreats() {
+  const box = document.getElementById('care-treats');
+  box.textContent = '';
+  const ids = Object.keys(save.treats);
+  for (let i = 0; i < ids.length; i++) {
+    const recipe = findRecipe(ids[i]); // logic.js
+    const favorite = ids[i] === careCat.favoriteTreat;
+    const button = document.createElement('button');
+    button.className = 'care-treat' + (favorite ? ' care-treat-favorite' : '');
+    const icon = document.createElement('span');
+    icon.className = 'care-treat-icon';
+    icon.innerHTML = treatIcon(ids[i]); // art.js
+    const label = document.createElement('span');
+    label.textContent = recipe.name + ' ×' + save.treats[ids[i]] +
+      (favorite ? ' — любимое! (+' + FAVORITE_POINTS + ')' : ' (+' + TREAT_POINTS + ')');
+    button.appendChild(icon);
+    button.appendChild(label);
+    button.addEventListener('click', function () {
+      const result = feedTreat(save, careCat.id, ids[i], careCat.favoriteTreat); // logic.js
+      if (result.ok) catIsHappy(result, result.favorite ? careCat.name + ' обожает «' + recipe.name + '»!' : '');
+    });
+    box.appendChild(button);
+  }
+  if (ids.length === 0) {
+    const note = document.createElement('p');
+    note.className = 'screen-text small-text';
+    note.textContent = 'Угощений пока нет — приготовь их на кухне (ингредиенты — с прогулки).';
+    box.appendChild(note);
+  }
+}
+
+// Кот съел угощение: сохраняем, звук, задание «Угости кота», радость
+function catIsHappy(result, message) {
   save = result.save;
   saveGame();
   playSound(result.levelUp ? 'crew' : 'meow');
   if (result.levelUp) {
     showToast(careCat.name + ': дружба выросла! ' + friendshipHearts(result.level));
+  } else if (message) {
+    showToast(message);
   }
   questEvent('treat'); // quests.js
 

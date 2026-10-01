@@ -654,6 +654,64 @@ async function minigameScenario(browser) {
 }
 
 // =============================================================
+// Сценарий 7: дом — кухня (и другие занятия в убежище)
+// =============================================================
+async function homeScenario(browser) {
+  const name = 'Дом';
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true
+  });
+  await stubExternal(context);
+  // Сохранение: два кота в экипаже, ингредиенты на звёздное печенье, рыбки
+  await context.addInitScript(function () {
+    if (!sessionStorage.getItem('smoke-ready')) {
+      sessionStorage.setItem('smoke-ready', '1');
+      localStorage.setItem('mewmo-save-v1', JSON.stringify({
+        crew: { bul: 1, gaika: 1 }, parts: 4, fish: 30, tutorialSeen: true,
+        pantry: { flour: 1, sugar: 1 }
+      }));
+    }
+  });
+  const page = await context.newPage();
+  page.setDefaultTimeout(8000);
+  watchErrors(page, name);
+  await page.goto(URL);
+  await skipTutorial(page);
+  await page.click('#home-button');
+  const home = await waitFor(page, function () { return gameMode === 'home'; }, null, 5000);
+  expect(home, name + ': не открылось убежище');
+
+  // ----- Кухня: печём «Звёздное печенье» -----
+  await page.click('#home-kitchen');
+  await checkContrast(page, 'кухня');
+  await page.locator('#kitchen-list .recipe').first().locator('button').click();
+  // Шаг 1: три с лишним круга пальцем по миске
+  const bowl = await page.locator('.kitchen-bowl').boundingBox();
+  const cx = bowl.x + bowl.width / 2;
+  const cy = bowl.y + bowl.height / 2;
+  const r = bowl.width / 3;
+  await page.mouse.move(cx + r, cy);
+  await page.mouse.down();
+  for (let i = 1; i <= 3.5 * 16; i++) {
+    const a = i / 16 * 2 * Math.PI;
+    await page.mouse.move(cx + r * Math.cos(a), cy + r * Math.sin(a));
+  }
+  await page.mouse.up();
+  // Шаг 2: шесть нажатий на тесто
+  const dough = await waitFor(page, function () { return !!document.querySelector('.kitchen-dough'); }, null, 3000);
+  expect(dough, name + ': после смешивания не появилось тесто');
+  for (let i = 0; i < 6 && dough; i++) await page.click('.kitchen-dough');
+  // Шаг 3: печём 10 секунд
+  const baked = await waitFor(page, function () { return (save.treats['star-cookie'] || 0) === 1; }, null, 14000);
+  expect(baked, name + ': печенье не испеклось');
+  const pantryLeft = await page.evaluate(function () { return Object.keys(save.pantry).length; });
+  expect(pantryLeft === 0, name + ': ингредиенты не списались');
+  await page.click('#kitchen-close');
+
+  await context.close();
+}
+
+// =============================================================
 // Запуск
 // =============================================================
 async function main() {
@@ -682,6 +740,8 @@ async function main() {
     await contrastScenario(browser);
     console.log('Сценарий 6: мини-игры — играет «робот»…');
     await minigameScenario(browser);
+    console.log('Сценарий 7: дом — кухня…');
+    await homeScenario(browser);
   } catch (error) {
     problems.push('Проверка упала: ' + error.message.split('\n')[0]);
   } finally {

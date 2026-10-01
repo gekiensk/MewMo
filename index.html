@@ -53,6 +53,10 @@
     <div id="home-scene" class="home-scene"></div>
     <div id="home-cats" class="home-cats"></div>
     <p id="home-more" class="home-more hidden"></p>
+    <!-- Занятия дома: большие кнопки внизу убежища -->
+    <div id="home-bar" class="home-bar">
+      <button id="home-kitchen" class="home-bar-button">🍳<br>Кухня</button>
+    </div>
     <p id="home-empty" class="home-empty hidden">Пока в убежище пусто. Скоро прилетит гость — или погуляй и найди котов!</p>
   </section>
 
@@ -71,7 +75,26 @@
       <p id="care-info" class="screen-text small-text"></p>
       <p id="care-character" class="screen-text small-text"></p>
       <p id="care-fish" class="album-fish"></p>
-      <button id="care-feed" class="big-button">Угостить рыбкой 🐟</button>
+      <!-- Угощения с кухни (рисует home.js) -->
+      <div id="care-treats" class="care-treats"></div>
+      <button id="care-feed" class="big-button">Угостить рыбкой 🐟 (+1)</button>
+    </div>
+  </section>
+
+  <!-- ===== Кошачья кухня (kitchen.js) =====
+       Два вида: список рецептов и готовка (смешать → слепить → испечь) -->
+  <section id="kitchen" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="kitchen-title">
+    <div class="overlay-card">
+      <button id="kitchen-close" class="close-button" aria-label="Закрыть кухню">✕</button>
+      <h2 id="kitchen-title" class="screen-title">Кошачья кухня</h2>
+      <div id="kitchen-list"></div>
+      <div id="kitchen-cook" class="hidden">
+        <p id="kitchen-step" class="score"></p>
+        <p id="kitchen-hint" class="screen-text small-text"></p>
+        <div id="kitchen-area" class="kitchen-area"></div>
+        <div class="repair-bar"><div id="kitchen-progress" class="repair-fill"></div></div>
+        <button id="kitchen-back" class="big-button hidden">К рецептам</button>
+      </div>
     </div>
   </section>
 
@@ -407,6 +430,8 @@
   <script src="quests.js"></script>
   <!-- settings.js — настройки, «Для взрослых», время игры -->
   <script src="settings.js"></script>
+  <!-- kitchen.js — кошачья кухня (режим «Дом») -->
+  <script src="kitchen.js"></script>
   <!-- home.js — режим «Дом»: убежище, гости, забота -->
   <script src="home.js"></script>
   <!-- gps.js — надёжный GPS и диагностика -->

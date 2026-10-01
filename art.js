@@ -769,6 +769,66 @@ function ingredientIcon(id) {
   return open + body + '</svg>';
 }
 
+// Угощения с кошачьей кухни. Холст 48×48.
+function treatIcon(id) {
+  const open = '<svg class="sprite" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">';
+  let body = '';
+  if (id === 'star-cookie') {
+    body = '<circle cx="24" cy="24" r="18" fill="#E8C49A" stroke="' + INK + '" stroke-width="2"/>' + star(24, 24, 9, GOLD);
+  } else if (id === 'moon-pudding') {
+    body = '<path d="M8 38 Q8 12 24 12 Q40 12 40 38 Z" fill="#F9EDC9" stroke="' + INK + '" stroke-width="2"/>' +
+      '<path d="M10 22 Q24 16 38 22" stroke="#E8C49A" stroke-width="5" fill="none"/>' +
+      '<rect x="4" y="37" width="40" height="6" rx="3" fill="#A9D3F0" stroke="' + INK + '" stroke-width="2"/>';
+  } else if (id === 'mint-jelly') {
+    body = '<path d="M10 40 Q8 16 16 14 Q20 10 24 14 Q28 10 32 14 Q40 16 38 40 Z" fill="#9FD8C8" stroke="' + INK + '" stroke-width="2"/>' +
+      '<path d="M16 22 Q18 18 22 20" stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
+  } else if (id === 'berry-pie') {
+    body = '<path d="M6 32 Q24 4 42 32 Z" fill="#E8C49A" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round"/>' +
+      '<path d="M6 32 L42 32 L38 40 L10 40 Z" fill="#C9A47C" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round"/>' +
+      '<circle cx="20" cy="25" r="3" fill="#9C84D4"/><circle cx="28" cy="25" r="3" fill="#9C84D4"/>';
+  } else if (id === 'fish-cake') {
+    body = '<path d="M30 24 L44 14 L42 24 L44 34 Z" fill="#F6BE98" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round"/>' +
+      '<ellipse cx="20" cy="24" rx="17" ry="12" fill="#E8C49A" stroke="' + INK + '" stroke-width="2"/>' +
+      '<circle cx="11" cy="21" r="2.2" fill="' + INK + '"/>';
+  } else {
+    body = '<path d="M4 24 L12 16 L12 32 Z M44 24 L36 16 L36 32 Z" fill="#F4A7B9" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round"/>' +
+      '<ellipse cx="24" cy="24" rx="13" ry="10" fill="#C2B0E8" stroke="' + INK + '" stroke-width="2"/>' +
+      '<path d="M16 20 Q24 30 32 20" stroke="#FAF7F2" stroke-width="2.5" fill="none"/>';
+  }
+  return open + body + '</svg>';
+}
+
+// Миска для «Смешать» (холст 200×200)
+function bowlPicture() {
+  return '<svg class="sprite" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    '<circle cx="100" cy="100" r="92" fill="#DCEBF6" stroke="' + INK + '" stroke-width="4"/>' +
+    '<circle cx="100" cy="100" r="70" fill="#F9EDC9"/>' +
+    '<path d="M60 100 Q80 70 100 100 T140 100" stroke="#E8C49A" stroke-width="6" fill="none" stroke-linecap="round"/>' +
+    '<circle cx="100" cy="100" r="8" fill="#E8C49A"/>' +
+    '</svg>';
+}
+
+// Тесто для «Слепить» (холст 120×120)
+function doughPicture() {
+  return '<svg class="sprite" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    '<ellipse cx="60" cy="68" rx="48" ry="36" fill="#F9EDC9" stroke="' + INK + '" stroke-width="3"/>' +
+    '<path d="M36 60 Q44 52 52 58 M68 56 Q78 50 86 58" stroke="#E8C49A" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+    '</svg>';
+}
+
+// Духовка для «Испечь»: окошко светится мягким светом (класс oven-light).
+// Никакого огня — только тёплый свет. Холст 200×180.
+function ovenPicture() {
+  return '<svg class="sprite" viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    '<rect x="14" y="10" width="172" height="160" rx="20" fill="#E3DAF5" stroke="' + INK + '" stroke-width="4"/>' +
+    '<circle cx="45" cy="34" r="8" fill="#F4A7B9" stroke="' + INK + '" stroke-width="2"/>' +
+    '<circle cx="75" cy="34" r="8" fill="#9FD8C8" stroke="' + INK + '" stroke-width="2"/>' +
+    '<rect x="34" y="56" width="132" height="96" rx="14" fill="#6F6AA8" stroke="' + INK + '" stroke-width="4"/>' +
+    '<rect class="oven-light" x="40" y="62" width="120" height="84" rx="10" fill="#F5D88E"/>' +
+    '<path d="M100 110 m-24 0 a24 14 0 1 0 48 0 a24 14 0 1 0 -48 0" fill="#E8C49A" stroke="' + INK + '" stroke-width="2"/>' +
+    '</svg>';
+}
+
 // Пузырь (его ловить нельзя). Холст 32×32.
 function bubbleSprite() {
   return '<svg class="sprite" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
@@ -900,6 +960,6 @@ if (typeof module !== 'undefined') {
   module.exports = {
     CAT_LOOKS, SUIT_COLORS, catPortrait, capsuleIcon, beaconIcon, shelterScene, launchScene,
     TUTORIAL_PICTURE_COUNT, tutorialPicture, fishSprite, bubbleSprite, basketSprite,
-    fireflySprite, starSprite, ingredientIcon
+    fireflySprite, starSprite, ingredientIcon, treatIcon, bowlPicture, doughPicture, ovenPicture
   };
 }

@@ -30,7 +30,7 @@ const SHY_TIME = 60000;           // сколько миллисекунд ко�
 // Цвет круга точности GPS. Это тот же розовый, что --nose в style.css.
 // Круг рисует сама карта, а она не умеет читать переменные из CSS,
 // поэтому цвет записан здесь ещё раз.
-const ACCURACY_COLOR = '#FF8FB1';
+const ACCURACY_COLOR = '#F4A7B9';
 
 // ----- Переменные состояния игры -----
 let map;                 // сама карта
@@ -155,6 +155,7 @@ function createMap(position) {
   // Каждая часть — «со страховкой» (safely из gps.js): если, например,
   // не получилось добавить здания, круг точности GPS всё равно появится.
   map.on('load', function () {
+    safely('мягкие цвета карты', muteMapColors);
     safely('объёмные здания', add3dBuildings);
     safely('круг точности', function () {
       addAccuracyCircle();
@@ -170,6 +171,26 @@ function createMap(position) {
 
   // Клик по карте нужен для демо-режима
   map.on('click', onMapClick);
+}
+
+// =============================================================
+// Мягкие цвета карты
+// =============================================================
+// Карта приглушается, чтобы на её фоне хорошо читались капсулы и маяки.
+// Какой слой каким цветом рисовать — решает mutedPaint из logic.js,
+// здесь мы только применяем это к слоям карты.
+function muteMapColors() {
+  const layers = map.getStyle().layers;
+  for (let i = 0; i < layers.length; i++) {
+    const paint = mutedPaint(layers[i]); // { свойство: значение }
+    const names = Object.keys(paint);
+    for (let j = 0; j < names.length; j++) {
+      // Если какое-то свойство слою не подходит — просто пропускаем его
+      safely('цвет слоя ' + layers[i].id, function () {
+        map.setPaintProperty(layers[i].id, names[j], paint[names[j]]);
+      });
+    }
+  }
 }
 
 // =============================================================
@@ -199,7 +220,7 @@ function add3dBuildings() {
     source: 'openmaptiles',   // откуда брать данные (источник из стиля)
     'source-layer': 'building', // какой слой данных — здания
     paint: {
-      'fill-extrusion-color': '#E6E0F5',
+      'fill-extrusion-color': '#E6E2EC',
       // высота здания в метрах берётся из данных карты
       'fill-extrusion-height': ['get', 'render_height'],
       'fill-extrusion-base': ['get', 'render_min_height'],

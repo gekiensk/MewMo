@@ -188,3 +188,16 @@ test('ошибка GPS: демо только без разрешения, до 
   // GPS уже работал, а потом пропал сигнал — игрок остаётся на месте
   assert.strictEqual(logic.gpsErrorAction(true, false), 'слабый сигнал');
 });
+
+// ----- Мягкие цвета карты -----
+test('карта приглушается: фон, вода, зелень, дороги, здания, подписи', function () {
+  assert.deepStrictEqual(logic.mutedPaint({ id: 'background', type: 'background' }), { 'background-color': logic.MAP_COLORS.background });
+  assert.strictEqual(logic.mutedPaint({ id: 'water', type: 'fill' })['fill-color'], logic.MAP_COLORS.water);
+  assert.strictEqual(logic.mutedPaint({ id: 'waterway_river', type: 'line' })['line-color'], logic.MAP_COLORS.water);
+  assert.strictEqual(logic.mutedPaint({ id: 'park', type: 'fill' })['fill-color'], logic.MAP_COLORS.green);
+  assert.strictEqual(logic.mutedPaint({ id: 'landcover_wood', type: 'fill' })['fill-color'], logic.MAP_COLORS.green);
+  assert.strictEqual(logic.mutedPaint({ id: 'road_primary', type: 'line' })['line-color'], logic.MAP_COLORS.road);
+  assert.strictEqual(logic.mutedPaint({ id: 'building-3d', type: 'fill-extrusion' })['fill-extrusion-color'], logic.MAP_COLORS.building);
+  assert.strictEqual(logic.mutedPaint({ id: 'poi_r1', type: 'symbol' })['icon-opacity'], 0.45);
+  assert.deepStrictEqual(logic.mutedPaint({ id: 'hillshade', type: 'raster' }), {});
+});

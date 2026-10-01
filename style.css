@@ -1,12 +1,15 @@
 /* ===== Цвета игры =====
    Переменные: меняешь цвет в одном месте, и он меняется везде. */
 :root {
-  --space: #1E1747;    /* ночное небо */
-  --space-2: #2E2468;  /* небо посветлее */
-  --nose: #FF8FB1;     /* розовый кошачий нос */
-  --star: #FFD447;     /* звёздный жёлтый */
-  --mint: #6EE7C8;     /* мятный, для хороших новостей */
-  --fur: #F7F3FF;      /* светлый текст */
+  /* Мягкая пастельная палитра. Контраст текста — не ниже 4.5:1 (WCAG AA):
+     светлый текст на --space и --space-2, тёмный (--space) — на розовом,
+     жёлтом и мятном. Проверяет tools/smoke.js (сценарий «Контраст»). */
+  --space: #34375F;    /* ночное небо (основной фон) */
+  --space-2: #4A4E7E;  /* небо посветлее (фон окон) */
+  --nose: #F4A7B9;     /* розовый кошачий нос */
+  --star: #F5D88E;     /* звёздный жёлтый */
+  --mint: #9FD8C8;     /* мятный, для хороших новостей */
+  --fur: #FAF7F2;      /* светлый текст */
   --font: 'Baloo 2', 'Trebuchet MS', 'Segoe UI', sans-serif;
 }
 
@@ -411,7 +414,7 @@ button:focus-visible {
   align-items: center;
   justify-content: center;
   padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px));
-  background: rgba(30, 23, 71, 0.85); /* это --space, но полупрозрачный */
+  background: rgba(52, 55, 95, 0.88); /* это --space, но полупрозрачный */
   overflow-y: auto; /* на маленьком экране окно можно прокрутить */
   box-sizing: border-box;
 }
@@ -510,12 +513,12 @@ button:focus-visible {
 
 /* Фон круга — светлый оттенок цвета скафандра, чтобы скафандр
    был хорошо виден на фоне */
-.circle-water     { background: #CDEBFF; } /* водный — голубой */
-.circle-forest    { background: #D3F5D8; } /* лесной — зелёный */
-.circle-city      { background: #FFF1B8; } /* городской — жёлтый */
-.circle-legendary { background: #FFD6E4; } /* легендарный — розовый */
-.circle-twilight  { background: linear-gradient(160deg, #DCCFF7, #FFD9C4); } /* сумеречный — закатный */
-.circle-captain   { background: linear-gradient(135deg, #FFF1B8, #FFD6E4); } /* капитан — золотой */
+.circle-water     { background: #DCEBF6; } /* водный — голубой */
+.circle-forest    { background: #DDF0DA; } /* лесной — зелёный */
+.circle-city      { background: #F9EDC9; } /* городской — жёлтый */
+.circle-legendary { background: #F8DCE3; } /* легендарный — розовый */
+.circle-twilight  { background: linear-gradient(160deg, #E3DAF5, #F9E1D2); } /* сумеречный — закатный */
+.circle-captain   { background: linear-gradient(135deg, #F9EDC9, #F8DCE3); } /* капитан — золотой */
 
 /* Кот смутился: круг тёмный, портрет серый и полупрозрачный */
 .cat-circle.shy   { background: var(--space); }
@@ -767,7 +770,7 @@ button:focus-visible {
 
 /* Серый силуэт: круг серый, а портрет того же кота — тёмная тень */
 .mini-circle.silhouette {
-  background: #8C86A8;
+  background: #9A96B4;
 }
 .mini-circle.silhouette span {
   filter: brightness(0);
@@ -921,6 +924,7 @@ button:focus-visible {
   border: 3px solid var(--fur);
   border-radius: 50%;
   background: var(--space);
+  color: var(--fur);
   font-size: 24px;
   line-height: 1;
   cursor: pointer;

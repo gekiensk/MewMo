@@ -1589,6 +1589,56 @@ function buildGpsReport(info) {
   return lines.join('\n');
 }
 
+// =============================================================
+// Мягкие цвета карты
+// =============================================================
+// Карта OpenFreeMap яркая. Чтобы капсулы и маяки было лучше видно,
+// приглушаем её: светлый тёплый фон, бледная вода и зелень, полупрозрачные
+// дороги и здания, бледные значки и подписи.
+// layer — слой стиля карты ({ id, type }). Возвращает { свойство: значение }
+// для map.setPaintProperty (пустой объект — слой не трогаем).
+const MAP_COLORS = {
+  background: '#EEEAE3',
+  water: '#CADDE8',
+  green: '#DCE7D3',
+  road: '#F8F6F1',
+  building: '#E6E2EC',
+  label: '#6B6E8A'
+};
+
+function mutedPaint(layer) {
+  const id = (layer.id || '').toLowerCase();
+  // Есть ли в названии слоя одно из слов
+  function has(words) {
+    return words.some(function (word) { return id.includes(word); });
+  }
+  const isWater = has(['water', 'river', 'ocean', 'lake']);
+  const isGreen = has(['park', 'wood', 'grass', 'forest', 'landcover', 'landuse', 'scrub', 'wetland']);
+  const isRoad = has(['road', 'highway', 'transportation', 'bridge', 'tunnel', 'path', 'street', 'railway', 'aeroway']);
+
+  if (layer.type === 'background') {
+    return { 'background-color': MAP_COLORS.background };
+  }
+  if (layer.type === 'fill') {
+    if (isWater) return { 'fill-color': MAP_COLORS.water };
+    if (isGreen) return { 'fill-color': MAP_COLORS.green, 'fill-opacity': 0.6 };
+    if (has(['building'])) return { 'fill-color': MAP_COLORS.building };
+    return { 'fill-opacity': 0.5 };
+  }
+  if (layer.type === 'line') {
+    if (isWater) return { 'line-color': MAP_COLORS.water };
+    if (isRoad) return { 'line-color': MAP_COLORS.road, 'line-opacity': 0.8 };
+    return { 'line-opacity': 0.5 };
+  }
+  if (layer.type === 'fill-extrusion') {
+    return { 'fill-extrusion-color': MAP_COLORS.building, 'fill-extrusion-opacity': 0.55 };
+  }
+  if (layer.type === 'symbol') {
+    return { 'text-color': MAP_COLORS.label, 'icon-opacity': 0.45 };
+  }
+  return {};
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -1623,6 +1673,7 @@ if (typeof module !== 'undefined') {
     LAST_CHAPTER, CHAPTER_PARTS, LAUNCHABLE_CHAPTERS, partsNeeded, catChapter, chapterCats,
     canLaunchShip, launchShip, badgeName, LATECOMER_CHANCE, latecomerCats, pickCatForChapter,
     shelterCats, isOnRadio, TIP_ENCOUNTERS, shouldShowTutorial, needsEncounterTips,
+    MAP_COLORS, mutedPaint,
     GPS_LOG_MAX, addLogEntry, formatClock, GPS_ERROR_NAMES, agoText, buildGpsReport
   };
 }

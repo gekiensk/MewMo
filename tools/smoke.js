@@ -19,7 +19,9 @@
 //      вступление к главе 2.
 //   6. Сценарий «Обучение»: первый запуск → 6 картинок → подсказка в первой
 //      встрече → «Как играть» в настройках.
-//   7. Любая ошибка в консоли браузера = провал.
+//   7. Сценарий «Контраст»: на всех главных экранах контраст текста
+//      не ниже 4.5:1 (крупный — 3:1), как требует WCAG AA.
+//   8. Любая ошибка в консоли браузера = провал.
 //   В конце печатает «ВСЁ ХОРОШО» или список проблем.
 //
 // Что нужно: Node.js, Python 3 и Playwright с браузером Chromium.
@@ -385,6 +387,122 @@ async function tutorialScenario(browser) {
 }
 
 // =============================================================
+// Сценарий 5: контраст текста на всех экранах (WCAG AA)
+// =============================================================
+// Для каждого видимого текста считаем контраст между цветом букв и цветом
+// фона под ними (первый родитель с непрозрачным фоном). Нужно не меньше
+// 4.5:1, для крупного текста (от 24 px или от 18.66 px жирным) — 3:1.
+// Текст на картинке или градиенте (фон не однотонный) пропускаем.
+async function checkContrast(page, screen) {
+  const bad = await page.evaluate(function () {
+    // «Яркость» цвета по формуле WCAG
+    function luminance(rgb) {
+      const parts = rgb.map(function (v) {
+        v = v / 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * parts[0] + 0.7152 * parts[1] + 0.0722 * parts[2];
+    }
+    function parse(color) {
+      const m = color.match(/rgba?\(([^)]+)\)/);
+      if (!m) return null;
+      const v = m[1].split(',').map(function (x) { return parseFloat(x); });
+      return { rgb: [v[0], v[1], v[2]], alpha: v.length > 3 ? v[3] : 1 };
+    }
+    // Фон под элементом: идём к родителям, пока не встретим непрозрачный фон
+    function backgroundOf(element) {
+      let node = element;
+      while (node && node.nodeType === 1) {
+        const style = getComputedStyle(node);
+        if (style.backgroundImage && style.backgroundImage !== 'none') return null; // градиент или картинка
+        const bg = parse(style.backgroundColor);
+        if (bg && bg.alpha >= 0.5) return bg.rgb;
+        node = node.parentElement;
+      }
+      return null;
+    }
+    const problems = [];
+    const all = document.querySelectorAll('body *');
+    for (let i = 0; i < all.length; i++) {
+      const el = all[i];
+      // Только элементы, в которых есть свой текст
+      let text = '';
+      for (let j = 0; j < el.childNodes.length; j++) {
+        if (el.childNodes[j].nodeType === 3) text = text + el.childNodes[j].textContent;
+      }
+      text = text.trim();
+      if (!text || el.closest('svg')) continue;
+      const rect = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      if (rect.width === 0 || rect.height === 0 || style.visibility === 'hidden' || parseFloat(style.opacity) < 0.5) continue;
+      if (rect.bottom < 0 || rect.top > innerHeight) continue;
+      const fg = parse(style.color);
+      const bg = backgroundOf(el);
+      if (!fg || !bg) continue;
+      const a = luminance(fg.rgb);
+      const b = luminance(bg);
+      const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      const size = parseFloat(style.fontSize);
+      const large = size >= 24 || (size >= 18.66 && parseInt(style.fontWeight, 10) >= 700);
+      const need = large ? 3 : 4.5;
+      if (ratio < need) {
+        problems.push('«' + text.slice(0, 30) + '» — ' + ratio.toFixed(2) + ':1 (нужно ' + need + ')');
+      }
+    }
+    return problems;
+  });
+  for (let i = 0; i < bad.length; i++) {
+    problems.push('Контраст, ' + screen + ': ' + bad[i]);
+  }
+}
+
+async function contrastScenario(browser) {
+  const name = 'Контраст';
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+    geolocation: { longitude: ROUTE[0][0], latitude: ROUTE[0][1], accuracy: 10 },
+    permissions: ['geolocation']
+  });
+  await stubExternal(context);
+  const page = await context.newPage();
+  page.setDefaultTimeout(8000);
+  watchErrors(page, name);
+  await page.goto(URL);
+  await checkContrast(page, 'обучение');
+  await page.click('#tutorial-skip');
+  await checkContrast(page, 'стартовый экран');
+  await page.click('#start-button');
+  await moveTo(page, context, ROUTE[1], 'первую точку');
+  await checkContrast(page, 'карта');
+  await page.click('#crew-button');
+  await checkContrast(page, 'альбом');
+  await page.click('#album-close');
+  await page.click('#settings-button');
+  await checkContrast(page, 'настройки');
+  await page.click('#open-gps-check');
+  await checkContrast(page, 'проверка GPS');
+  await page.click('#gps-back');
+  await page.click('#open-adult');
+  await checkContrast(page, 'родительский замок');
+  await page.click('#lock-back');
+  await page.click('#settings-close');
+  // Окно знакомства с котом
+  await page.evaluate(function () {
+    const capsule = capsules[0];
+    movePlayer(capsulePosition(capsule), 5);
+    capsule.element.click();
+  });
+  await checkContrast(page, 'знакомство с котом');
+  await page.click('#encounter-close');
+  // Убежище
+  await page.click('#settings-button');
+  await page.click('#toggle-mode');
+  await waitFor(page, function () { return gameMode === 'home'; }, null, 5000);
+  await checkContrast(page, 'убежище');
+  await context.close();
+}
+
+// =============================================================
 // Запуск
 // =============================================================
 async function main() {
@@ -409,6 +527,8 @@ async function main() {
     await launchScenario(browser);
     console.log('Сценарий 4: обучение «Как играть» и подсказки…');
     await tutorialScenario(browser);
+    console.log('Сценарий 5: контраст текста на всех экранах…');
+    await contrastScenario(browser);
   } catch (error) {
     problems.push('Проверка упала: ' + error.message.split('\n')[0]);
   } finally {

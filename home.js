@@ -92,6 +92,7 @@ function startHome() {
 
 // Спрятать убежище (при переходе на прогулку — вызывается из game.js)
 function hideHome() {
+  if (decorEditing) stopDecorEdit(); // decor.js
   homeScreen.classList.add('hidden');
   document.body.classList.remove('mode-home');
   closeCare();
@@ -118,6 +119,7 @@ function checkGuests(announce) {
 // =============================================================
 function renderHome() {
   homeCats.textContent = '';
+  renderDecor(); // decor.js — предметы обстановки
 
   // Коты на полу: экипаж текущей главы, найденные отставшие и капитаны
   // главы. Мест 12 — если котов больше, показываем самых дружных

@@ -50,7 +50,8 @@ test('записанное сохранение читается обратно 
     friendshipVersion: 2,
     captainDay: '2026-10-01',
     walkToday: { day: '2026-10-01', meters: 340 },
-    playToday: { day: '2026-10-01', cats: ['bul'] }
+    playToday: { day: '2026-10-01', cats: ['bul'] },
+    decor: { owned: ['rug', 'aquarium'], placed: [null, 'aquarium', null, null, 'rug', null] }
   };
   assert.strictEqual(logic.writeSave(storage, save), true);
   assert.ok(logic.SAVE_KEY in storage.data, 'ключ ' + logic.SAVE_KEY);

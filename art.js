@@ -611,16 +611,8 @@ function shelterScene() {
     '<circle cx="150" cy="120" r="12" fill="#E3DAF5"/>' +
     '<path d="M110 90 Q140 60 190 64" stroke="#FFFFFF" stroke-width="6" opacity="0.25" fill="none" stroke-linecap="round"/>' +
     bolts +
-    // пульт слева
-    '<rect x="14" y="230" width="62" height="110" rx="10" fill="#34375F" stroke="#FAF7F2" stroke-width="3"/>' +
-    '<rect x="24" y="242" width="42" height="28" rx="4" fill="#123B4A"/>' +
-    '<path d="M27 258 Q34 246 41 258 T55 258 T63 256" stroke="#9FD8C8" stroke-width="2.5" fill="none"/>' +
-    '<circle cx="30" cy="290" r="6" fill="#F4A7B9"/><circle cx="50" cy="290" r="6" fill="#F5D88E"/>' +
-    '<circle cx="30" cy="312" r="6" fill="#9FD8C8"/><circle cx="50" cy="312" r="6" fill="#A9D3F0"/>' +
-    // космическое растение справа
-    '<path d="M352 300 Q340 250 356 222 M360 300 Q372 246 392 236 M356 300 Q352 262 330 248" stroke="#B5E2B0" stroke-width="6" fill="none" stroke-linecap="round"/>' +
-    '<circle cx="356" cy="220" r="8" fill="#F4A7B9"/><circle cx="392" cy="234" r="7" fill="#F5D88E"/><circle cx="330" cy="246" r="7" fill="#9FD8C8"/>' +
-    '<path d="M334 300 L380 300 L372 340 L342 340 Z" fill="#F6BE98" stroke="#FAF7F2" stroke-width="3" stroke-linejoin="round"/>' +
+    // (пульт и растение раньше были нарисованы здесь — теперь игрок сам
+    // обставляет убежище, см. decor.js)
     // пол
     '<rect x="0" y="360" width="400" height="340" fill="#555A8A"/>' +
     floorLines +
@@ -954,10 +946,99 @@ function toyBallSprite() {
 }
 
 // =============================================================
-// Картинки обучения «Как играть» (6 штук)
+// Обстановка убежища: 12 предметов магазина
 // =============================================================
-// Холст 400×300. tutorialPicture(0) … tutorialPicture(5).
-const TUTORIAL_PICTURE_COUNT = 6;
+// Холст 64×64. Все предметы нарисованы мягкими цветами палитры.
+function decorIcon(id) {
+  const open = '<svg class="sprite" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">';
+  const line = ' stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"';
+  let body = '';
+  if (id === 'rug') {
+    // Мягкий коврик: овал с полосками и бахромой
+    body = '<ellipse cx="32" cy="40" rx="28" ry="14" fill="' + PINK + '"' + line + '/>' +
+      '<ellipse cx="32" cy="40" rx="18" ry="8" fill="none" stroke="' + GOLD + '" stroke-width="3"/>' +
+      '<ellipse cx="32" cy="40" rx="8" ry="3.5" fill="' + MINT + '"/>';
+  } else if (id === 'yarn') {
+    // Корзинка с клубками
+    body = '<circle cx="22" cy="28" r="10" fill="' + PINK + '"' + line + '/>' +
+      '<circle cx="40" cy="26" r="11" fill="' + MINT + '"' + line + '/>' +
+      '<path d="M16 26 Q22 20 28 30 M34 22 Q42 30 48 24" stroke="#FAF7F2" stroke-width="2" fill="none"/>' +
+      '<path d="M8 34 L56 34 L50 58 L14 58 Z" fill="#E8C49A"' + line + '/>' +
+      '<path d="M12 44 L52 44 M24 34 L26 58 M40 34 L38 58" stroke="#B98E62" stroke-width="2"/>';
+  } else if (id === 'poster') {
+    // Звёздная карта в рамке: созвездие-кошка
+    body = '<rect x="8" y="8" width="48" height="48" rx="6" fill="' + INK + '" stroke="' + GOLD + '" stroke-width="4"/>' +
+      '<path d="M18 40 L24 24 L32 32 L40 24 L46 40 Z" stroke="#9FD8C8" stroke-width="1.5" fill="none" stroke-dasharray="3 3"/>' +
+      star(18, 40, 4, GOLD) + star(24, 24, 4, GOLD) + star(40, 24, 4, GOLD) + star(46, 40, 4, GOLD) + star(32, 32, 3, '#FAF7F2');
+  } else if (id === 'cushion') {
+    // Подушка-облачко
+    body = '<path d="M12 46 Q4 46 6 38 Q8 30 16 32 Q16 20 28 22 Q34 12 44 20 Q56 20 54 32 Q62 36 56 46 Z" fill="#DCEBF6"' + line + '/>' +
+      '<circle cx="26" cy="36" r="2" fill="' + INK + '"/><circle cx="38" cy="36" r="2" fill="' + INK + '"/>' +
+      '<path d="M29 41 Q32 44 35 41" stroke="' + INK + '" stroke-width="2" fill="none" stroke-linecap="round"/>';
+  } else if (id === 'lamp') {
+    // Лампа-луна на подставке
+    body = '<circle cx="32" cy="24" r="16" fill="' + GOLD + '" opacity="0.35"/>' +
+      '<path d="M38 10 A14 14 0 1 0 38 38 A20 20 0 0 1 38 10 Z" fill="' + GOLD + '"' + line + '/>' +
+      '<path d="M32 38 L32 54" stroke="' + INK + '" stroke-width="3"/>' +
+      '<ellipse cx="32" cy="56" rx="12" ry="4" fill="' + MINT + '"' + line + '/>';
+  } else if (id === 'scratcher') {
+    // Когтеточка: столбик в верёвке и мячик на ниточке
+    body = '<rect x="24" y="10" width="14" height="42" rx="3" fill="#E8C49A"' + line + '/>' +
+      '<path d="M24 18 L38 16 M24 26 L38 24 M24 34 L38 32 M24 42 L38 40" stroke="#B98E62" stroke-width="2"/>' +
+      '<rect x="12" y="50" width="38" height="8" rx="3" fill="' + PINK + '"' + line + '/>' +
+      '<path d="M38 14 Q48 16 48 30" stroke="' + INK + '" stroke-width="1.5" fill="none"/>' +
+      '<circle cx="48" cy="33" r="4" fill="' + MINT + '"' + line + '/>';
+  } else if (id === 'plant') {
+    // Цветок в горшке (лесной)
+    body = '<path d="M32 40 Q28 24 18 18 M32 40 Q34 22 44 14 M32 40 Q40 30 50 30" stroke="#B5E2B0" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+      '<circle cx="18" cy="17" r="5" fill="' + PINK + '"/><circle cx="44" cy="13" r="5" fill="' + GOLD + '"/><circle cx="50" cy="30" r="4" fill="' + MINT + '"/>' +
+      '<path d="M18 40 L46 40 L42 58 L22 58 Z" fill="#F6BE98"' + line + '/>';
+  } else if (id === 'globe') {
+    // Глобус Земли на подставке
+    body = '<circle cx="32" cy="28" r="18" fill="#A9D3F0"' + line + '/>' +
+      '<path d="M22 20 Q28 16 32 22 Q30 28 24 28 Z M34 30 Q42 26 44 34 Q38 40 34 36 Z" fill="#B5E2B0"/>' +
+      '<path d="M14 28 A18 18 0 0 0 50 28" stroke="' + GOLD + '" stroke-width="3" fill="none"/>' +
+      '<path d="M32 46 L32 54" stroke="' + INK + '" stroke-width="3"/>' +
+      '<rect x="20" y="54" width="24" height="5" rx="2" fill="' + PINK + '"' + line + '/>';
+  } else if (id === 'radio') {
+    // Радиоприёмник (городской): антенна, динамик, ручка, нотка
+    body = '<path d="M20 20 L12 6" stroke="' + INK + '" stroke-width="2.5" stroke-linecap="round"/><circle cx="12" cy="6" r="3" fill="' + PINK + '"/>' +
+      '<rect x="8" y="20" width="48" height="34" rx="8" fill="' + MINT + '"' + line + '/>' +
+      '<circle cx="24" cy="37" r="9" fill="#FAF7F2"' + line + '/><circle cx="24" cy="37" r="3" fill="' + INK + '"/>' +
+      '<rect x="38" y="28" width="12" height="6" rx="2" fill="' + GOLD + '"/>' +
+      '<circle cx="44" cy="44" r="4" fill="' + PINK + '"' + line + '/>' +
+      '<path d="M48 8 L48 16 M48 8 L54 10" stroke="#FAF7F2" stroke-width="2" fill="none"/><circle cx="46" cy="16" r="2.5" fill="#FAF7F2"/>';
+  } else if (id === 'aquarium') {
+    // Аквариум (водный): вода, рыбка, водоросли, пузырьки
+    body = '<rect x="6" y="16" width="52" height="38" rx="6" fill="#DCEBF6"' + line + '/>' +
+      '<rect x="9" y="24" width="46" height="27" rx="3" fill="#A9D3F0"/>' +
+      '<path d="M16 51 Q12 42 18 36 M46 51 Q50 42 44 34" stroke="#B5E2B0" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+      '<path d="M26 38 Q32 32 38 38 Q32 44 26 38 Z M38 38 L44 34 L44 42 Z" fill="' + GOLD + '"' + line + '/>' +
+      '<circle cx="30" cy="37" r="1.3" fill="' + INK + '"/>' +
+      '<circle cx="40" cy="28" r="2" fill="#FAF7F2"/><circle cx="43" cy="24" r="1.4" fill="#FAF7F2"/>' +
+      '<rect x="4" y="54" width="56" height="6" rx="2" fill="' + PINK + '"' + line + '/>';
+  } else if (id === 'telescope') {
+    // Телескоп (сумеречный) на треноге и звёздочка
+    body = '<path d="M14 36 L46 18 L50 26 L18 44 Z" fill="' + GOLD + '"' + line + '/>' +
+      '<rect x="44" y="14" width="8" height="16" rx="2" fill="' + PINK + '" transform="rotate(-30 48 22)"' + line + '/>' +
+      '<path d="M32 34 L20 58 M32 34 L32 58 M32 34 L44 58" stroke="' + INK + '" stroke-width="3" stroke-linecap="round"/>' +
+      star(16, 12, 6, '#FAF7F2');
+  } else {
+    // Кошачий домик: домик с ушками на крыше и круглой дверцей
+    body = '<path d="M10 30 L32 10 L54 30 Z" fill="' + PINK + '"' + line + '/>' +
+      '<path d="M18 22 L20 10 L26 17 Z M46 22 L44 10 L38 17 Z" fill="' + PINK + '"' + line + '/>' +
+      '<rect x="14" y="30" width="36" height="28" rx="3" fill="' + GOLD + '"' + line + '/>' +
+      '<circle cx="32" cy="46" r="9" fill="' + INK + '"/>' +
+      '<circle cx="29" cy="45" r="1.5" fill="' + MINT + '"/><circle cx="35" cy="45" r="1.5" fill="' + MINT + '"/>';
+  }
+  return open + body + '</svg>';
+}
+
+// =============================================================
+// Картинки обучения «Как играть» (7 штук)
+// =============================================================
+// Холст 400×300. tutorialPicture(0) … tutorialPicture(6).
+const TUTORIAL_PICTURE_COUNT = 7;
 
 // Вставить маленькую картинку SVG (портрет, капсулу) внутрь большой:
 // меняем начало тега <svg class="…"> на <svg x y width height>
@@ -1042,8 +1123,32 @@ function tutorialPicture(index) {
       tile(20, 160, '#DDF0DA', placeSvg(fireflySprite('#F5D88E'), 75, 170, 60, 60), 'Лесные: узор') +
       tile(210, 160, '#E3DAF5', placeSvg(starSprite(), 245, 175, 40, 40) + placeSvg(starSprite(), 290, 195, 30, 30) +
         placeSvg(starSprite(), 320, 170, 26, 26), 'Сумеречные: звёзды');
+  } else if (index === 5) {
+    // 6. Собирай на прогулке — используй дома: слева прогулка (город,
+    // ингредиент, деталь, рыбка), стрелка, справа убежище (угощение,
+    // корабль, предмет обстановки)
+    body = '<rect width="400" height="300" rx="24" fill="#34375F"/>' +
+      // прогулка
+      '<rect x="12" y="12" width="168" height="276" rx="18" fill="#4A4E7E"/>' +
+      '<path d="M12 288 L12 230 L40 230 L40 205 L70 205 L70 240 L100 240 L100 195 L135 195 L135 235 L180 235 L180 288 Z" fill="#555A8A"/>' +
+      '<text x="96" y="44" text-anchor="middle" font-size="22" font-weight="800" font-family="sans-serif" fill="#F5D88E">Прогулка</text>' +
+      placeSvg(ingredientIcon('flour'), 30, 62, 56, 56) +
+      placeSvg(fishSprite(), 104, 74, 60, 42) +
+      gearShape(60, 160, 20, '#9FD8C8') +
+      placeSvg(ingredientIcon('berry'), 104, 132, 56, 56) +
+      // стрелка
+      '<path d="M186 150 L214 150" stroke="#FAF7F2" stroke-width="6" stroke-linecap="round"/>' +
+      '<path d="M204 138 L218 150 L204 162" stroke="#FAF7F2" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' +
+      // дом
+      '<rect x="220" y="12" width="168" height="276" rx="18" fill="#6F6AA8"/>' +
+      '<rect x="220" y="200" width="168" height="88" rx="18" fill="#555A8A"/>' +
+      '<text x="304" y="44" text-anchor="middle" font-size="22" font-weight="800" font-family="sans-serif" fill="#F5D88E">Дом</text>' +
+      placeSvg(treatIcon('star-cookie'), 236, 62, 60, 60) +
+      placeSvg(repairShipPicture(0.6), 312, 56, 64, 76) +
+      placeSvg(decorIcon('aquarium'), 238, 150, 64, 64) +
+      placeSvg(decorIcon('plant'), 314, 150, 64, 64);
   } else {
-    // 6. Альбом и ремонт корабля + безопасность: гуляем со взрослым
+    // 7. Ремонт корабля + безопасность: гуляем со взрослым
     body = tutorialSky() +
       // шкала ремонта
       '<text x="200" y="45" text-anchor="middle" font-size="20" font-weight="800" font-family="sans-serif" fill="#FAF7F2">Ремонт корабля</text>' +
@@ -1068,6 +1173,7 @@ if (typeof module !== 'undefined') {
     CAT_LOOKS, SUIT_COLORS, catPortrait, capsuleIcon, beaconIcon, shelterScene, launchScene,
     TUTORIAL_PICTURE_COUNT, tutorialPicture, fishSprite, bubbleSprite, basketSprite,
     fireflySprite, starSprite, ingredientIcon, treatIcon, bowlPicture, doughPicture, ovenPicture,
-    COMPARTMENT_NAMES, compartmentPicture, repairShipPicture, laserDotSprite, toyBallSprite
+    COMPARTMENT_NAMES, compartmentPicture, repairShipPicture, laserDotSprite, toyBallSprite,
+    decorIcon
   };
 }

@@ -51,6 +51,8 @@
        Картинку отсека рисует art.js, котов расставляет home.js -->
   <section id="home" class="home hidden" aria-label="Убежище корабля">
     <div id="home-scene" class="home-scene"></div>
+    <!-- Предметы обстановки (decor.js) — под котами -->
+    <div id="home-decor" class="home-decor"></div>
     <div id="home-cats" class="home-cats"></div>
     <p id="home-more" class="home-more hidden"></p>
     <!-- Занятия дома: большие кнопки внизу убежища -->
@@ -58,6 +60,15 @@
       <button id="home-kitchen" class="home-bar-button">🍳<br>Кухня</button>
       <button id="home-repair" class="home-bar-button">🔧<br>Ремонт</button>
       <button id="home-play" class="home-bar-button">🎾<br>Игры</button>
+      <button id="home-decor-button" class="home-bar-button">🛋️<br>Обстановка</button>
+    </div>
+    <!-- Режим расстановки предметов: подсказка и «Готово» -->
+    <div id="decor-edit-bar" class="decor-edit-bar hidden">
+      <p>Нажми на кружок, чтобы поставить, переставить или убрать предмет.</p>
+      <div class="decor-edit-buttons">
+        <button id="decor-edit-shop" class="big-button">Магазин</button>
+        <button id="decor-edit-done" class="big-button">Готово</button>
+      </div>
     </div>
     <p id="home-empty" class="home-empty hidden">Пока в убежище пусто. Скоро прилетит гость — или погуляй и найди котов!</p>
   </section>
@@ -160,6 +171,26 @@
         <button id="play-again" class="big-button">Ещё поиграть</button>
         <button id="play-done" class="big-button">Готово</button>
       </div>
+    </div>
+  </section>
+
+  <!-- ===== Обстановка: магазин (режим «Дом», decor.js) ===== -->
+  <section id="decor" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="decor-title">
+    <div class="overlay-card">
+      <button id="decor-close" class="close-button" aria-label="Закрыть магазин">✕</button>
+      <h2 id="decor-title" class="screen-title">Обстановка</h2>
+      <p id="decor-fish" class="album-fish"></p>
+      <button id="decor-arrange" class="big-button">Расставить в убежище</button>
+      <div id="decor-list" class="decor-list"></div>
+    </div>
+  </section>
+
+  <!-- ===== Обстановка: что поставить на место ===== -->
+  <section id="decor-pick" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="decor-pick-title">
+    <div class="overlay-card">
+      <button id="decor-pick-close" class="close-button" aria-label="Закрыть">✕</button>
+      <h2 id="decor-pick-title" class="screen-title"></h2>
+      <div id="decor-pick-list" class="decor-list"></div>
     </div>
   </section>
 
@@ -501,6 +532,8 @@
   <script src="repair.js"></script>
   <!-- play.js — игры с котами: «Лазерная указка» и «Мячик» (режим «Дом») -->
   <script src="play.js"></script>
+  <!-- decor.js — обстановка убежища: магазин и расстановка (режим «Дом») -->
+  <script src="decor.js"></script>
   <!-- home.js — режим «Дом»: убежище, гости, забота -->
   <script src="home.js"></script>
   <!-- gps.js — надёжный GPS и диагностика -->

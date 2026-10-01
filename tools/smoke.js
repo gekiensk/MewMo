@@ -15,13 +15,16 @@
 //      «Проверить GPS» → «Играть дома» → убежище → снова «Гулять» →
 //      координаты снова приходят.
 //   4. Сценарий «Нет разрешения»: геолокация запрещена → окно с инструкцией.
-//   5. Сценарий «Финал главы»: 20 деталей → «Запустить корабль» → взлёт →
+//   5. Сценарий «Финал главы»: 20 установленных деталей → «Запустить корабль» → взлёт →
 //      вступление к главе 2.
-//   6. Сценарий «Обучение»: первый запуск → 6 картинок → подсказка в первой
+//   6. Сценарий «Обучение»: первый запуск → 7 картинок → подсказка в первой
 //      встрече → «Как играть» в настройках.
 //   7. Сценарий «Контраст»: на всех главных экранах контраст текста
 //      не ниже 4.5:1 (крупный — 3:1), как требует WCAG AA.
 //   8. Сценарий «Мини-игры»: «робот» играет в мини-игры котов до победы.
+//   8½. Сценарий «Дом»: кухня (испечь печенье), ремонт (собрать пазл),
+//      игры с котами (точка и мячик), обстановка (купить, поставить,
+//      переставить, убрать). У каждого занятия — плашка-подсказка.
 //   9. Любая ошибка в консоли браузера = провал.
 //   В конце печатает «ВСЁ ХОРОШО» или список проблем.
 //
@@ -358,9 +361,12 @@ async function tutorialScenario(browser) {
   watchErrors(page, name);
   await page.goto(URL);
 
-  // Первый запуск — обучение само появляется; листаем 6 картинок
+  // Первый запуск — обучение само появляется; листаем 7 картинок
   expect(await page.isVisible('#tutorial'), name + ': при первом запуске нет обучения');
   for (let i = 0; i < 5; i++) await page.click('#tutorial-next');
+  const sixth = await page.textContent('#tutorial-text');
+  expect(sixth.includes('Собирай на прогулке'), name + ': нет картинки «Собирай на прогулке — используй дома»');
+  await page.click('#tutorial-next');
   const last = await page.textContent('#tutorial-text');
   expect(last.includes('взрослым'), name + ': на последней картинке нет напоминания о безопасности');
   await page.click('#tutorial-next'); // «Начать!»
@@ -678,7 +684,7 @@ async function homeScenario(browser) {
     if (!sessionStorage.getItem('smoke-ready')) {
       sessionStorage.setItem('smoke-ready', '1');
       localStorage.setItem('mewmo-save-v1', JSON.stringify({
-        crew: { bul: 1, gaika: 1 }, parts: 4, partsInstalled: 2, fish: 30, tutorialSeen: true,
+        crew: { bul: 1, gaika: 1 }, parts: 4, partsInstalled: 2, fish: 40, tutorialSeen: true,
         pantry: { flour: 1, sugar: 1 }
       }));
     }
@@ -775,6 +781,35 @@ async function homeScenario(browser) {
   const again = await page.evaluate(function () { return save.friendship.bul || 0; });
   expect(again === PLAY_POINTS_SMOKE, name + ': вторая игра за день дала очки (' + again + ')');
   await page.click('#play-done');
+
+  // ----- Обстановка: купить коврик и аквариум, поставить, переставить, убрать -----
+  await page.click('#home-decor-button');
+  await checkContrast(page, 'магазин обстановки');
+  await closeHintPlaque(page, name, 'обстановка');
+  const fishBefore = await page.evaluate(function () { return save.fish; });
+  await page.click('button[aria-label^="Купить «Мягкий коврик»"]');
+  await page.click('button[aria-label^="Купить «Аквариум»"]');
+  const decorState = await page.evaluate(function () { return { fish: save.fish, owned: save.decor.owned.slice() }; });
+  expect(decorState.owned.join() === 'rug,aquarium', name + ': покупка не сработала (' + decorState.owned + ')');
+  expect(decorState.fish === fishBefore - 28, name + ': за покупку списалось не столько рыбок');
+  await page.click('#decor-arrange');
+  await page.locator('.decor-slot').nth(0).click();
+  await page.locator('.decor-pick-item', { hasText: 'Мягкий коврик' }).click();
+  await page.locator('.decor-slot').nth(1).click();
+  await page.locator('.decor-pick-item', { hasText: 'Аквариум' }).click();
+  await page.locator('.decor-slot').nth(2).click();
+  await page.locator('.decor-pick-item', { hasText: 'Мягкий коврик' }).click(); // переставить
+  await page.locator('.decor-slot').nth(1).click();
+  await page.click('#decor-pick-list >> text=Убрать отсюда');
+  const placed = await page.evaluate(function () { return save.decor.placed.join(); });
+  expect(placed === ',,rug,,,', name + ': расстановка работает не так (' + placed + ')');
+  await page.click('#decor-edit-done');
+  const shown = await page.locator('#home-decor .decor-place').count();
+  expect(shown === 1, name + ': в убежище видно не 1 предмет (' + shown + ')');
+  // Коты снова нажимаются (предметы не перехватывают нажатия)
+  await page.locator('.home-cat').first().click();
+  expect(await page.isVisible('#care'), name + ': после расстановки не открывается карточка кота');
+  await page.click('#care-close');
 
   await context.close();
 }

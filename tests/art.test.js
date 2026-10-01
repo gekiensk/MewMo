@@ -38,8 +38,8 @@ test('у каждого кота своя деталь', function () {
   assert.strictEqual(new Set(details).size, all.length);
 });
 
-test('все 6 картинок обучения — SVG', function () {
-  assert.strictEqual(art.TUTORIAL_PICTURE_COUNT, 6);
+test('все 7 картинок обучения — SVG', function () {
+  assert.strictEqual(art.TUTORIAL_PICTURE_COUNT, 7);
   for (let i = 0; i < art.TUTORIAL_PICTURE_COUNT; i++) {
     assert.ok(looksLikeSvg(art.tutorialPicture(i)), 'картинка ' + (i + 1));
   }
@@ -90,4 +90,11 @@ test('картинки ремонта: отсеки для пазла и кор�
 test('картинки игр с котами — SVG', function () {
   assert.ok(looksLikeSvg(art.laserDotSprite()));
   assert.ok(looksLikeSvg(art.toyBallSprite()));
+});
+
+test('у каждого предмета обстановки своя картинка', function () {
+  const logic = require('../logic.js');
+  const pictures = logic.DECOR_ITEMS.map(function (item) { return art.decorIcon(item.id); });
+  pictures.forEach(function (svg) { assert.ok(looksLikeSvg(svg)); });
+  assert.strictEqual(new Set(pictures).size, pictures.length);
 });

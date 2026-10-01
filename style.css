@@ -1677,14 +1677,15 @@ body.mode-home .toast {
 }
 .home-bar-button {
   flex: 1;
+  min-width: 0;
   min-height: 72px;
-  padding: 6px 2px;
+  padding: 6px 0;
   border: 3px solid var(--fur);
   border-radius: 18px;
   background: var(--space);
   color: var(--fur);
   font-family: var(--font);
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.2;
   cursor: pointer;
@@ -2003,4 +2004,148 @@ body.mode-home .toast {
 }
 @media (prefers-reduced-motion: reduce) {
   .play-pet.play-hop { animation: none; }
+}
+
+/* ===== Обстановка убежища ===== */
+.home-decor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* в обычном режиме нажатия проходят к котам */
+}
+.decor-place {
+  position: absolute;
+  translate: -50% -50%;
+  padding: 0;
+  border: none;
+  background: none;
+}
+.decor-place .sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* Режим расстановки: места — пунктирные кружки, коты бледнеют */
+.decor-editing .home-decor {
+  z-index: 2;
+  pointer-events: auto;
+}
+.decor-editing .home-cats {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.decor-editing .home-bar {
+  display: none;
+}
+.decor-slot {
+  border: 3px dashed var(--star);
+  border-radius: 50%;
+  background: rgba(52, 55, 95, 0.55);
+  cursor: pointer;
+}
+.decor-slot.decor-empty::after {
+  content: '+';
+  color: var(--star);
+  font-size: 30px;
+  font-weight: 800;
+}
+.decor-edit-bar {
+  position: absolute;
+  z-index: 3;
+  left: 8px;
+  right: 8px;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  padding: 10px 12px;
+  border: 3px solid var(--star);
+  border-radius: 20px;
+  background: var(--space);
+  color: var(--fur);
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+}
+.decor-edit-bar.hidden {
+  display: none;
+}
+.decor-edit-bar p {
+  margin: 0 0 8px;
+}
+.decor-edit-buttons {
+  display: flex;
+  gap: 8px;
+}
+.decor-edit-buttons .big-button {
+  flex: 1;
+  margin: 0;
+}
+.decor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.decor-card,
+.decor-pick-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 72px;
+  padding: 6px 10px;
+  border-radius: 18px;
+  background: var(--space);
+  color: var(--fur);
+  text-align: left;
+}
+.decor-pick-item {
+  border: 3px solid var(--fur);
+  font-family: var(--font);
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.decor-card-icon {
+  flex: none;
+  width: 56px;
+  height: 56px;
+}
+.decor-card-icon .sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.decor-card-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 17px;
+}
+.decor-card-note {
+  color: var(--mint);
+  font-size: 14px;
+  font-weight: 700;
+}
+.decor-buy {
+  flex: none;
+  min-width: 80px;
+  min-height: 52px;
+  border: none;
+  border-radius: 16px;
+  background: var(--nose);
+  color: var(--space);
+  font-family: var(--font);
+  font-size: 17px;
+  font-weight: 800;
+  cursor: pointer;
+}
+/* Не хватает рыбок — кнопка бледнее (нажать можно: подскажет, где их взять) */
+.decor-buy-cant {
+  opacity: 0.55;
+}
+.decor-buy:disabled {
+  background: var(--mint);
+  cursor: default;
+}
+#decor-arrange:disabled {
+  opacity: 0.45;
+  cursor: default;
 }

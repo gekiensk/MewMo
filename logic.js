@@ -289,7 +289,8 @@ function emptySave() {
     friendshipVersion: 2,              // 2 — дружба в очках (до этого — в угощениях)
     captainDay: '',                    // в какой день приходил последний капитан
     walkToday: { day: '', meters: 0 }, // сколько метров пройдено сегодня (только число!)
-    playToday: { day: '', cats: [] }   // с какими котами сегодня уже играли (дружба +2 — раз в день)
+    playToday: { day: '', cats: [] },  // с какими котами сегодня уже играли (дружба +2 — раз в день)
+    decor: { owned: [], placed: [null, null, null, null, null, null] } // обстановка: купленное и что где стоит
   };
 }
 
@@ -421,6 +422,7 @@ function cleanSave(data) {
   const play = data.playToday;
   save.playToday = (play && typeof play.day === 'string')
     ? { day: play.day, cats: cleanStringList(play.cats) } : { day: '', cats: [] };
+  save.decor = cleanDecor(data.decor);
   return save;
 }
 
@@ -1410,10 +1412,18 @@ function updateGuests(guests, now, cats, hourOf, random, save) {
   for (let i = 0; i < newGuests; i++) {
     const arrivalTime = result.nextAt + (arrivals - newGuests + i) * GUEST_INTERVAL;
     const hour = hourOf(arrivalTime);
-    // Гости — только обычные коты (редкие и легендарные — на прогулке)
-    const guest = save
-      ? pickCatForChapter(commonOnly(cats), save, { terrain: null, twilight: isTwilightHour(hour) }, random)
-      : pickGuest(commonOnly(cats), hour, random);
+    // Гости — только обычные коты (редкие и легендарные — на прогулке).
+    // Если в убежище стоят предметы, которые зовут котов (аквариум,
+    // цветок, телескоп, радио), — чаще прилетают коты их типа.
+    const attracted = save && save.decor ? attractedGuests(cats, save) : [];
+    let guest = null;
+    if (attracted.length > 0 && random() < DECOR_ATTRACT_CHANCE) {
+      guest = attracted[Math.floor(random() * attracted.length)];
+    } else if (save) {
+      guest = pickCatForChapter(commonOnly(cats), save, { terrain: null, twilight: isTwilightHour(hour) }, random);
+    } else {
+      guest = pickGuest(commonOnly(cats), hour, random);
+    }
     result.list.push(guest.id);
   }
   result.nextAt = result.nextAt + arrivals * GUEST_INTERVAL;
@@ -2329,6 +2339,110 @@ function ballStopped(ball) {
   return Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy) < BALL_STOP_SPEED;
 }
 
+// =============================================================
+// Обстановка убежища (режим «Дом»)
+// =============================================================
+// За рыбок в магазине покупаются предметы; их расставляют на DECOR_SLOT_COUNT
+// мест в убежище (поставить, переставить, убрать). Некоторые предметы
+// зовут гостей своего типа: аквариум — водных, цветок — лесных,
+// телескоп — сумеречных, радиоприёмник — городских. Правило «гость раз
+// в 6 часов» остаётся — меняется только то, КТО прилетит.
+// Самый дешёвый предмет (8 рыбок) можно купить после 1–2 прогулок.
+const DECOR_ITEMS = [
+  { id: 'rug', name: 'Мягкий коврик', price: 8, attracts: null },
+  { id: 'yarn', name: 'Корзинка с клубками', price: 9, attracts: null },
+  { id: 'poster', name: 'Звёздная карта', price: 10, attracts: null },
+  { id: 'cushion', name: 'Подушка-облачко', price: 10, attracts: null },
+  { id: 'lamp', name: 'Лампа-луна', price: 12, attracts: null },
+  { id: 'scratcher', name: 'Когтеточка', price: 12, attracts: null },
+  { id: 'plant', name: 'Цветок в горшке', price: 15, attracts: 'лесной' },
+  { id: 'globe', name: 'Глобус Земли', price: 16, attracts: null },
+  { id: 'radio', name: 'Радиоприёмник', price: 18, attracts: 'городской' },
+  { id: 'aquarium', name: 'Аквариум', price: 20, attracts: 'водный' },
+  { id: 'telescope', name: 'Телескоп', price: 25, attracts: 'сумеречный' },
+  { id: 'cat-house', name: 'Кошачий домик', price: 30, attracts: null }
+];
+const DECOR_SLOT_COUNT = 6;        // сколько мест для предметов в убежище
+const DECOR_ATTRACT_CHANCE = 0.6;  // как часто гость — «приманенный» предметом
+
+function findDecor(id) {
+  return DECOR_ITEMS.find(function (item) { return item.id === id; });
+}
+
+// Проверка обстановки из сохранения: только известные купленные
+// предметы, ровно DECOR_SLOT_COUNT мест, каждый предмет — не больше
+// чем на одном месте.
+function cleanDecor(data) {
+  const decor = { owned: [], placed: [] };
+  for (let i = 0; i < DECOR_SLOT_COUNT; i++) decor.placed.push(null);
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return decor;
+  decor.owned = cleanStringList(data.owned).filter(function (id) { return !!findDecor(id); });
+  if (Array.isArray(data.placed)) {
+    for (let i = 0; i < DECOR_SLOT_COUNT; i++) {
+      const id = data.placed[i];
+      if (typeof id === 'string' && decor.owned.includes(id) && !decor.placed.includes(id)) {
+        decor.placed[i] = id;
+      }
+    }
+  }
+  return decor;
+}
+
+// Купить предмет. Возвращает { save, ok, reason }:
+//   reason — 'нет такого', 'уже есть' или 'мало рыбок' (если ok = false).
+function buyDecor(save, itemId) {
+  const item = findDecor(itemId);
+  if (!item) return { save: save, ok: false, reason: 'нет такого' };
+  if (save.decor.owned.includes(itemId)) return { save: save, ok: false, reason: 'уже есть' };
+  if (save.fish < item.price) return { save: save, ok: false, reason: 'мало рыбок' };
+  const result = copySave(save);
+  result.fish = result.fish - item.price;
+  result.decor.owned.push(itemId);
+  return { save: result, ok: true, reason: '' };
+}
+
+// Поставить предмет на место slot. Если он уже стоял в другом месте —
+// он переезжает (там становится пусто). Если на месте slot стоял
+// другой предмет — тот убирается (остаётся купленным).
+function placeDecor(save, slot, itemId) {
+  if (slot < 0 || slot >= DECOR_SLOT_COUNT || !save.decor.owned.includes(itemId)) return save;
+  const result = copySave(save);
+  const placed = result.decor.placed;
+  const old = placed.indexOf(itemId);
+  if (old !== -1) placed[old] = null;
+  placed[slot] = itemId;
+  return result;
+}
+
+// Убрать предмет с места slot (он остаётся купленным)
+function removeDecor(save, slot) {
+  if (slot < 0 || slot >= DECOR_SLOT_COUNT || save.decor.placed[slot] === null) return save;
+  const result = copySave(save);
+  result.decor.placed[slot] = null;
+  return result;
+}
+
+// Каких котов зовут расставленные предметы: список типов без повторов
+function decorAttracts(save) {
+  const types = [];
+  save.decor.placed.forEach(function (id) {
+    const item = id ? findDecor(id) : null;
+    if (item && item.attracts && !types.includes(item.attracts)) types.push(item.attracts);
+  });
+  return types;
+}
+
+// Коты, которых могут «приманить» предметы: обычные коты текущей главы
+// нужных типов (редкие и легендарные по-прежнему только на прогулке).
+// Телескоп зовёт сумеречных в любое время, а не только с 17 до 22.
+function attractedGuests(cats, save) {
+  const types = decorAttracts(save);
+  if (types.length === 0) return [];
+  return chapterCats(commonOnly(cats), save.chapter || 1).filter(function (cat) {
+    return types.includes(cat.type);
+  });
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -2361,6 +2475,8 @@ if (typeof module !== 'undefined') {
     TREATS_PER_LEVEL, MAX_FRIENDSHIP, friendshipLevel, treatsToNextLevel, feedCat, friendshipHearts,
     FRIEND_LEVEL_POINTS, FISH_POINTS, TREAT_POINTS, FAVORITE_POINTS, levelForPoints, pointsToNextLevel,
     migrateFriendship, addFriendship, feedTreat,
+    DECOR_ITEMS, DECOR_SLOT_COUNT, DECOR_ATTRACT_CHANCE, findDecor, cleanDecor, buyDecor, placeDecor,
+    removeDecor, decorAttracts, attractedGuests,
     PLAY_POINTS, PLAY_SECONDS, LASER_CAT_SPEED, BALL_CAT_SPEED, BALL_MAX_SPEED, canGetPlayPoints,
     applyPlayReward, playSpeed, chaseStep, pointDistance, throwVelocity, ballStep, ballStopped,
     PUZZLE_SMALL, PUZZLE_BIG, PUZZLE_BIG_FROM, spareParts, canInstallPart, installPart, puzzleSize,

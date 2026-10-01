@@ -667,7 +667,7 @@ async function homeScenario(browser) {
     if (!sessionStorage.getItem('smoke-ready')) {
       sessionStorage.setItem('smoke-ready', '1');
       localStorage.setItem('mewmo-save-v1', JSON.stringify({
-        crew: { bul: 1, gaika: 1 }, parts: 4, fish: 30, tutorialSeen: true,
+        crew: { bul: 1, gaika: 1 }, parts: 4, partsInstalled: 2, fish: 30, tutorialSeen: true,
         pantry: { flour: 1, sugar: 1 }
       }));
     }
@@ -708,6 +708,23 @@ async function homeScenario(browser) {
   expect(pantryLeft === 0, name + ': ингредиенты не списались');
   await page.click('#kitchen-close');
 
+  // ----- Ремонт: собрать пазл и установить деталь -----
+  await page.click('#home-repair');
+  await checkContrast(page, 'ремонт');
+  await page.click('#repair-install');
+  // «Робот» нажимает на каждый кусочек столько раз, сколько нужно до правильного положения
+  const clicks = await page.evaluate(function () {
+    return puzzle.turns.map(function (turn) { return (4 - turn) % 4; });
+  });
+  for (let i = 0; i < clicks.length; i++) {
+    for (let k = 0; k < clicks[i]; k++) await page.locator('.puzzle-piece').nth(i).click();
+  }
+  const installed = await page.evaluate(function () { return save.partsInstalled; });
+  expect(installed === 3, name + ': деталь не установилась (установлено ' + installed + ')');
+  await checkContrast(page, 'пазл собран');
+  await page.click('#repair-puzzle-back');
+  await page.click('#repair-close');
+
   await context.close();
 }
 
@@ -740,7 +757,7 @@ async function main() {
     await contrastScenario(browser);
     console.log('Сценарий 6: мини-игры — играет «робот»…');
     await minigameScenario(browser);
-    console.log('Сценарий 7: дом — кухня…');
+    console.log('Сценарий 7: дом — кухня, ремонт…');
     await homeScenario(browser);
   } catch (error) {
     problems.push('Проверка упала: ' + error.message.split('\n')[0]);

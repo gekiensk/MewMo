@@ -231,7 +231,8 @@ function gpsSearchState(info) {
 //   crew: { bul: 2, moh: 1 },   // кто в экипаже и сколько раз встречен
 //   captains: { … },            // капитаны в экипаже (так же: id → встречи)
 //   fish: 12,                   // космические рыбки
-//   parts: 3,                   // детали корабля
+//   parts: 3,                   // детали корабля, найденные в этой главе (вместе с установленными)
+//   partsInstalled: 2,          // сколько из них уже установлено в «Ремонте» (режим «Дом»)
 //   beaconCooldowns: { … },     // маяки на перезарядке: id → до какого времени (мс)
 //   nextCaptainAt: 0,           // раньше этого времени (мс) новый капитан не появится
 //   settings: { … },            // настройки (см. DEFAULT_SETTINGS)
@@ -269,7 +270,7 @@ const SOUND_LEVELS = ['выкл', 'тихо', 'обычно'];   // вариан
 // Пустое сохранение: игра с нуля
 function emptySave() {
   return {
-    crew: {}, captains: {}, fish: 0, parts: 0, beaconCooldowns: {}, nextCaptainAt: 0,
+    crew: {}, captains: {}, fish: 0, parts: 0, partsInstalled: 0, beaconCooldowns: {}, nextCaptainAt: 0,
     settings: Object.assign({}, DEFAULT_SETTINGS),
     playTime: { day: '', seconds: 0, bonusMinutes: 0 },
     guests: { list: [], nextAt: 0 },
@@ -395,6 +396,11 @@ function cleanSave(data) {
   save.tipEncounters = isCount(data.tipEncounters) ? data.tipEncounters
     : (alreadyPlayed ? TIP_ENCOUNTERS : 0);
   save.captainDay = typeof data.captainDay === 'string' ? data.captainDay : '';
+  // Установленные детали. В старом сохранении этого поля нет — тогда все
+  // собранные детали считаются установленными (но не больше, чем нужно кораблю).
+  save.partsInstalled = isCount(data.partsInstalled)
+    ? Math.min(data.partsInstalled, save.parts)
+    : Math.min(save.parts, partsNeeded(save.chapter));
   save.seenGames = cleanStringList(data.seenGames);
   // Угощения: только известные рецепты
   const treats = cleanCounts(data.treats, 1);
@@ -532,9 +538,10 @@ function chapterCats(cats, chapter) {
   return cats.filter(function (cat) { return catChapter(cat) === 1; });
 }
 
-// Можно ли запустить корабль: деталей хватает, и у главы есть финал
+// Можно ли запустить корабль: установлено достаточно деталей, и у главы есть финал.
+// Считаются только УСТАНОВЛЕННЫЕ детали (найденные ещё надо поставить в «Ремонте»).
 function canLaunchShip(save) {
-  return LAUNCHABLE_CHAPTERS.includes(save.chapter) && save.parts >= partsNeeded(save.chapter);
+  return LAUNCHABLE_CHAPTERS.includes(save.chapter) && save.partsInstalled >= partsNeeded(save.chapter);
 }
 
 // Запуск корабля: экипаж главы улетает домой, игрок получает значок
@@ -556,6 +563,7 @@ function launchShip(save, allCats) {
   const badge = 'rescuer-' + chapter;
   if (!result.badges.includes(badge)) result.badges.push(badge);
   result.parts = save.parts - partsNeeded(chapter);
+  result.partsInstalled = 0; // у нового корабля пока ничего не установлено
   result.chapter = chapter + 1;
   return result;
 }
@@ -2179,6 +2187,61 @@ function mixProgress(state) {
   return Math.min(1, Math.abs(state.total) / (MIX_TURNS * 2 * Math.PI));
 }
 
+// =============================================================
+// Ремонт корабля (режим «Дом»)
+// =============================================================
+// Детали с прогулки — «найденные». Чтобы деталь заработала, её
+// устанавливают в «Ремонте»: собирают пазл — картинку отсека из 4–6
+// кусочков, повёрнутых не так. Нажатие поворачивает кусочек на 90°.
+const PUZZLE_SMALL = 4;          // первые детали — пазл из 4 кусочков (2×2)
+const PUZZLE_BIG = 6;            // потом — из 6 кусочков (3×2)
+const PUZZLE_BIG_FROM = 10;      // с какой установленной детали пазл больше
+
+// Сколько найденных деталей ждут установки
+function spareParts(save) {
+  return Math.max(0, save.parts - save.partsInstalled);
+}
+
+// Можно ли установить ещё одну деталь: есть найденная, и корабль не готов
+function canInstallPart(save) {
+  return spareParts(save) > 0 && save.partsInstalled < partsNeeded(save.chapter);
+}
+
+// Установить одну деталь (после собранного пазла). Возвращает новое сохранение.
+function installPart(save) {
+  if (!canInstallPart(save)) return save;
+  const result = copySave(save);
+  result.partsInstalled = result.partsInstalled + 1;
+  return result;
+}
+
+// Из скольких кусочков пазл для следующей детали
+function puzzleSize(save) {
+  return save.partsInstalled < PUZZLE_BIG_FROM ? PUZZLE_SMALL : PUZZLE_BIG;
+}
+
+// Новый пазл: для каждого кусочка — сколько раз он повёрнут (1–3 четверти).
+// 0 — кусочек стоит правильно; в начале каждый кусочек повёрнут.
+function makePuzzle(size, random) {
+  const turns = [];
+  for (let i = 0; i < size; i++) {
+    turns.push(1 + Math.floor(random() * 3));
+  }
+  return turns;
+}
+
+// Нажали на кусочек index — он поворачивается на четверть круга по часовой
+function turnPiece(turns, index) {
+  const result = turns.slice();
+  result[index] = (result[index] + 1) % 4;
+  return result;
+}
+
+// Пазл собран: все кусочки стоят правильно
+function puzzleSolved(turns) {
+  return turns.every(function (turn) { return turn === 0; });
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -2211,6 +2274,8 @@ if (typeof module !== 'undefined') {
     TREATS_PER_LEVEL, MAX_FRIENDSHIP, friendshipLevel, treatsToNextLevel, feedCat, friendshipHearts,
     FRIEND_LEVEL_POINTS, FISH_POINTS, TREAT_POINTS, FAVORITE_POINTS, levelForPoints, pointsToNextLevel,
     migrateFriendship, addFriendship, feedTreat,
+    PUZZLE_SMALL, PUZZLE_BIG, PUZZLE_BIG_FROM, spareParts, canInstallPart, installPart, puzzleSize,
+    makePuzzle, turnPiece, puzzleSolved,
     RECIPES, MIX_TURNS, SHAPE_TAPS, BAKE_SECONDS, findRecipe, canCook, cookRecipe, mixAdd, mixProgress,
     QUEST_TYPES, QUESTS_PER_DAY, chooseDailyQuests, refreshQuests, applyQuestEvent, questRewardText,
     LAST_CHAPTER, CHAPTER_PARTS, LAUNCHABLE_CHAPTERS, partsNeeded, catChapter, chapterCats,

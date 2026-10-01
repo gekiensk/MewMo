@@ -1836,3 +1836,52 @@ body.mode-home .toast {
   width: 120px;
   height: 120px;
 }
+
+/* ===== Ремонт корабля ===== */
+#repair-main.hidden,
+#repair-puzzle-view.hidden {
+  display: none;
+}
+.repair-ship {
+  width: 150px;
+  height: 180px;
+  margin: 0 auto;
+}
+#repair-install:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.repair-puzzle {
+  display: grid;
+  gap: 6px;
+  width: fit-content;
+  margin: 12px auto;
+  transition: gap 0.3s;
+}
+/* Пазл собран — щели между кусочками исчезают, картинка целая */
+.repair-puzzle.solved {
+  gap: 0;
+}
+.puzzle-piece {
+  width: min(96px, 26vw);
+  height: min(96px, 26vw);
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  overflow: hidden;
+  transition: rotate 0.2s ease-out;
+}
+.repair-puzzle.solved .puzzle-piece {
+  border-radius: 0;
+}
+.puzzle-piece svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .puzzle-piece,
+  .repair-puzzle { transition: none; }
+}

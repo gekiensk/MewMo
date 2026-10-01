@@ -73,3 +73,16 @@ test('иконки капсулы и маяка — SVG', function () {
   // 8 котов — 6 в иллюминаторах и надпись «…и ещё 2»
   assert.ok(art.launchScene(['bul', 'moh', 'iskra', 'gaika', 'pixel', 'kometa', 'shishka', 'murena']).includes('…и ещё 2'));
 });
+
+test('картинки ремонта: отсеки для пазла и корабль со шкалой', function () {
+  assert.strictEqual(art.COMPARTMENT_NAMES.length, 3);
+  for (let variant = 0; variant < 3; variant++) {
+    for (const width of [240, 360]) {
+      const inner = art.compartmentPicture(variant, width);
+      assert.ok(inner.length > 100 && !inner.includes('undefined') && !inner.includes('NaN'), variant + ' ' + width);
+    }
+  }
+  assert.ok(looksLikeSvg(art.repairShipPicture(0)));
+  assert.ok(looksLikeSvg(art.repairShipPicture(0.5)));
+  assert.ok(looksLikeSvg(art.repairShipPicture(1)));
+});

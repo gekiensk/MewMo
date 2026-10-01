@@ -56,6 +56,7 @@
     <!-- Занятия дома: большие кнопки внизу убежища -->
     <div id="home-bar" class="home-bar">
       <button id="home-kitchen" class="home-bar-button">🍳<br>Кухня</button>
+      <button id="home-repair" class="home-bar-button">🔧<br>Ремонт</button>
     </div>
     <p id="home-empty" class="home-empty hidden">Пока в убежище пусто. Скоро прилетит гость — или погуляй и найди котов!</p>
   </section>
@@ -94,6 +95,28 @@
         <div id="kitchen-area" class="kitchen-area"></div>
         <div class="repair-bar"><div id="kitchen-progress" class="repair-fill"></div></div>
         <button id="kitchen-back" class="big-button hidden">К рецептам</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Ремонт корабля (режим «Дом») =====
+       Детали с прогулки устанавливают через пазл (repair.js). -->
+  <section id="repair" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="repair-title">
+    <div class="overlay-card">
+      <button id="repair-close" class="close-button" aria-label="Закрыть ремонт">✕</button>
+      <h2 id="repair-title" class="screen-title">Ремонт корабля</h2>
+      <div id="repair-main">
+        <div id="repair-ship" class="repair-ship"></div>
+        <p id="repair-count" class="score"></p>
+        <div class="repair-bar"><div id="repair-fill" class="repair-fill"></div></div>
+        <p id="repair-spare" class="screen-text small-text"></p>
+        <button id="repair-install" class="big-button">🔧 Установить деталь</button>
+      </div>
+      <div id="repair-puzzle-view" class="hidden">
+        <p id="repair-puzzle-title" class="score"></p>
+        <p class="screen-text small-text">Нажимай на кусочки, чтобы повернуть их. Собери картинку отсека!</p>
+        <div id="repair-puzzle" class="repair-puzzle"></div>
+        <button id="repair-puzzle-back" class="big-button">Назад</button>
       </div>
     </div>
   </section>
@@ -432,6 +455,8 @@
   <script src="settings.js"></script>
   <!-- kitchen.js — кошачья кухня (режим «Дом») -->
   <script src="kitchen.js"></script>
+  <!-- repair.js — ремонт корабля: установка деталей через пазл (режим «Дом») -->
+  <script src="repair.js"></script>
   <!-- home.js — режим «Дом»: убежище, гости, забота -->
   <script src="home.js"></script>
   <!-- gps.js — надёжный GPS и диагностика -->

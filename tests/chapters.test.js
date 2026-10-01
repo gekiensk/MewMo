@@ -39,17 +39,22 @@ test('испорченные поля глав заменяются', function (
   assert.deepStrictEqual(save.flewHome, []);
 });
 
-test('корабль можно запустить, только когда деталей 20 или больше', function () {
+test('корабль можно запустить, только когда установлено 20 деталей или больше', function () {
   const save = logic.emptySave();
-  save.parts = 19;
+  save.parts = 25;
+  save.partsInstalled = 19;
   assert.strictEqual(logic.canLaunchShip(save), false);
-  save.parts = 20;
+  save.partsInstalled = 20;
   assert.strictEqual(logic.canLaunchShip(save), true);
+  // найдено много, но не установлено — лететь нельзя
+  save.partsInstalled = 0;
+  assert.strictEqual(logic.canLaunchShip(save), false);
 });
 
 test('запуск корабля: экипаж главы 1 улетает, значок, глава 2', function () {
   let save = logic.emptySave();
   save.parts = 23;
+  save.partsInstalled = 20;
   save.crew = { a: 2, c: 1, x: 1 };
   save.captains = { cap1: 1 };
   const cats = TEST_CATS.concat([{ id: 'cap1', chapter: 1 }]);
@@ -59,9 +64,11 @@ test('запуск корабля: экипаж главы 1 улетает, з�
   assert.deepStrictEqual(after.badges, ['rescuer-1']);
   assert.deepStrictEqual(after.flewHome.sort(), ['a', 'c', 'cap1']);
   assert.strictEqual(after.parts, 3); // лишние детали переходят в главу 2
+  assert.strictEqual(after.partsInstalled, 0); // их ещё надо установить в новый корабль
   assert.strictEqual(logic.badgeName('rescuer-1'), 'Спасатель 1 ранга');
   // в главе 2 финала пока нет — второй запуск не происходит
   after.parts = 99;
+  after.partsInstalled = 99;
   assert.strictEqual(logic.canLaunchShip(after), false);
   assert.strictEqual(logic.launchShip(after, cats), after);
   // исходное сохранение не изменилось

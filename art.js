@@ -847,6 +847,92 @@ function basketSprite() {
 }
 
 // =============================================================
+// Ремонт корабля: картинки отсеков для пазла и корабль со шкалой
+// =============================================================
+// Картинка отсека рисуется на холсте ширины width (240 — пазл 2×2,
+// 360 — пазл 3×2) и высоты 240. Функция отдаёт только «внутренность»
+// SVG: repair.js сам режет её на кусочки (у каждого кусочка свой viewBox).
+// В каждом кусочке есть что-то несимметричное (трубы, звёзды, надписи),
+// чтобы было видно, как кусочек должен стоять.
+const COMPARTMENT_NAMES = ['Иллюминатор', 'Пульт управления', 'Двигатель'];
+
+function compartmentPicture(variant, width) {
+  const w = width;
+  const cx = w / 2;
+  // Общий фон: стена отсека с полосой и заклёпками по краям
+  let back = '<rect width="' + w + '" height="240" fill="#E3DAF5"/>' +
+    '<rect y="200" width="' + w + '" height="40" fill="#C9BEE8"/>' +
+    '<path d="M0 30 L' + w + ' 30" stroke="#C9BEE8" stroke-width="10"/>';
+  for (let x = 14; x < w; x = x + 40) {
+    back = back + '<circle cx="' + x + '" cy="14" r="4" fill="#B3A6DC"/>' +
+      '<circle cx="' + x + '" cy="220" r="4" fill="#9C8FCC"/>';
+  }
+  // Труба слева сверху вниз и кошачья мордочка-наклейка в левом верхнем углу
+  back = back + '<path d="M18 40 L18 180 Q18 196 34 196 L' + (w - 30) + ' 196" stroke="' + MINT + '" stroke-width="12" fill="none" stroke-linecap="round"/>' +
+    '<path d="M40 44 L46 32 L52 44 Z M60 44 L66 32 L72 44 Z" fill="' + PINK + '"/>' +
+    '<circle cx="56" cy="54" r="14" fill="' + PINK + '"/>' +
+    '<circle cx="51" cy="52" r="2.5" fill="' + INK + '"/><circle cx="61" cy="52" r="2.5" fill="' + INK + '"/>';
+
+  let front = '';
+  if (variant === 0) {
+    // Большой круглый иллюминатор: ночное небо, месяц, звёзды, планета
+    front = '<circle cx="' + cx + '" cy="112" r="78" fill="' + INK + '" stroke="#FAF7F2" stroke-width="10"/>' +
+      '<circle cx="' + (cx + 28) + '" cy="80" r="20" fill="' + GOLD + '"/>' +
+      '<circle cx="' + (cx + 38) + '" cy="74" r="18" fill="' + INK + '"/>' +
+      '<circle cx="' + (cx - 30) + '" cy="140" r="22" fill="#A9D3F0"/>' +
+      '<path d="M' + (cx - 50) + ' 140 Q' + (cx - 30) + ' 128 ' + (cx - 10) + ' 140" stroke="#B5E2B0" stroke-width="7" fill="none"/>' +
+      star(cx - 40, 70, 8, GOLD) + star(cx + 40, 150, 6, GOLD) + sparkle(cx, 100, 6) +
+      '<circle cx="' + (cx - 74) + '" cy="112" r="5" fill="#9C8FCC"/><circle cx="' + (cx + 74) + '" cy="112" r="5" fill="#9C8FCC"/>';
+  } else if (variant === 1) {
+    // Пульт: экран с кошачьими ушками, ряды кнопок, рычаг
+    front = '<rect x="' + (cx - 90) + '" y="50" width="180" height="90" rx="14" fill="' + INK + '" stroke="#FAF7F2" stroke-width="6"/>' +
+      '<path d="M' + (cx - 60) + ' 120 L' + (cx - 30) + ' 90 L' + cx + ' 110 L' + (cx + 30) + ' 70 L' + (cx + 60) + ' 96" stroke="' + MINT + '" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' +
+      star(cx + 60, 70, 7, GOLD) +
+      '<rect x="' + (cx - 90) + '" y="150" width="180" height="40" rx="10" fill="#6F6AA8"/>' +
+      '<circle cx="' + (cx - 60) + '" cy="170" r="10" fill="' + PINK + '" stroke="' + INK + '" stroke-width="2"/>' +
+      '<circle cx="' + (cx - 30) + '" cy="170" r="10" fill="' + GOLD + '" stroke="' + INK + '" stroke-width="2"/>' +
+      '<rect x="' + (cx - 8) + '" y="162" width="36" height="16" rx="5" fill="' + MINT + '" stroke="' + INK + '" stroke-width="2"/>' +
+      '<path d="M' + (cx + 58) + ' 182 L' + (cx + 72) + ' 150" stroke="' + INK + '" stroke-width="6" stroke-linecap="round"/>' +
+      '<circle cx="' + (cx + 72) + '" cy="148" r="8" fill="' + PINK + '" stroke="' + INK + '" stroke-width="2"/>';
+  } else {
+    // Двигатель: шестерёнки, бак со стрелкой-указателем, звёздочки-искры
+    front = '<rect x="' + (cx - 40) + '" y="46" width="80" height="140" rx="30" fill="' + GOLD + '" stroke="' + INK + '" stroke-width="4"/>' +
+      '<circle cx="' + cx + '" cy="90" r="22" fill="#FAF7F2" stroke="' + INK + '" stroke-width="3"/>' +
+      '<path d="M' + cx + ' 90 L' + (cx + 14) + ' 76" stroke="' + PINK + '" stroke-width="4" stroke-linecap="round"/>' +
+      '<rect x="' + (cx - 26) + '" y="130" width="52" height="12" rx="6" fill="' + PINK + '"/>' +
+      '<rect x="' + (cx - 26) + '" y="152" width="34" height="12" rx="6" fill="' + MINT + '"/>' +
+      gearShape(cx - 78, 80, 22, MINT) + gearShape(cx + 76, 150, 18, PINK) + gearShape(cx + 84, 70, 12, '#FAF7F2') +
+      sparkle(cx - 70, 160, 7) + star(cx - 86, 130, 6, GOLD);
+  }
+  // Номер отсека в правом нижнем углу — ещё одна подсказка, где низ
+  return back + front +
+    '<text x="' + (w - 14) + '" y="232" text-anchor="end" font-size="16" font-weight="700" font-family="sans-serif" fill="' + INK + '">▲ верх</text>';
+}
+
+// Корабль со шкалой ремонта: серый силуэт, снизу вверх «заливается»
+// цветом по мере установки деталей. share — доля от 0 до 1. Холст 200×240.
+function repairShipPicture(share) {
+  artIdCounter = artIdCounter + 1;
+  const uid = 'ship' + artIdCounter;
+  const fillTop = 220 - Math.round(200 * Math.max(0, Math.min(1, share)));
+  const body = 'M60 200 L60 90 Q60 40 100 20 Q140 40 140 90 L140 200 Q140 212 128 212 L72 212 Q60 212 60 200 Z';
+  const wings = 'M60 160 L30 205 L62 195 Z M140 160 L170 205 L138 195 Z';
+  return '<svg class="sprite" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    '<defs><clipPath id="' + uid + '"><rect x="0" y="' + fillTop + '" width="200" height="240"/></clipPath></defs>' +
+    // серый силуэт — сколько ещё чинить
+    '<path d="' + wings + '" fill="#6F6AA8"/><path d="' + body + '" fill="#6F6AA8"/>' +
+    // цветная часть — что уже починено
+    '<g clip-path="url(#' + uid + ')">' +
+    '<path d="' + wings + '" fill="' + PINK + '"/><path d="' + body + '" fill="' + GOLD + '"/>' +
+    '<path d="M84 34 L88 16 L98 26 Z M116 34 L112 16 L102 26 Z" fill="' + PINK + '"/>' +
+    '</g>' +
+    '<path d="' + body + '" fill="none" stroke="#FAF7F2" stroke-width="4"/>' +
+    '<circle cx="100" cy="90" r="16" fill="' + INK + '" stroke="#FAF7F2" stroke-width="4"/>' +
+    '<circle cx="100" cy="140" r="16" fill="' + INK + '" stroke="#FAF7F2" stroke-width="4"/>' +
+    '</svg>';
+}
+
+// =============================================================
 // Картинки обучения «Как играть» (6 штук)
 // =============================================================
 // Холст 400×300. tutorialPicture(0) … tutorialPicture(5).
@@ -960,6 +1046,7 @@ if (typeof module !== 'undefined') {
   module.exports = {
     CAT_LOOKS, SUIT_COLORS, catPortrait, capsuleIcon, beaconIcon, shelterScene, launchScene,
     TUTORIAL_PICTURE_COUNT, tutorialPicture, fishSprite, bubbleSprite, basketSprite,
-    fireflySprite, starSprite, ingredientIcon, treatIcon, bowlPicture, doughPicture, ovenPicture
+    fireflySprite, starSprite, ingredientIcon, treatIcon, bowlPicture, doughPicture, ovenPicture,
+    COMPARTMENT_NAMES, compartmentPicture, repairShipPicture
   };
 }

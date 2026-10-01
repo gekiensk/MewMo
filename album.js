@@ -119,12 +119,14 @@ function renderAlbum() {
   document.getElementById('album-fish').textContent =
     '🐟 Космические рыбки: ' + save.fish;
 
-  // Шкала ремонта корабля текущей главы (в главе 1 — 20 деталей, в главе 2 — 30)
+  // Шкала ремонта корабля текущей главы (в главе 1 — 20 деталей, в главе 2 — 30).
+  // Считаются только установленные детали; найденные ставят дома в «Ремонте».
+  const spare = spareParts(save); // logic.js
   document.getElementById('album-repair-text').textContent =
-    'Ремонт корабля: ' + save.parts + ' ' +
-    pluralRu(save.parts, 'деталь', 'детали', 'деталей') + ' из ' + partsNeeded(save.chapter);
+    'Ремонт корабля: установлено ' + save.partsInstalled + ' из ' + partsNeeded(save.chapter) +
+    (spare > 0 ? '. Ждут установки: ' + spare + ' — их ставят дома в «Ремонте» 🔧' : '');
   document.getElementById('album-repair-fill').style.width =
-    (shipRepairShare(save.parts, save.chapter) * 100) + '%';
+    (shipRepairShare(save.partsInstalled, save.chapter) * 100) + '%';
 
   // Корабль починен — большая кнопка «Запустить корабль» (logic.js решает, можно ли)
   document.getElementById('album-launch').classList.toggle('hidden', !canLaunchShip(save));

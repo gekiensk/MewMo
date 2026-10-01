@@ -158,15 +158,15 @@ test('маяк даёт 2–4 рыбки и деталь примерно в 30%
 });
 
 // ----- Перезарядка -----
-test('после награды маяк перезаряжается 5 минут', function () {
+test('после награды маяк перезаряжается 15 минут', function () {
   const now = 1000000;
   let save = logic.emptySave();
   save = logic.applyBeaconReward(save, 'poi-1', { fish: 3, parts: 1 }, now);
   assert.strictEqual(save.fish, 3);
   assert.strictEqual(save.parts, 1);
-  assert.strictEqual(logic.beaconCooldownLeft(save.beaconCooldowns, 'poi-1', now), 5 * 60 * 1000);
-  assert.strictEqual(logic.beaconCooldownLeft(save.beaconCooldowns, 'poi-1', now + 60000), 4 * 60 * 1000);
-  assert.strictEqual(logic.beaconCooldownLeft(save.beaconCooldowns, 'poi-1', now + 5 * 60 * 1000), 0);
+  assert.strictEqual(logic.beaconCooldownLeft(save.beaconCooldowns, 'poi-1', now), 15 * 60 * 1000);
+  assert.strictEqual(logic.beaconCooldownLeft(save.beaconCooldowns, 'poi-1', now + 60000), 14 * 60 * 1000);
+  assert.strictEqual(logic.beaconCooldownLeft(save.beaconCooldowns, 'poi-1', now + 15 * 60 * 1000), 0);
   // другой маяк не перезаряжается
   assert.strictEqual(logic.beaconCooldownLeft(save.beaconCooldowns, 'poi-2', now), 0);
 });

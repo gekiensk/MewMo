@@ -204,7 +204,8 @@ async function walkScenario(browser) {
   const status = await page.textContent('#status');
   expect(status.includes('Ты здесь'), name + ': в строке состояния нет «Ты здесь» (там: «' + status + '»)');
   const capsules = await page.evaluate(function () { return capsules.length; });
-  expect(capsules > 0, name + ': вокруг игрока нет капсул');
+  expect(capsules > 0 && capsules <= 3, name + ': капсул вокруг игрока ' + capsules + ' (нужно 1–3)');
+  expect(status.includes('Пройдено сегодня'), name + ': в строке состояния нет «Пройдено сегодня»');
 
   // Альбом: открыть и закрыть
   await page.click('#crew-button');

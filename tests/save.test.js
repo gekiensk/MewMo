@@ -43,7 +43,9 @@ test('записанное сохранение читается обратно 
     flewHome: ['bul', 'moh'],
     latecomers: ['iskra'],
     tutorialSeen: true,
-    tipEncounters: 1
+    tipEncounters: 1,
+    captainDay: '2026-10-01',
+    walkToday: { day: '2026-10-01', meters: 340 }
   };
   assert.strictEqual(logic.writeSave(storage, save), true);
   assert.ok(logic.SAVE_KEY in storage.data, 'ключ ' + logic.SAVE_KEY);

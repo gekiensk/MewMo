@@ -41,12 +41,13 @@ test('у капитана зона сигнала уже, чем у легенд
 
 // ----- Правила появления -----
 function info(changes) {
-  return Object.assign({ crewCount: 3, captain: null, nextCaptainAt: 0, beaconCount: 2, now: 1000 * MINUTE }, changes);
+  return Object.assign({ crewCount: 5, captain: null, nextCaptainAt: 0, beaconCount: 2, now: 1000 * MINUTE,
+    today: '2026-10-01', captainDay: '' }, changes);
 }
 
-test('капитан приходит, только если в экипаже 3+ кота', function () {
-  assert.strictEqual(logic.canSpawnCaptain(info({ crewCount: 2 })), false);
-  assert.strictEqual(logic.canSpawnCaptain(info({ crewCount: 3 })), true);
+test('капитан приходит, только если в экипаже 5+ котов', function () {
+  assert.strictEqual(logic.canSpawnCaptain(info({ crewCount: 4 })), false);
+  assert.strictEqual(logic.canSpawnCaptain(info({ crewCount: 5 })), true);
   assert.strictEqual(logic.canSpawnCaptain(info({ crewCount: 8 })), true);
 });
 
@@ -62,6 +63,11 @@ test('одновременно — не больше одного капитан
   assert.strictEqual(logic.canSpawnCaptain(info({ captain: captain, now: now + 10 * MINUTE })), false);
   // час прошёл — может прийти новый
   assert.strictEqual(logic.canSpawnCaptain(info({ captain: captain, now: now + 61 * MINUTE })), true);
+});
+
+test('капитан — не чаще раза в день (после победы следующий — завтра)', function () {
+  assert.strictEqual(logic.canSpawnCaptain(info({ captainDay: '2026-10-01' })), false);
+  assert.strictEqual(logic.canSpawnCaptain(info({ captainDay: '2026-09-30' })), true);
 });
 
 test('после победы следующий капитан — не раньше чем через 30 минут', function () {

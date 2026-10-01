@@ -49,9 +49,13 @@ function maybeSpawnCaptain(now) {
     captain: captainState,
     nextCaptainAt: save.nextCaptainAt,
     beaconCount: beacons.length,
-    now: now
+    now: now,
+    today: localDayKey(new Date()), // капитан — не чаще раза в день
+    captainDay: save.captainDay
   });
   if (!allowed) return;
+  save.captainDay = localDayKey(new Date());
+  saveGame();
 
   const beacon = beacons[Math.floor(Math.random() * beacons.length)];
   const data = chooseCaptain(chapterCats(CAPTAINS, save.chapter), save, Math.random); // капитаны главы

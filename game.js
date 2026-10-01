@@ -19,10 +19,12 @@ const MAX_ZOOM = 18;     // ближе приблизить нельзя
 const CAMERA_PITCH = 60; // наклон камеры в градусах (0 — смотрим сверху)
 
 // Капсулы с котами
-const CAPSULE_COUNT = 5;           // сколько капсул всегда лежит вокруг игрока
-const CAPSULE_MIN_DISTANCE = 30;  // ближе этого (в метрах) новые капсулы не появляются
-const CAPSULE_MAX_DISTANCE = 150; // дальше этого (в метрах) новые капсулы не появляются
-const DESPAWN_DISTANCE = 250;     // если игрок ушёл дальше (в метрах) — капсула исчезает
+// Сколько капсул вокруг игрока (не больше 3) и как быстро появляется
+// новая вместо открытой (2–4 минуты) — в logic.js: CAPSULE_TARGET,
+// capsulesToAdd, capsuleRespawnTime.
+const CAPSULE_MIN_DISTANCE = 60;  // ближе этого (в метрах) новые капсулы не появляются
+const CAPSULE_MAX_DISTANCE = 250; // дальше этого (в метрах) новые капсулы не появляются
+const DESPAWN_DISTANCE = 400;     // если игрок ушёл дальше (в метрах) — капсула исчезает
 const OPEN_DISTANCE = 40;         // с какого расстояния (в метрах) можно открыть капсулу
 const TOAST_TIME = 3000;          // сколько миллисекунд висит подсказка (3 секунды)
 const SHY_TIME = 60000;           // сколько миллисекунд кот смущается после проигрыша (1 минута)
@@ -38,6 +40,8 @@ let playerMarker;        // значок игрока
 let followPlayer = true; // двигается ли карта вслед за игроком
 let demoMode = false;    // true, когда GPS не работает
 let capsules = [];       // список капсул, которые лежат на карте
+let capsuleWaiting = []; // когда появятся капсулы вместо открытых (времена в мс)
+let lastWalkPoint = null; // прошлая точка прогулки — ТОЛЬКО в памяти, для подсчёта метров
 let hasGps = false;      // приходил ли уже хоть раз ответ от GPS
 let statusMessage = '';  // текст строки состояния (без счётчика котов)
 let toastTimer = null;   // таймер, который прячет подсказку
@@ -113,6 +117,7 @@ function startWalk() {
 
 // Закончить прогулку (переходим в режим «Дом»): перестаём следить за GPS
 function stopWalk() {
+  lastWalkPoint = null; // из дома на прогулку — считаем метры заново, без «прыжка»
   stopGps();        // gps.js
   resetGpsSearch(); // gps.js
 }
@@ -299,6 +304,28 @@ function onPosition(pos) {
     safely('убрать демо-капсулы', removeAllCapsules); // gps.js
   }
   movePlayer(lngLat, pos.coords.accuracy);
+  safely('пройденные метры', function () { countWalk(lngLat, pos.coords.accuracy); });
+}
+
+// Считает, сколько метров игрок прошёл пешком. Прошлая точка хранится
+// только в памяти (lastWalkPoint), в сохранение попадает лишь число метров.
+// Правила (дрожание GPS, машина) — walkStepMeters в logic.js.
+function countWalk(lngLat, accuracy) {
+  const now = Date.now();
+  if (!lastWalkPoint) {
+    lastWalkPoint = { position: lngLat, time: now };
+    return;
+  }
+  const meters = distanceMeters(lastWalkPoint.position, lngLat);
+  if (meters < WALK_MIN_STEP) return; // дрожание — ждём, пока отойдёт подальше
+  const seconds = (now - lastWalkPoint.time) / 1000;
+  const counted = walkStepMeters(meters, seconds, accuracy);
+  lastWalkPoint = { position: lngLat, time: now };
+  if (counted > 0) {
+    save.walkToday = addWalkMeters(save.walkToday, localDayKey(new Date()), counted);
+    questEvent('walk', counted); // задание «Пройди 500 м» (quests.js), заодно сохраняет игру
+    updateStatus();
+  }
 }
 
 // GPS не смог определить местоположение
@@ -374,8 +401,12 @@ function refreshCapsules(center) {
   }
   capsules = stillNear;
 
-  // 2. Добавляем новые, пока вокруг игрока не станет CAPSULE_COUNT капсул
-  while (capsules.length < CAPSULE_COUNT) {
+  // 2. Добавляем новые, пока вокруг игрока не станет 3 капсулы. Место
+  //    открытой капсулы «ждёт» 2–4 минуты (capsulesToAdd из logic.js).
+  const now = Date.now();
+  const toAdd = capsulesToAdd(capsules.length, capsuleWaiting, now);
+  capsuleWaiting = capsuleWaiting.filter(function (time) { return time > now; });
+  for (let i = 0; i < toAdd; i++) {
     addCapsule(randomCapsulePosition(center, CAPSULE_MIN_DISTANCE, CAPSULE_MAX_DISTANCE, Math.random));
   }
 
@@ -486,7 +517,9 @@ function openCapsule(capsule) {
 
 // Игрок выиграл и нажал «Забрать в экипаж» (вызывается из encounter.js)
 function catchCat(capsule) {
-  removeCapsule(capsule); // на её место появится новая
+  removeCapsule(capsule);
+  // Новая капсула появится через 2–4 минуты (logic.js)
+  capsuleWaiting.push(capsuleRespawnTime(Date.now(), Math.random));
 
   // applyCatWin из logic.js: новый кот → в экипаж и деталь корабля,
   // знакомый кот → просто рад встрече и дарит рыбок
@@ -506,7 +539,6 @@ function catchCat(capsule) {
     showToast(capsule.cat.name + ' рад встрече! +' + result.reward.fish + ' 🐟');
   }
   updateStatus();
-  refreshCapsules(playerPosition());
 }
 
 // Игрок проиграл: кот смущается, капсула минуту тусклая (вызывается из encounter.js)
@@ -571,6 +603,9 @@ function everySecond() {
   if (gameMode !== 'walk') return;
   safely('сумерки', checkTwilight);
   safely('вид капсул', updateCapsuleLooks);
+  safely('новые капсулы', function () {
+    if (capsulesToAdd(capsules.length, capsuleWaiting, Date.now()) > 0) refreshCapsules(playerPosition());
+  });
   safely('вид маяков', updateBeaconLooks);                          // таймеры перезарядки (beacons.js)
   safely('маяки', function () { refreshBeacons(false); });          // сам решит, пора ли пересчитывать
   safely('капитан', updateCaptain);                                 // капитаны у маяков (captains.js)
@@ -642,7 +677,12 @@ function updateStatus() {
   // Счётчик берётся из сохранения: сколько котов каталога в экипаже
   // Считаем котов текущей главы
   const cats = chapterCats(CATS, save.chapter);
-  statusText.textContent = statusMessage + ' Экипаж: ' + crewCount(save, cats) + ' из ' + cats.length + '.';
+  let text = statusMessage + ' Экипаж: ' + crewCount(save, cats) + ' из ' + cats.length + '.';
+  // На прогулке — сколько пройдено сегодня
+  if (gameMode === 'walk') {
+    text = text + ' Пройдено сегодня: ' + walkedToday(save.walkToday, localDayKey(new Date())) + ' м.';
+  }
+  statusText.textContent = text;
 }
 
 // Всплывающая подсказка внизу экрана. Держится TOAST_TIME и исчезает.

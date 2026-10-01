@@ -281,7 +281,9 @@ function emptySave() {
     flewHome: [],
     latecomers: [],
     tutorialSeen: false,
-    tipEncounters: 0
+    tipEncounters: 0,
+    captainDay: '',                    // в какой день приходил последний капитан
+    walkToday: { day: '', meters: 0 }  // сколько метров пройдено сегодня (только число!)
   };
 }
 
@@ -380,6 +382,10 @@ function cleanSave(data) {
   save.tutorialSeen = typeof data.tutorialSeen === 'boolean' ? data.tutorialSeen : alreadyPlayed;
   save.tipEncounters = isCount(data.tipEncounters) ? data.tipEncounters
     : (alreadyPlayed ? TIP_ENCOUNTERS : 0);
+  save.captainDay = typeof data.captainDay === 'string' ? data.captainDay : '';
+  const walk = data.walkToday;
+  save.walkToday = (walk && typeof walk.day === 'string' && isCount(walk.meters))
+    ? { day: walk.day, meters: walk.meters } : { day: '', meters: 0 };
   return save;
 }
 
@@ -651,7 +657,7 @@ const BEACON_RADIUS = 300;           // маяки ищем не дальше 30
 const BEACON_MAX_COUNT = 6;          // показываем не больше 6 маяков
 const BEACON_MIN_GAP = 40;           // между маяками не меньше 40 м
 const VIRTUAL_BEACON_COUNT = 3;      // сколько «виртуальных» маяков, если реальных нет
-const BEACON_COOLDOWN = 5 * 60 * 1000; // перезарядка маяка: 5 минут (в мс)
+const BEACON_COOLDOWN = 15 * 60 * 1000; // перезарядка маяка: 15 минут (в мс)
 const BEACON_PART_CHANCE = 0.3;      // шанс получить деталь корабля у маяка
 
 // Годится ли место для маяка. properties — свойства места из данных карты.
@@ -1151,7 +1157,7 @@ function battleAcceptLoss(state) {
 // =============================================================
 // Потерявшиеся капитаны (боссы)
 // =============================================================
-const CAPTAIN_MIN_CREW = 3;                  // капитаны приходят, когда в экипаже 3+ кота
+const CAPTAIN_MIN_CREW = 5;                  // капитаны приходят, когда в экипаже главы 5+ котов
 const CAPTAIN_LIFETIME = 60 * 60 * 1000;     // капитан ждёт у маяка 1 час
 const CAPTAIN_NEXT_DELAY = 30 * 60 * 1000;   // после победы следующий — через 30 минут
 const CAPTAIN_RETRY_DELAY = 2 * 60 * 1000;   // после проигрыша — ещё раз через 2 минуты
@@ -1167,10 +1173,14 @@ function isCaptainActive(captain, now) {
 
 // Можно ли сейчас позвать нового капитана.
 // info: { crewCount, captain, nextCaptainAt, beaconCount, now }
+// info.today — «ключ» сегодняшнего дня, info.captainDay — день, когда
+// приходил последний капитан: капитан приходит не чаще раза в день
+// (после победы следующий — уже на следующий день).
 function canSpawnCaptain(info) {
   if (info.crewCount < CAPTAIN_MIN_CREW) return false;     // экипаж маловат
   if (isCaptainActive(info.captain, info.now)) return false; // один уже ждёт
   if (info.now < info.nextCaptainAt) return false;         // после победы — пауза
+  if (info.today && info.captainDay === info.today) return false; // сегодня уже был
   return info.beaconCount > 0;                             // капитан ждёт у маяка
 }
 
@@ -1362,9 +1372,10 @@ function updateGuests(guests, now, cats, hourOf, random, save) {
   for (let i = 0; i < newGuests; i++) {
     const arrivalTime = result.nextAt + (arrivals - newGuests + i) * GUEST_INTERVAL;
     const hour = hourOf(arrivalTime);
+    // Гости — только обычные коты (редкие и легендарные — на прогулке)
     const guest = save
-      ? pickCatForChapter(cats, save, { terrain: null, twilight: isTwilightHour(hour) }, random)
-      : pickGuest(cats, hour, random);
+      ? pickCatForChapter(commonOnly(cats), save, { terrain: null, twilight: isTwilightHour(hour) }, random)
+      : pickGuest(commonOnly(cats), hour, random);
     result.list.push(guest.id);
   }
   result.nextAt = result.nextAt + arrivals * GUEST_INTERVAL;
@@ -1433,7 +1444,8 @@ const QUEST_TYPES = [
   { id: 'perfect1', text: 'Выиграй встречу, не проиграв ни одного раунда', event: 'perfectWin', goal: 1, reward: { fish: 0, parts: 1 } },
   { id: 'signal2', text: 'Поймай сигнал 2 раза', event: 'signal', goal: 2, reward: { fish: 4, parts: 0 } },
   { id: 'guest1', text: 'Познакомься с гостем в убежище', event: 'guest', goal: 1, reward: { fish: 4, parts: 0 } },
-  { id: 'rounds5', text: 'Выиграй 5 раундов', event: 'roundWin', goal: 5, reward: { fish: 5, parts: 0 } }
+  { id: 'rounds5', text: 'Выиграй 5 раундов', event: 'roundWin', goal: 5, reward: { fish: 5, parts: 0 } },
+  { id: 'walk500', text: 'Пройди 500 м на прогулке', event: 'walk', goal: 500, unit: 'м', reward: { fish: 8, parts: 1 } }
 ];
 const QUESTS_PER_DAY = 3;
 
@@ -1481,7 +1493,9 @@ function refreshQuests(quests, dayKey, random) {
 // Событие игры (например, 'catch' — поймали кота).
 // Двигает вперёд подходящие задания. Возвращает { save, completed }:
 // completed — задания, которые только что выполнились (награда уже выдана).
-function applyQuestEvent(save, dayKey, eventName, random) {
+// amount — на сколько продвинуть (по умолчанию 1; для «Пройди 500 м» — метры).
+function applyQuestEvent(save, dayKey, eventName, random, amount) {
+  const step = amount || 1;
   const result = copySave(save);
   result.quests = refreshQuests(result.quests, dayKey, random);
   const completed = [];
@@ -1489,7 +1503,7 @@ function applyQuestEvent(save, dayKey, eventName, random) {
     const item = result.quests.list[i];
     const type = findQuestType(item.id);
     if (item.done || type.event !== eventName) continue;
-    item.progress = item.progress + 1;
+    item.progress = Math.min(type.goal, item.progress + step);
     if (item.progress >= type.goal) {
       item.done = true;
       result.fish = result.fish + type.reward.fish;
@@ -1646,6 +1660,63 @@ function mutedPaint(layer) {
   return {};
 }
 
+// =============================================================
+// Баланс прогулки (после теста с ребёнком)
+// =============================================================
+// Капсул вокруг игрока немного (2–3), они дальше (60–250 м), а новая
+// появляется не сразу, а через 2–4 минуты после того, как открыли старую.
+// Так прогулка становится настоящей прогулкой.
+const CAPSULE_TARGET = 3;                  // не больше 3 капсул вокруг игрока
+const CAPSULE_RESPAWN_MIN = 2 * 60 * 1000; // новая капсула — через 2…
+const CAPSULE_RESPAWN_MAX = 4 * 60 * 1000; // …4 минуты
+
+// Когда появится новая капсула вместо открытой (мс)
+function capsuleRespawnTime(now, random) {
+  return now + CAPSULE_RESPAWN_MIN + random() * (CAPSULE_RESPAWN_MAX - CAPSULE_RESPAWN_MIN);
+}
+
+// Сколько капсул добавить прямо сейчас.
+// count — сколько лежит; waiting — времена «появится в…» для открытых капсул.
+// Место открытой капсулы занято, пока не наступило её время.
+function capsulesToAdd(count, waiting, now) {
+  const stillWaiting = waiting.filter(function (time) { return time > now; }).length;
+  return Math.max(0, CAPSULE_TARGET - count - stillWaiting);
+}
+
+// Сколько метров засчитать за шаг между двумя точками GPS.
+// meters — расстояние между точками, seconds — сколько секунд прошло,
+// accuracy — точность GPS в метрах. Не засчитываем «дрожание» GPS
+// (меньше 5 м), неточные координаты (хуже 40 м) и слишком быстрое
+// движение (быстрее 10 м/с — это машина или автобус, а не прогулка).
+const WALK_MIN_STEP = 5;
+const WALK_MAX_ACCURACY = 40;
+const WALK_MAX_SPEED = 10;
+
+function walkStepMeters(meters, seconds, accuracy) {
+  if (meters < WALK_MIN_STEP) return 0;
+  if (accuracy > WALK_MAX_ACCURACY) return 0;
+  if (seconds <= 0 || meters / seconds > WALK_MAX_SPEED) return 0;
+  return meters;
+}
+
+// Прибавить пройденные метры к сегодняшнему дню (новый день — с нуля).
+// В сохранение попадает ТОЛЬКО число метров, без координат.
+function addWalkMeters(walkToday, dayKey, meters) {
+  const today = walkToday.day === dayKey ? walkToday.meters : 0;
+  return { day: dayKey, meters: Math.round(today + meters) };
+}
+
+// Сколько метров пройдено сегодня
+function walkedToday(walkToday, dayKey) {
+  return walkToday.day === dayKey ? walkToday.meters : 0;
+}
+
+// Гости дома — только обычные коты (и сумеречные вечером).
+// Редкие и легендарные встречаются только на прогулке.
+function commonOnly(cats) {
+  return cats.filter(function (cat) { return cat.rarity === 'обычный'; });
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -1681,6 +1752,8 @@ if (typeof module !== 'undefined') {
     canLaunchShip, launchShip, badgeName, LATECOMER_CHANCE, latecomerCats, pickCatForChapter,
     shelterCats, isOnRadio, TIP_ENCOUNTERS, shouldShowTutorial, needsEncounterTips,
     MAP_COLORS, mutedPaint,
+    CAPSULE_TARGET, CAPSULE_RESPAWN_MIN, CAPSULE_RESPAWN_MAX, capsuleRespawnTime, capsulesToAdd,
+    walkStepMeters, addWalkMeters, walkedToday, commonOnly,
     GPS_LOG_MAX, addLogEntry, formatClock, GPS_ERROR_NAMES, agoText, buildGpsReport
   };
 }

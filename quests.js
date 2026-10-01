@@ -14,8 +14,9 @@
 
 // Сообщить о событии. Если задание выполнилось — награда уже выдана
 // в logic.js, здесь показываем подсказку и играем звук.
-function questEvent(eventName) {
-  const result = applyQuestEvent(save, localDayKey(new Date()), eventName, Math.random);
+// amount — на сколько (по умолчанию 1; для «Пройди 500 м» — метры)
+function questEvent(eventName, amount) {
+  const result = applyQuestEvent(save, localDayKey(new Date()), eventName, Math.random, amount);
   save = result.save;
   saveGame();
   for (let i = 0; i < result.completed.length; i++) {
@@ -45,7 +46,8 @@ function renderQuests(container) {
     const row = document.createElement('li');
     row.className = 'quest' + (item.done ? ' quest-done' : '');
     const mark = item.done ? '✅ ' : '⬜ ';
-    const progress = item.done ? 'готово' : Math.min(item.progress, type.goal) + ' из ' + type.goal;
+    const unit = type.unit ? ' ' + type.unit : ''; // «м» у задания про метры
+    const progress = item.done ? 'готово' : Math.min(item.progress, type.goal) + ' из ' + type.goal + unit;
     row.textContent = mark + type.text + ' (' + progress + '). Награда: ' + questRewardText(type.reward);
     container.appendChild(row);
   }

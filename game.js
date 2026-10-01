@@ -526,7 +526,14 @@ function catchCat(capsule) {
   const isLatecomer = catChapter(capsule.cat) < save.chapter; // кот из прошлой главы
   const result = applyCatWin(save, capsule.cat.id, capsule.cat);
   save = result.save;
+  // В капсуле может найтись ингредиент для кухни (50%)
+  const found = capsuleIngredients(Math.random);
+  save.pantry = addIngredients(save.pantry, found);
   saveGame();
+  if (found.length > 0) {
+    // Подсказку об ингредиенте показываем чуть позже, после подсказки о коте
+    setTimeout(function () { showToast('В капсуле нашлось: ' + ingredientsText(found) + '!'); }, TOAST_TIME + 200);
+  }
 
   if (result.reward.isNew && isLatecomer) {
     playSound('crew');

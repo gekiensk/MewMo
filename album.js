@@ -137,6 +137,9 @@ function renderAlbum() {
   // Задания на сегодня (quests.js)
   renderQuests(document.getElementById('album-quests'));
 
+  // Кладовая: ингредиенты с прогулки
+  renderPantry(document.getElementById('album-pantry'));
+
   // Сетка котов: сначала очищаем, потом добавляем по клетке на кота
   albumGrid.textContent = '';
   for (let i = 0; i < cats.length; i++) {
@@ -151,6 +154,29 @@ function renderAlbum() {
   for (let i = 0; i < captains.length; i++) {
     captainsGrid.appendChild(makeAlbumCell(captains[i], save.captains));
   }
+}
+
+// Кладовая: иконка, название и сколько штук у каждого ингредиента
+function renderPantry(container) {
+  container.textContent = '';
+  for (let i = 0; i < INGREDIENTS.length; i++) {
+    const item = INGREDIENTS[i];
+    const count = save.pantry[item.id] || 0;
+    const cell = document.createElement('div');
+    cell.className = 'pantry-item' + (count === 0 ? ' pantry-empty' : '');
+    const icon = document.createElement('span');
+    icon.className = 'pantry-icon';
+    icon.innerHTML = ingredientIcon(item.id); // art.js
+    const label = document.createElement('span');
+    label.textContent = item.name + ': ' + count;
+    cell.appendChild(icon);
+    cell.appendChild(label);
+    container.appendChild(cell);
+  }
+  const note = document.createElement('p');
+  note.className = 'pantry-note';
+  note.textContent = 'Ингредиенты находятся только на прогулке: у маяков и в капсулах.';
+  container.appendChild(note);
 }
 
 // Маленькая подпись в клетке альбома («Вернулся домой» и т. п.)

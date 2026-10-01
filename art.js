@@ -734,6 +734,41 @@ function starSprite() {
     star(20, 20, 18, GOLD) + '</svg>';
 }
 
+// Иконки ингредиентов. Холст 48×48.
+function ingredientIcon(id) {
+  const open = '<svg class="sprite" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">';
+  let body = '';
+  if (id === 'flour') {
+    // мешочек муки со звёздочкой
+    body = '<path d="M12 18 Q10 42 24 44 Q38 42 36 18 Z" fill="#FAF7F2" stroke="' + INK + '" stroke-width="2"/>' +
+      '<path d="M14 18 Q24 10 34 18" stroke="#E8C49A" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+      star(24, 31, 7, GOLD);
+  } else if (id === 'milk') {
+    // бутылочка молока с месяцем
+    body = '<rect x="18" y="6" width="12" height="7" rx="2" fill="#A9D3F0" stroke="' + INK + '" stroke-width="2"/>' +
+      '<path d="M16 14 L32 14 L34 22 L34 42 Q34 44 32 44 L16 44 Q14 44 14 42 L14 22 Z" fill="#FAF7F2" stroke="' + INK + '" stroke-width="2"/>' +
+      '<path d="M26 26 A6 6 0 1 0 28 36 A5 5 0 1 1 26 26 Z" fill="#F5D88E"/>';
+  } else if (id === 'mint') {
+    // листики мяты
+    body = '<path d="M24 44 L24 22" stroke="#5E9A5E" stroke-width="3" stroke-linecap="round"/>' +
+      '<path d="M24 24 Q8 22 10 8 Q24 10 24 24 Z" fill="#9FD8C8" stroke="' + INK + '" stroke-width="2"/>' +
+      '<path d="M24 30 Q40 28 38 14 Q24 16 24 30 Z" fill="#B5E2B0" stroke="' + INK + '" stroke-width="2"/>';
+  } else if (id === 'sugar') {
+    // кристаллики сахара-метеорита
+    body = '<path d="M8 36 L16 22 L26 30 L20 42 Z" fill="#E3DAF5" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round"/>' +
+      '<path d="M22 20 L30 8 L40 18 L34 30 Z" fill="#FAF7F2" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round"/>' +
+      '<path d="M28 38 L34 30 L42 36 L36 44 Z" fill="#F8DCE3" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round"/>';
+  } else {
+    // туманные ягоды
+    body = '<path d="M24 6 Q26 14 22 18" stroke="#5E9A5E" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+      '<circle cx="17" cy="28" r="9" fill="#C2B0E8" stroke="' + INK + '" stroke-width="2"/>' +
+      '<circle cx="31" cy="28" r="9" fill="#9C84D4" stroke="' + INK + '" stroke-width="2"/>' +
+      '<circle cx="24" cy="38" r="8" fill="#C2B0E8" stroke="' + INK + '" stroke-width="2"/>' +
+      '<circle cx="14" cy="25" r="2" fill="#FFFFFF"/><circle cx="28" cy="25" r="2" fill="#FFFFFF"/>';
+  }
+  return open + body + '</svg>';
+}
+
 // Пузырь (его ловить нельзя). Холст 32×32.
 function bubbleSprite() {
   return '<svg class="sprite" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
@@ -865,6 +900,6 @@ if (typeof module !== 'undefined') {
   module.exports = {
     CAT_LOOKS, SUIT_COLORS, catPortrait, capsuleIcon, beaconIcon, shelterScene, launchScene,
     TUTORIAL_PICTURE_COUNT, tutorialPicture, fishSprite, bubbleSprite, basketSprite,
-    fireflySprite, starSprite
+    fireflySprite, starSprite, ingredientIcon
   };
 }

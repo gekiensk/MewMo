@@ -191,12 +191,16 @@ function openBeacon(beacon) {
   // Награда: 2–4 рыбки и, может быть, деталь корабля
   const reward = beaconReward(Math.random);
   save = applyBeaconReward(save, beacon.id, reward, now);
+  // Ингредиенты для кухни — только на прогулке (logic.js)
+  const found = beaconIngredients(Math.random);
+  save.pantry = addIngredients(save.pantry, found);
   saveGame();
 
   let text = beaconTitle(beacon) + ': +' + reward.fish + ' 🐟';
   if (reward.parts > 0) {
     text = text + ' и деталь корабля 🔩';
   }
+  text = text + '. В кладовую: ' + ingredientsText(found);
   playSound('reward');
   showToast(text + '!');
   questEvent('beacon'); // задание «Зайди на маяк» (quests.js)

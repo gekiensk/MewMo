@@ -1632,3 +1632,35 @@ body.mode-home .toast {
 .helper-button[aria-pressed="true"] .helper-radio {
   color: var(--space);
 }
+
+/* ===== Кладовая (в альбоме) ===== */
+.pantry {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+.pantry-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 14px;
+  background: var(--space);
+  font-size: 15px;
+  font-weight: 700;
+}
+.pantry-empty {
+  opacity: 0.6;
+}
+.pantry-icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+}
+.pantry-note {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  font-size: 14px;
+}

@@ -283,6 +283,7 @@ function emptySave() {
     tutorialSeen: false,
     tipEncounters: 0,
     seenGames: [],                     // какие мини-игры и занятия уже объясняли (плашка-подсказка)
+    pantry: {},                        // кладовая: ингредиент → сколько штук
     captainDay: '',                    // в какой день приходил последний капитан
     walkToday: { day: '', meters: 0 }  // сколько метров пройдено сегодня (только число!)
   };
@@ -385,6 +386,12 @@ function cleanSave(data) {
     : (alreadyPlayed ? TIP_ENCOUNTERS : 0);
   save.captainDay = typeof data.captainDay === 'string' ? data.captainDay : '';
   save.seenGames = cleanStringList(data.seenGames);
+  // Кладовая: только известные ингредиенты
+  const pantry = cleanCounts(data.pantry, 1);
+  save.pantry = {};
+  Object.keys(pantry).forEach(function (id) {
+    if (findIngredient(id)) save.pantry[id] = pantry[id];
+  });
   const walk = data.walkToday;
   save.walkToday = (walk && typeof walk.day === 'string' && isCount(walk.meters))
     ? { day: walk.day, meters: walk.meters } : { day: '', meters: 0 };
@@ -1995,6 +2002,56 @@ function starsBrightness(time, fadeTime) {
   return Math.max(0, 1 - time / fadeTime);
 }
 
+// =============================================================
+// Ингредиенты (собираются только на прогулке)
+// =============================================================
+// «На прогулке собираешь — дома используешь»: из ингредиентов дома
+// готовят угощения для котов.
+const INGREDIENTS = [
+  { id: 'flour', name: 'Звёздная мука' },
+  { id: 'milk', name: 'Лунное молоко' },
+  { id: 'mint', name: 'Космическая мята' },
+  { id: 'sugar', name: 'Метеоритный сахар' },
+  { id: 'berry', name: 'Туманная ягода' }
+];
+const CAPSULE_INGREDIENT_CHANCE = 0.5; // капсула — ингредиент с шансом 50%
+
+function findIngredient(id) {
+  return INGREDIENTS.find(function (item) { return item.id === id; });
+}
+
+// Случайный ингредиент
+function randomIngredient(random) {
+  return INGREDIENTS[Math.floor(random() * INGREDIENTS.length)].id;
+}
+
+// Маяк даёт 1–2 ингредиента
+function beaconIngredients(random) {
+  const count = random() < 0.5 ? 1 : 2;
+  const list = [];
+  for (let i = 0; i < count; i++) list.push(randomIngredient(random));
+  return list;
+}
+
+// Кот из капсулы — ингредиент с шансом 50% (список из 0 или 1 штуки)
+function capsuleIngredients(random) {
+  return random() < CAPSULE_INGREDIENT_CHANCE ? [randomIngredient(random)] : [];
+}
+
+// Положить ингредиенты в кладовую. Возвращает новую кладовую.
+function addIngredients(pantry, list) {
+  const result = Object.assign({}, pantry);
+  for (let i = 0; i < list.length; i++) {
+    result[list[i]] = (result[list[i]] || 0) + 1;
+  }
+  return result;
+}
+
+// Текст «Звёздная мука, Лунное молоко» для подсказки
+function ingredientsText(list) {
+  return list.map(function (id) { return findIngredient(id).name; }).join(', ');
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -2030,6 +2087,8 @@ if (typeof module !== 'undefined') {
     canLaunchShip, launchShip, badgeName, LATECOMER_CHANCE, latecomerCats, pickCatForChapter,
     shelterCats, isOnRadio, TIP_ENCOUNTERS, shouldShowTutorial, needsEncounterTips,
     MAP_COLORS, mutedPaint,
+    INGREDIENTS, CAPSULE_INGREDIENT_CHANCE, findIngredient, randomIngredient, beaconIngredients,
+    capsuleIngredients, addIngredients, ingredientsText,
     MINIGAME_BY_TYPE, MINIGAME_NAMES, READY_MINIGAMES, minigameDifficulty, randomMinigames,
     planMinigames, signalBonus, helperPerks, helperHelpText,
     fishSettings, makeFallingItem, fallingY, isCaughtByBasket, fishOutcome,

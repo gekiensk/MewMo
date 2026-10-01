@@ -211,6 +211,8 @@ async function walkScenario(browser) {
   // Альбом: открыть и закрыть
   await page.click('#crew-button');
   expect(await page.isVisible('#album'), name + ': альбом не открылся');
+  const pantryItems = await page.locator('#album-pantry .pantry-item').count();
+  expect(pantryItems === 5, name + ': в кладовой не 5 ингредиентов (' + pantryItems + ')');
   await page.click('#album-close');
   expect(await page.isHidden('#album'), name + ': альбом не закрылся');
 

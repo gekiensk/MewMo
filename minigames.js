@@ -134,7 +134,7 @@ function showRulesIfNew(game, start) {
 
 // Запустить одну игру по названию
 function startGame(game, options, finish) {
-  const starters = { fish: startFishGame };
+  const starters = { fish: startFishGame, pattern: startPatternGame, rhythm: startRhythmGame, stars: startStarsGame };
   const starter = starters[game] || startFishGame;
   currentGame = starter(options, finish);
 }
@@ -254,4 +254,263 @@ function startFishGame(options, finish) {
 
   state.frame = requestAnimationFrame(frame);
   return { stop: stop };
+}
+
+// =============================================================
+// «Повтори узор» (лесные коты)
+// =============================================================
+// 4 светлячка мигают по очереди — у каждого свой цвет и своя нота.
+const FIREFLY_COLORS = ['#F5D88E', '#9FD8C8', '#F4A7B9', '#A9D3F0'];
+const FIREFLY_NOTES = [262, 330, 392, 523]; // до, ми, соль, до (мягко)
+
+function startPatternGame(options, finish) {
+  const settings = patternSettings(options.difficulty, options.bonus, options.perks.pattern, options.reducedMotion); // logic.js
+  const state = {
+    game: { pattern: makePattern(settings.length, Math.random), position: 0, mistakes: 0, mistakesAllowed: settings.mistakesAllowed },
+    showing: true, // пока показываем узор — нажимать нельзя
+    timers: [],
+    over: false
+  };
+
+  let html = '<p class="game-hud"></p><div class="game-field pattern-field">';
+  for (let i = 0; i < 4; i++) {
+    html = html + '<button class="firefly" data-index="' + i + '" aria-label="Светлячок ' + (i + 1) + '">' +
+      fireflySprite(FIREFLY_COLORS[i]) + '</button>';
+  }
+  gameArea.innerHTML = html + '</div>';
+  const flies = gameArea.querySelectorAll('.firefly');
+
+  function hud(text) {
+    setHud(text + ' · Ошибок можно: ' + Math.max(0, state.game.mistakesAllowed - state.game.mistakes));
+  }
+
+  // Зажечь светлячка index на время flashTime
+  function flash(index) {
+    flies[index].classList.add('lit');
+    playTone(FIREFLY_NOTES[index], settings.flashTime * 0.8);
+    state.timers.push(setTimeout(function () { flies[index].classList.remove('lit'); }, settings.flashTime * 1000));
+  }
+
+  // Показать узор (times — сколько раз подряд), потом ждать нажатий
+  function show(times) {
+    state.showing = true;
+    hud('Смотри…');
+    const step = (settings.flashTime + settings.gapTime) * 1000;
+    let delay = 600;
+    for (let t = 0; t < times; t++) {
+      for (let i = 0; i < state.game.pattern.length; i++) {
+        const index = state.game.pattern[i];
+        state.timers.push(setTimeout(function () { flash(index); }, delay));
+        delay = delay + step;
+      }
+      delay = delay + 700; // пауза между повторами
+    }
+    state.timers.push(setTimeout(function () {
+      state.showing = false;
+      hud('Повтори! Нажато: 0 из ' + state.game.pattern.length);
+    }, delay));
+  }
+
+  function press(event) {
+    const button = event.target.closest('.firefly');
+    if (!button || state.showing || state.over) return;
+    const index = Number(button.dataset.index);
+    flash(index);
+    const step = patternPress(state.game, index); // logic.js
+    state.game = step.state;
+    if (step.result === 'верно') {
+      hud('Повтори! Нажато: ' + state.game.position + ' из ' + state.game.pattern.length);
+    } else if (step.result === 'ошибка') {
+      playSound('oops');
+      gameStatus.textContent = 'Ошибка — смотри ещё раз!';
+      show(1);
+    } else {
+      stop();
+      finish(step.result === 'победа', state.game.mistakes === 0);
+    }
+  }
+  gameArea.addEventListener('click', press);
+
+  function stop() {
+    if (state.over) return;
+    state.over = true;
+    state.timers.forEach(clearTimeout);
+    gameArea.removeEventListener('click', press);
+  }
+
+  // Помощник — лесной кот: в начале узор показывают два раза
+  show(settings.showTwice ? 2 : 1);
+  return { stop: stop };
+}
+
+// =============================================================
+// «Ритм» (городские коты)
+// =============================================================
+// Кольцо сжимается к кругу; нажать на круг, когда они совпали.
+// Под каждую ноту играет спокойная мелодия.
+const RHYTHM_MELODY = [262, 330, 392, 330, 349, 294, 330, 262];
+
+function startRhythmGame(options, finish) {
+  const settings = rhythmSettings(options.difficulty, options.bonus, options.perks.rhythm, options.reducedMotion); // logic.js
+  gameArea.innerHTML =
+    '<p class="game-hud"></p>' +
+    '<div class="game-field rhythm-field">' +
+    '<div class="rhythm-ring"></div>' +
+    '<button class="rhythm-target" aria-label="Нажми, когда кольцо совпадёт с кругом">Жми!</button>' +
+    '</div>';
+  const ring = gameArea.querySelector('.rhythm-ring');
+  const target = gameArea.querySelector('.rhythm-target');
+  const state = { start: performance.now(), note: 0, hits: 0, misses: 0, judged: [], played: -1, frame: null, over: false };
+
+  function now() {
+    return (performance.now() - state.start) / 1000;
+  }
+
+  function hud() {
+    setHud('Попаданий: ' + state.hits + ' (нужно ' + settings.needed + ') · Нота ' +
+      Math.min(state.note + 1, settings.notes) + ' из ' + settings.notes);
+  }
+
+  // Нажатие: ищем ноту, которая сейчас совпадает с кругом
+  function tap() {
+    if (state.over) return;
+    const time = now();
+    for (let n = 0; n < settings.notes; n++) {
+      if (state.judged[n]) continue;
+      if (rhythmHit(time, rhythmTargetTime(n, settings), settings.window)) { // logic.js
+        state.judged[n] = 'попал';
+        state.hits = state.hits + 1;
+        playTone(784, 0.12);
+        gameStatus.textContent = 'В точку!';
+        target.classList.add('hit');
+        setTimeout(function () { target.classList.remove('hit'); }, 200);
+        check();
+        return;
+      }
+    }
+    gameStatus.textContent = 'Рано или поздно — подожди кольцо';
+  }
+  target.addEventListener('click', tap);
+
+  function check() {
+    hud();
+    const outcome = rhythmOutcome(state.hits, state.misses, settings); // logic.js
+    if (outcome || state.note >= settings.notes) {
+      stop();
+      finish(outcome === 'победа' || state.hits >= settings.needed, state.misses === 0);
+    }
+  }
+
+  function frame() {
+    const time = now();
+    // Текущая нота — первая, у которой ещё не прошло время совпадения
+    while (state.note < settings.notes && time > rhythmTargetTime(state.note, settings) + settings.window) {
+      if (!state.judged[state.note]) {
+        state.judged[state.note] = 'мимо';
+        state.misses = state.misses + 1;
+        gameStatus.textContent = 'Мимо';
+      }
+      state.note = state.note + 1;
+      check();
+      if (state.over) return;
+    }
+    // Мелодия: каждая нота звучит один раз — в момент совпадения кольца с кругом
+    if (state.note < settings.notes && state.played < state.note && time >= rhythmTargetTime(state.note, settings)) {
+      state.played = state.note;
+      playTone(RHYTHM_MELODY[state.note % RHYTHM_MELODY.length], 0.3);
+    }
+    // Размер кольца: от 100% поля до размера круга
+    const size = Math.max(0, rhythmRingSize(state.note, time, settings)); // logic.js
+    ring.style.width = (30 + size * 62) + '%'; // высота — такая же (aspect-ratio в style.css)
+    state.frame = requestAnimationFrame(frame);
+  }
+
+  function stop() {
+    if (state.over) return;
+    state.over = true;
+    cancelAnimationFrame(state.frame);
+    target.removeEventListener('click', tap);
+  }
+
+  hud();
+  state.frame = requestAnimationFrame(frame);
+  return { stop: stop };
+}
+
+// =============================================================
+// «Созвездие» (сумеречные коты)
+// =============================================================
+// Звёзды с номерами медленно гаснут; нажимай по порядку. Получилось —
+// звёзды соединяются, и появляется силуэт кота.
+function startStarsGame(options, finish) {
+  const settings = starsSettings(options.difficulty, options.bonus, options.perks.stars); // logic.js
+  const stars = constellationStars(settings.count); // logic.js
+  let html = '<p class="game-hud"></p><div class="game-field stars-field">' +
+    '<svg class="constellation" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>';
+  for (let i = 0; i < stars.length; i++) {
+    html = html + '<button class="star-button" data-number="' + stars[i].number + '" style="left:' +
+      (stars[i].x * 100) + '%; top:' + (stars[i].y * 100) + '%" aria-label="Звезда ' + stars[i].number + '">' +
+      starSprite() + '<span class="star-number">' + stars[i].number + '</span></button>';
+  }
+  gameArea.innerHTML = html + '</div>';
+  const buttons = gameArea.querySelectorAll('.star-button');
+  const state = { next: 1, start: performance.now(), frame: null, over: false, timer: null };
+
+  function press(event) {
+    const button = event.target.closest('.star-button');
+    if (!button || state.over) return;
+    const step = starPress(state.next, Number(button.dataset.number), settings.count); // logic.js
+    if (step.result === 'мимо') {
+      gameStatus.textContent = 'Ищи звезду номер ' + state.next;
+      return;
+    }
+    state.next = step.next;
+    button.classList.add('done');
+    playTone(392 + state.next * 40, 0.2);
+    if (step.result === 'победа') {
+      drawConstellation();
+      stop();
+      // Секунду любуемся силуэтом кота
+      state.timer = setTimeout(function () { finish(true, true); }, 1200);
+    }
+  }
+  gameArea.addEventListener('click', press);
+
+  // Линии между звёздами по порядку и силуэт кота
+  function drawConstellation() {
+    let points = '';
+    for (let i = 0; i < CAT_CONSTELLATION.length; i++) {
+      points = points + (CAT_CONSTELLATION[i][0] * 100) + ',' + (CAT_CONSTELLATION[i][1] * 100) + ' ';
+    }
+    gameArea.querySelector('.constellation').innerHTML =
+      '<polygon points="' + points.trim() + '" fill="#F5D88E" fill-opacity="0.25" stroke="#F5D88E" stroke-width="0.8"/>';
+    gameStatus.textContent = 'Из звёзд сложился кот!';
+  }
+
+  function frame() {
+    const time = (performance.now() - state.start) / 1000;
+    const brightness = starsBrightness(time, settings.fadeTime); // logic.js
+    for (let i = 0; i < buttons.length; i++) {
+      if (!buttons[i].classList.contains('done')) buttons[i].style.opacity = 0.25 + brightness * 0.75;
+    }
+    setHud('Следующая: ' + state.next + ' · Звёзды гаснут: ' + Math.ceil(Math.max(0, settings.fadeTime - time)) + ' с');
+    if (brightness <= 0) {
+      stop();
+      finish(false, false);
+      return;
+    }
+    state.frame = requestAnimationFrame(frame);
+  }
+
+  function stop() {
+    if (state.over) return;
+    state.over = true;
+    cancelAnimationFrame(state.frame);
+    gameArea.removeEventListener('click', press);
+  }
+
+  state.frame = requestAnimationFrame(frame);
+  return {
+    stop: function () { stop(); clearTimeout(state.timer); }
+  };
 }

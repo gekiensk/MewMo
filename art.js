@@ -716,6 +716,24 @@ function fishSprite() {
     '</svg>';
 }
 
+// Светлячок (для «Повтори узор»). color — цвет брюшка. Холст 60×60.
+function fireflySprite(color) {
+  return '<svg class="sprite" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    '<ellipse cx="18" cy="24" rx="12" ry="7" fill="#FAF7F2" fill-opacity="0.75" transform="rotate(-25 18 24)"/>' +
+    '<ellipse cx="42" cy="24" rx="12" ry="7" fill="#FAF7F2" fill-opacity="0.75" transform="rotate(25 42 24)"/>' +
+    '<circle class="firefly-glow" cx="30" cy="38" r="13" fill="' + color + '"/>' +
+    '<circle cx="30" cy="22" r="8" fill="' + INK + '"/>' +
+    '<circle cx="27" cy="21" r="1.6" fill="#FFFFFF"/><circle cx="33" cy="21" r="1.6" fill="#FFFFFF"/>' +
+    '<path d="M26 15 L22 7 M34 15 L38 7" stroke="' + INK + '" stroke-width="2" stroke-linecap="round"/>' +
+    '</svg>';
+}
+
+// Звезда для «Созвездия» (с номером рисует minigames.js). Холст 40×40.
+function starSprite() {
+  return '<svg class="sprite" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    star(20, 20, 18, GOLD) + '</svg>';
+}
+
 // Пузырь (его ловить нельзя). Холст 32×32.
 function bubbleSprite() {
   return '<svg class="sprite" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
@@ -846,6 +864,7 @@ function tutorialPicture(index) {
 if (typeof module !== 'undefined') {
   module.exports = {
     CAT_LOOKS, SUIT_COLORS, catPortrait, capsuleIcon, beaconIcon, shelterScene, launchScene,
-    TUTORIAL_PICTURE_COUNT, tutorialPicture, fishSprite, bubbleSprite, basketSprite
+    TUTORIAL_PICTURE_COUNT, tutorialPicture, fishSprite, bubbleSprite, basketSprite,
+    fireflySprite, starSprite
   };
 }

@@ -304,7 +304,7 @@ function startGames() {
   // Помощники (против капитанов) помогают в игре своего типа (logic.js)
   const helperCats = activeEncounter.helpers.map(function (id) { return findCat(id) || findCaptain(id); });
   showScreen('screen-game');
-  document.getElementById('game-title').textContent = activeEncounter.cat.name + ': мини-игра';
+  document.getElementById('game-title').textContent = activeEncounter.cat.name;
   runMinigames(plan.games, { // minigames.js
     difficulty: minigameDifficulty(activeEncounter.cat.rarity),
     bonus: activeEncounter.bonus,

@@ -524,12 +524,54 @@ const ROBOTS = {
     });
     if (target === null) return;
     field.dispatchEvent(new PointerEvent('pointermove', { clientX: target, clientY: rect.top + 10, bubbles: true }));
+  },
+  // «Повтори узор»: запоминаем, какие светлячки мигали, пока игра
+  // показывала узор («Смотри…»), и нажимаем их, когда «Повтори!»
+  pattern: function () {
+    const flies = document.querySelectorAll('.firefly');
+    if (flies.length === 0) { window.__seen = []; window.__wasLit = -1; return; }
+    const hud = document.querySelector('.game-hud').textContent;
+    window.__seen = window.__seen || [];
+    let lit = -1;
+    flies.forEach(function (fly, i) { if (fly.classList.contains('lit')) lit = i; });
+    if (hud.indexOf('Смотри') === 0) {
+      if (lit !== -1 && lit !== window.__wasLit) window.__seen.push(lit);
+      window.__wasLit = lit;
+      window.__pressed = false;
+    } else if (hud.indexOf('Повтори') === 0 && !window.__pressed && window.__seen.length > 0) {
+      window.__pressed = true;
+      window.__seen.forEach(function (i) { flies[i].click(); });
+      window.__seen = [];
+    }
+  },
+  // «Ритм»: жмём, когда кольцо почти совпало с кругом
+  rhythm: function () {
+    const ring = document.querySelector('.rhythm-ring');
+    if (!ring) return;
+    const size = parseFloat(ring.style.width);
+    const now = Date.now();
+    if (size <= 33 && (!window.__lastTap || now - window.__lastTap > 600)) {
+      window.__lastTap = now;
+      document.querySelector('.rhythm-target').click();
+    }
+  },
+  // «Созвездие»: жмём звезду со следующим номером
+  stars: function () {
+    const next = document.querySelector('.star-button:not(.done)');
+    if (!next) return;
+    let best = null;
+    document.querySelectorAll('.star-button:not(.done)').forEach(function (b) {
+      if (!best || Number(b.dataset.number) < Number(best.dataset.number)) best = b;
+    });
+    best.click();
   }
 };
 
 async function playEncounter(page, catId, label) {
   // Открываем знакомство с нужным котом прямо в ближайшей капсуле
   await page.evaluate(function (id) {
+    // Новая капсула появляется через 2–4 минуты — для проверки кладём её сами
+    if (capsules.length === 0) addCapsule(offsetPosition(playerPosition(), 80, 1));
     const capsule = capsules[0];
     capsule.cat = findCat(id);
     movePlayer(capsulePosition(capsule), 5);
@@ -575,6 +617,10 @@ async function minigameScenario(browser) {
   await page.click('#start-button');
   await moveTo(page, context, ROUTE[1], 'первую точку');
   await playEncounter(page, 'bul', '«Поймай рыбок» (водный кот)');
+  await playEncounter(page, 'moh', '«Повтори узор» (лесной кот)');
+  await playEncounter(page, 'iskra', '«Ритм» (городской кот)');
+  await playEncounter(page, 'sumrak', '«Созвездие» (сумеречный кот)');
+  await playEncounter(page, 'kometa', 'две игры подряд (легендарная Комета)');
   await context.close();
 }
 

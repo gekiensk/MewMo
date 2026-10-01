@@ -49,6 +49,8 @@ test('картинки мини-игр — SVG', function () {
   assert.ok(looksLikeSvg(art.fishSprite()));
   assert.ok(looksLikeSvg(art.bubbleSprite()));
   assert.ok(looksLikeSvg(art.basketSprite()));
+  assert.ok(looksLikeSvg(art.fireflySprite('#F5D88E')));
+  assert.ok(looksLikeSvg(art.starSprite()));
 });
 
 test('неизвестный кот не ломает игру', function () {

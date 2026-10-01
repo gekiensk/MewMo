@@ -1523,3 +1523,99 @@ body.mode-home .toast {
   translate: -50% 0; /* центр корзинки — в её точке */
   pointer-events: none;
 }
+
+/* «Повтори узор»: 4 светлячка в сетке 2×2 */
+.pattern-field {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 18px;
+  background: #3E5A55;
+  box-sizing: border-box;
+}
+.firefly {
+  border: 3px solid transparent;
+  border-radius: 24px;
+  background: rgba(250, 247, 242, 0.08);
+  cursor: pointer;
+}
+.firefly .firefly-glow {
+  opacity: 0.35;
+}
+/* Светлячок горит: брюшко ярче, вокруг свечение */
+.firefly.lit {
+  border-color: var(--star);
+  box-shadow: 0 0 22px var(--star);
+}
+.firefly.lit .firefly-glow {
+  opacity: 1;
+}
+
+/* «Ритм»: круг в центре и сжимающееся кольцо */
+.rhythm-field {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #4A4E7E;
+}
+.rhythm-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  aspect-ratio: 1; /* всегда круг, а не овал */
+  border: 6px solid var(--mint);
+  border-radius: 50%;
+  translate: -50% -50%;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.rhythm-target {
+  width: 30%;
+  aspect-ratio: 1;
+  border: 4px solid var(--fur);
+  border-radius: 50%;
+  background: var(--nose);
+  color: var(--space);
+  font-family: var(--font);
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.rhythm-target.hit {
+  background: var(--mint);
+}
+
+/* «Созвездие»: ночное небо и звёзды с номерами */
+.stars-field {
+  background: #2A2C4C;
+}
+.constellation {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.star-button {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px; /* центр звезды — в её точке */
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+.star-number {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--space);
+  font-family: var(--font);
+  font-size: 18px;
+  font-weight: 800;
+}
+.star-button.done {
+  filter: drop-shadow(0 0 8px var(--star));
+}

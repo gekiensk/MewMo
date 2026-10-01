@@ -1745,7 +1745,7 @@ const MINIGAME_NAMES = {
   stars: 'Созвездие'
 };
 // Какие мини-игры уже готовы (остальные временно заменяются первой из списка)
-const READY_MINIGAMES = ['fish'];
+const READY_MINIGAMES = ['fish', 'pattern', 'rhythm', 'stars'];
 
 // Сложность мини-игры по редкости кота: 'обычный', 'редкий' или 'легендарный'
 // (у капитанов — 'легендарный')
@@ -1872,6 +1872,129 @@ function fishOutcome(caught, goal, lives, timeLeft) {
   return '';
 }
 
+// ----- «Повтори узор» (лесные коты) -----
+// 4 светлячка мигают по очереди, игрок повторяет. Длина узора 3 / 4 / 5
+// по редкости. Одна ошибка разрешена (за пойманный сигнал — ещё одна):
+// после ошибки узор показывают снова и повторяют с начала.
+function patternSettings(difficulty, bonus, showTwice, reducedMotion) {
+  const lengths = { 'обычный': 3, 'редкий': 4, 'легендарный': 5 };
+  return {
+    length: lengths[difficulty] || 3,
+    mistakesAllowed: 1 + (bonus ? bonus.extraLives : 0),
+    showTwice: !!showTwice,                 // помощник — лесной кот: покажет узор ещё раз
+    flashTime: reducedMotion ? 1.2 : 0.6,   // сколько секунд горит светлячок
+    gapTime: reducedMotion ? 0.5 : 0.25     // пауза между светлячками
+  };
+}
+
+// Узор: номера светлячков 0–3, один и тот же два раза подряд не мигает
+function makePattern(length, random) {
+  const pattern = [];
+  while (pattern.length < length) {
+    const next = Math.floor(random() * 4);
+    if (pattern.length === 0 || pattern[pattern.length - 1] !== next) pattern.push(next);
+  }
+  return pattern;
+}
+
+// Игрок нажал светлячка index. state — { pattern, position, mistakes,
+// mistakesAllowed }. Возвращает { state, result }: result —
+// 'верно', 'ошибка' (покажем узор снова), 'победа' или 'проигрыш'.
+function patternPress(state, index) {
+  const next = Object.assign({}, state);
+  if (state.pattern[state.position] === index) {
+    next.position = state.position + 1;
+    return { state: next, result: next.position >= state.pattern.length ? 'победа' : 'верно' };
+  }
+  next.mistakes = state.mistakes + 1;
+  next.position = 0;
+  return { state: next, result: next.mistakes > state.mistakesAllowed ? 'проигрыш' : 'ошибка' };
+}
+
+// ----- «Ритм» (городские коты) -----
+// Под спокойную мелодию кольцо сжимается к кругу; нажать, когда совпали.
+// 8 нот, попасть в 6 (обычный) или 7 (редкий и легендарный). За пойманный
+// сигнал можно промахнуться на один раз больше.
+function rhythmSettings(difficulty, bonus, slow, reducedMotion) {
+  let interval = 2.6;               // секунд на одну ноту (кольцо сжимается)
+  if (slow) interval = 3.3;         // помощник — городской кот: медленнее
+  if (reducedMotion) interval = interval * 2;
+  const needed = difficulty === 'обычный' ? 6 : 7;
+  return {
+    notes: 8,
+    needed: needed - (bonus ? bonus.extraLives : 0),
+    interval: interval,
+    window: difficulty === 'легендарный' ? 0.2 : 0.25 // ± секунд — «попал»
+  };
+}
+
+// Время (с), когда кольцо номер n (с 0) совпадает с кругом
+function rhythmTargetTime(n, settings) {
+  return (n + 1) * settings.interval;
+}
+
+// Размер кольца в момент time для ноты n: 1 — только появилось (большое),
+// 0 — совпало с кругом; меньше 0 — уже прошло
+function rhythmRingSize(n, time, settings) {
+  return (rhythmTargetTime(n, settings) - time) / settings.interval;
+}
+
+// Попало ли нажатие в ноту (не дальше window секунд от совпадения)
+function rhythmHit(tapTime, targetTime, window) {
+  return Math.abs(tapTime - targetTime) <= window;
+}
+
+// Итог «Ритма»: 'победа', 'проигрыш' или '' (ещё играем)
+function rhythmOutcome(hits, misses, settings) {
+  if (hits >= settings.needed) return 'победа';
+  if (misses > settings.notes - settings.needed) return 'проигрыш';
+  return '';
+}
+
+// ----- «Созвездие» (сумеречные коты) -----
+// 5–7 звёзд с номерами, нажимать по порядку, звёзды медленно гаснут.
+// Получилось — из звёзд складывается силуэт кота.
+// Контур сидящего кота (доли поля от 0 до 1): ухо, макушка, ухо, щека,
+// спина, низ, низ, щека. По этим точкам ставим звёзды.
+const CAT_CONSTELLATION = [
+  [0.30, 0.14], [0.42, 0.30], [0.58, 0.30], [0.70, 0.14],
+  [0.72, 0.44], [0.80, 0.86], [0.24, 0.86], [0.28, 0.44]
+];
+
+function starsSettings(difficulty, bonus, slowFade) {
+  const counts = { 'обычный': 5, 'редкий': 6, 'легендарный': 7 };
+  const fade = { 'обычный': 20, 'редкий': 17, 'легендарный': 15 };
+  return {
+    count: counts[difficulty] || 5,
+    // за сколько секунд звёзды гаснут совсем
+    fadeTime: (fade[difficulty] || 20) + (bonus ? bonus.extraSeconds : 0) + (slowFade ? 6 : 0)
+  };
+}
+
+// Где стоят звёзды: count точек контура кота, по порядку (номера 1, 2, 3…)
+function constellationStars(count) {
+  const stars = [];
+  for (let i = 0; i < count; i++) {
+    const index = Math.round(i * CAT_CONSTELLATION.length / count) % CAT_CONSTELLATION.length;
+    stars.push({ number: i + 1, x: CAT_CONSTELLATION[index][0], y: CAT_CONSTELLATION[index][1] });
+  }
+  return stars;
+}
+
+// Игрок нажал звезду number. next — какой номер ждём.
+// Возвращает { next, result }: 'верно', 'мимо' (не та звезда — без
+// наказания) или 'победа'.
+function starPress(next, number, count) {
+  if (number !== next) return { next: next, result: 'мимо' };
+  if (next >= count) return { next: next + 1, result: 'победа' };
+  return { next: next + 1, result: 'верно' };
+}
+
+// Яркость звёзд (1 — горят, 0 — погасли) через time секунд
+function starsBrightness(time, fadeTime) {
+  return Math.max(0, 1 - time / fadeTime);
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 // В браузере переменной module нет, и эта строка ничего не делает.
 if (typeof module !== 'undefined') {
@@ -1910,6 +2033,9 @@ if (typeof module !== 'undefined') {
     MINIGAME_BY_TYPE, MINIGAME_NAMES, READY_MINIGAMES, minigameDifficulty, randomMinigames,
     planMinigames, signalBonus, helperPerks, helperHelpText,
     fishSettings, makeFallingItem, fallingY, isCaughtByBasket, fishOutcome,
+    patternSettings, makePattern, patternPress,
+    rhythmSettings, rhythmTargetTime, rhythmRingSize, rhythmHit, rhythmOutcome,
+    CAT_CONSTELLATION, starsSettings, constellationStars, starPress, starsBrightness,
     CAPSULE_TARGET, CAPSULE_RESPAWN_MIN, CAPSULE_RESPAWN_MAX, capsuleRespawnTime, capsulesToAdd,
     walkStepMeters, addWalkMeters, walkedToday, commonOnly,
     GPS_LOG_MAX, addLogEntry, formatClock, GPS_ERROR_NAMES, agoText, buildGpsReport

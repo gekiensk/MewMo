@@ -1317,14 +1317,15 @@ function checkParentAnswer(question, text) {
 // =============================================================
 // Режим «Дом»: гости в убежище
 // =============================================================
-// Раз в 3 часа в убежище прилетает кот-гость. Гостей копится не больше 3.
+// Раз в 6 часов в убежище прилетает кот-гость. Гостей копится не больше 1
+// (после теста с ребёнком: дома было слишком много котов).
 // Время прилёта следующего гостя (nextAt) хранится в сохранении.
 // Гость выбирается по редкости, как в капсулах. С 17:00 до 22:00 по
 // местному времени гостями бывают и сумеречные коты (дома координат нет,
 // поэтому смотрим просто на часы).
 
-const GUEST_INTERVAL = 3 * 60 * 60 * 1000; // гость прилетает раз в 3 часа
-const MAX_GUESTS = 3;                      // больше трёх гостей не копится
+const GUEST_INTERVAL = 6 * 60 * 60 * 1000; // гость прилетает раз в 6 часов
+const MAX_GUESTS = 1;                      // больше одного гостя не копится
 const TWILIGHT_HOUR_FROM = 17;             // сумеречные гости — с 17:00…
 const TWILIGHT_HOUR_TO = 22;               // …до 22:00
 
@@ -1353,8 +1354,8 @@ function pickGuest(cats, hour, random) {
 //   cats   — каталог котов;
 //   hourOf — функция: время (мс) → час по местному времени (0–23);
 //   random — случайные числа.
-// Первый раз (nextAt = 0) гость прилетает сразу. Потом — каждые 3 часа.
-// Если в убежище уже 3 гостя, новый не прилетает (его прилёт пропадает).
+// Первый раз (nextAt = 0) гость прилетает сразу. Потом — каждые 6 часов.
+// Если гость уже ждёт, новый не прилетает (его прилёт пропадает).
 // save (необязательно) — сохранение: тогда гости выбираются по главе
 // (коты текущей главы и отставшие, см. pickCatForChapter).
 function updateGuests(guests, now, cats, hourOf, random, save) {
@@ -1436,16 +1437,19 @@ function friendshipHearts(level) {
 // =============================================================
 // Каждый день — 3 задания из списка. Задания засчитываются и на прогулке,
 // и дома. event — какое событие игры двигает задание вперёд.
+// place — где выполняется: 'прогулка', 'дом' или 'везде'. Задания, которые
+// можно выполнить дома, дают награду меньше, чем прогулочные: пусть
+// главное собирается на прогулке.
 const QUEST_TYPES = [
-  { id: 'catch2', text: 'Поймай 2 котов', event: 'catch', goal: 2, reward: { fish: 5, parts: 0 } },
-  { id: 'treat1', text: 'Угости любого кота', event: 'treat', goal: 1, reward: { fish: 3, parts: 0 } },
-  { id: 'treat3', text: 'Угости котов 3 раза', event: 'treat', goal: 3, reward: { fish: 0, parts: 1 } },
-  { id: 'beacon1', text: 'Зайди на маяк', event: 'beacon', goal: 1, reward: { fish: 4, parts: 0 } },
-  { id: 'perfect1', text: 'Выиграй встречу, не проиграв ни одного раунда', event: 'perfectWin', goal: 1, reward: { fish: 0, parts: 1 } },
-  { id: 'signal2', text: 'Поймай сигнал 2 раза', event: 'signal', goal: 2, reward: { fish: 4, parts: 0 } },
-  { id: 'guest1', text: 'Познакомься с гостем в убежище', event: 'guest', goal: 1, reward: { fish: 4, parts: 0 } },
-  { id: 'rounds5', text: 'Выиграй 5 раундов', event: 'roundWin', goal: 5, reward: { fish: 5, parts: 0 } },
-  { id: 'walk500', text: 'Пройди 500 м на прогулке', event: 'walk', goal: 500, unit: 'м', reward: { fish: 8, parts: 1 } }
+  { id: 'catch2', text: 'Поймай 2 котов', event: 'catch', goal: 2, place: 'везде', reward: { fish: 4, parts: 0 } },
+  { id: 'treat1', text: 'Угости любого кота', event: 'treat', goal: 1, place: 'дом', reward: { fish: 2, parts: 0 } },
+  { id: 'treat3', text: 'Угости котов 3 раза', event: 'treat', goal: 3, place: 'дом', reward: { fish: 3, parts: 0 } },
+  { id: 'beacon1', text: 'Зайди на маяк', event: 'beacon', goal: 1, place: 'прогулка', reward: { fish: 5, parts: 0 } },
+  { id: 'perfect1', text: 'Выиграй встречу, не проиграв ни одного раунда', event: 'perfectWin', goal: 1, place: 'везде', reward: { fish: 4, parts: 0 } },
+  { id: 'signal2', text: 'Поймай сигнал 2 раза', event: 'signal', goal: 2, place: 'везде', reward: { fish: 3, parts: 0 } },
+  { id: 'guest1', text: 'Познакомься с гостем в убежище', event: 'guest', goal: 1, place: 'дом', reward: { fish: 2, parts: 0 } },
+  { id: 'rounds5', text: 'Выиграй 5 раундов', event: 'roundWin', goal: 5, place: 'везде', reward: { fish: 4, parts: 0 } },
+  { id: 'walk500', text: 'Пройди 500 м на прогулке', event: 'walk', goal: 500, unit: 'м', place: 'прогулка', reward: { fish: 8, parts: 1 } }
 ];
 const QUESTS_PER_DAY = 3;
 

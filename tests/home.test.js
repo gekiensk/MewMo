@@ -49,40 +49,42 @@ test('испорченные гости и задания не ломают иг
     friendship: { bul: 'много', moh: 3 }
   });
   const save = logic.loadSave(fakeStorage({ [logic.SAVE_KEY]: text }));
-  assert.deepStrictEqual(save.guests, { list: ['bul', 'moh', 'iskra'], nextAt: 0 });
+  assert.deepStrictEqual(save.guests, { list: ['bul'], nextAt: 0 }); // гостей не больше одного
   assert.deepStrictEqual(save.quests, { day: '', list: [] });
   assert.deepStrictEqual(save.friendship, { moh: 3 });
 });
 
 // ----- Гости -----
-test('первый гость прилетает сразу, следующий — через 3 часа', function () {
+test('первый гость прилетает сразу, следующий — через 6 часов', function () {
   const random = seededRandom(1);
   let guests = { list: [], nextAt: 0 };
   guests = logic.updateGuests(guests, MORNING, CATS, hourOf, random);
   assert.strictEqual(guests.list.length, 1);
-  assert.strictEqual(guests.nextAt, MORNING + 3 * HOUR);
-  // через 2 часа 59 минут — никого нового
-  guests = logic.updateGuests(guests, MORNING + 3 * HOUR - 60000, CATS, hourOf, random);
-  assert.strictEqual(guests.list.length, 1);
-  // ровно через 3 часа — второй гость
-  guests = logic.updateGuests(guests, MORNING + 3 * HOUR, CATS, hourOf, random);
-  assert.strictEqual(guests.list.length, 2);
   assert.strictEqual(guests.nextAt, MORNING + 6 * HOUR);
+  // познакомились с гостем — место свободно
+  guests = logic.removeGuest(guests, guests.list[0]);
+  // через 5 часов 59 минут — никого нового
+  guests = logic.updateGuests(guests, MORNING + 6 * HOUR - 60000, CATS, hourOf, random);
+  assert.strictEqual(guests.list.length, 0);
+  // ровно через 6 часов — новый гость
+  guests = logic.updateGuests(guests, MORNING + 6 * HOUR, CATS, hourOf, random);
+  assert.strictEqual(guests.list.length, 1);
+  assert.strictEqual(guests.nextAt, MORNING + 12 * HOUR);
 });
 
-test('гостей копится не больше трёх', function () {
+test('гостей копится не больше одного', function () {
   const random = seededRandom(2);
   let guests = { list: [], nextAt: 0 };
   guests = logic.updateGuests(guests, MORNING, CATS, hourOf, random);
   // игрок не заходил неделю
   guests = logic.updateGuests(guests, MORNING + 7 * 24 * HOUR, CATS, hourOf, random);
-  assert.strictEqual(guests.list.length, 3);
+  assert.strictEqual(guests.list.length, 1);
   // следующий прилёт — в будущем, а не в прошлом
   assert.ok(guests.nextAt > MORNING + 7 * 24 * HOUR);
-  assert.ok(guests.nextAt <= MORNING + 7 * 24 * HOUR + 3 * HOUR);
+  assert.ok(guests.nextAt <= MORNING + 7 * 24 * HOUR + 6 * HOUR);
   // после знакомства с гостем место освобождается
   guests = logic.removeGuest(guests, guests.list[0]);
-  assert.strictEqual(guests.list.length, 2);
+  assert.strictEqual(guests.list.length, 0);
 });
 
 test('removeGuest убирает только одного гостя с таким id', function () {
@@ -177,14 +179,14 @@ test('событие двигает задание, при выполнении 
   assert.strictEqual(result.save.quests.list[0].progress, 1);
   result = logic.applyQuestEvent(result.save, '2026-09-30', 'catch', Math.random);
   assert.strictEqual(result.completed.length, 1);
-  assert.strictEqual(result.save.fish, 5);
+  assert.strictEqual(result.save.fish, 4);
   // третий раз — задание уже выполнено, награды нет
   result = logic.applyQuestEvent(result.save, '2026-09-30', 'catch', Math.random);
   assert.strictEqual(result.completed.length, 0);
-  assert.strictEqual(result.save.fish, 5);
-  // деталь за «без поражений»
+  assert.strictEqual(result.save.fish, 4);
+  // рыбки за «без поражений»
   result = logic.applyQuestEvent(result.save, '2026-09-30', 'perfectWin', Math.random);
-  assert.strictEqual(result.save.parts, 1);
+  assert.strictEqual(result.save.fish, 8);
   // событие, которого нет в заданиях, ничего не меняет
   const before = JSON.stringify(result.save);
   result = logic.applyQuestEvent(result.save, '2026-09-30', 'beacon', Math.random);
@@ -205,5 +207,18 @@ test('вчерашний прогресс не засчитывается в н�
 
 test('текст награды', function () {
   assert.strictEqual(logic.questRewardText({ fish: 5, parts: 0 }), '+5 🐟');
+});
+
+test('задания, выполнимые дома, дают меньше, чем прогулочные', function () {
+  const value = function (quest) { return quest.reward.fish + quest.reward.parts * 5; }; // деталь ≈ 5 рыбок
+  const home = logic.QUEST_TYPES.filter(function (q) { return q.place === 'дом'; });
+  const walk = logic.QUEST_TYPES.filter(function (q) { return q.place === 'прогулка'; });
+  assert.ok(home.length > 0 && walk.length > 0);
+  const bestHome = Math.max.apply(null, home.map(value));
+  const worstWalk = Math.min.apply(null, walk.map(value));
+  assert.ok(bestHome < worstWalk, 'дома до ' + bestHome + ', на прогулке от ' + worstWalk);
+  for (const quest of logic.QUEST_TYPES) {
+    assert.ok(['дом', 'прогулка', 'везде'].includes(quest.place), quest.id);
+  }
   assert.strictEqual(logic.questRewardText({ fish: 0, parts: 1 }), '+1 деталь 🔩');
 });

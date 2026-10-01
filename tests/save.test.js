@@ -30,7 +30,7 @@ test('записанное сохранение читается обратно 
     nextCaptainAt: 1700000000000,
     settings: { soundLevel: 'тихо', vibration: true, dailyLimit: 60, homeOnly: true },
     playTime: { day: '2026-09-30', seconds: 125, bonusMinutes: 15 },
-    guests: { list: ['bul', 'sumrak'], nextAt: 1700000000000 },
+    guests: { list: ['sumrak'], nextAt: 1700000000000 },
     friendship: { bul: 7 },
     quests: { day: '2026-09-30', list: [
       { id: 'catch2', progress: 1, done: false },

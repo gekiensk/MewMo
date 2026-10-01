@@ -32,12 +32,6 @@ document.addEventListener('keydown', function (event) {
 function openKitchen() {
   kitchenWindow.classList.remove('hidden');
   showRecipes();
-  // Первое знакомство с кухней — плашка-подсказка (как у мини-игр)
-  if (!save.seenGames.includes('kitchen')) {
-    save.seenGames.push('kitchen');
-    saveGame();
-    showToast('Кухня: выбери рецепт. Ингредиенты собираются на прогулке — у маяков и в капсулах.');
-  }
 }
 
 function closeKitchen() {
@@ -64,6 +58,11 @@ function showRecipes() {
   fish.className = 'album-fish';
   fish.textContent = 'У тебя 🐟 ' + save.fish;
   kitchenList.appendChild(fish);
+  // Первое знакомство с кухней — плашка-подсказка (minigames.js)
+  showHintPlaque('kitchen', kitchenList, 'Кошачья кухня',
+    'Выбери рецепт и приготовь угощение: смешай, слепи, испеки. ' +
+    'Ингредиенты находятся только на прогулке — у маяков и в капсулах. ' +
+    'Угощение дари коту в убежище: так дружба растёт быстрее.');
 
   for (let i = 0; i < RECIPES.length; i++) {
     kitchenList.appendChild(makeRecipeCard(RECIPES[i]));

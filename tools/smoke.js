@@ -653,6 +653,15 @@ async function minigameScenario(browser) {
   await context.close();
 }
 
+// Плашка-подсказка при первом входе в занятие: должна быть видна,
+// «Понятно!» её убирает
+async function closeHintPlaque(page, name, what) {
+  const plaque = page.locator('.hint-plaque:visible');
+  expect(await plaque.count() === 1, name + ': нет плашки-подсказки (' + what + ')');
+  if (await plaque.count() === 1) await plaque.locator('button').click();
+  expect(await page.locator('.hint-plaque').count() === 0, name + ': плашка-подсказка не закрылась (' + what + ')');
+}
+
 // =============================================================
 // Сценарий 7: дом — кухня (и другие занятия в убежище)
 // =============================================================
@@ -684,6 +693,7 @@ async function homeScenario(browser) {
   // ----- Кухня: печём «Звёздное печенье» -----
   await page.click('#home-kitchen');
   await checkContrast(page, 'кухня');
+  await closeHintPlaque(page, name, 'кухня');
   await page.locator('#kitchen-list .recipe').first().locator('button').click();
   // Шаг 1: три с лишним круга пальцем по миске
   const bowl = await page.locator('.kitchen-bowl').boundingBox();
@@ -711,6 +721,7 @@ async function homeScenario(browser) {
   // ----- Ремонт: собрать пазл и установить деталь -----
   await page.click('#home-repair');
   await checkContrast(page, 'ремонт');
+  await closeHintPlaque(page, name, 'ремонт');
   await page.click('#repair-install');
   // «Робот» нажимает на каждый кусочек столько раз, сколько нужно до правильного положения
   const clicks = await page.evaluate(function () {

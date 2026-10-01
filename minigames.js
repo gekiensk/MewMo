@@ -142,6 +142,34 @@ function showRulesIfNew(game, start) {
   button.focus();
 }
 
+// Плашка-подсказка при первом знакомстве с занятием дома (кухня, ремонт,
+// игры с котами, обстановка). key — имя занятия для save.seenGames,
+// box — куда вставить плашку (она встаёт первой), title и text — что
+// написать. Кнопка «Понятно!» убирает плашку и запоминает, что объяснили.
+// Если уже объясняли — ничего не делает.
+function showHintPlaque(key, box, title, text) {
+  if (save.seenGames.includes(key)) return;
+  const plaque = document.createElement('div');
+  plaque.className = 'game-rules hint-plaque';
+  const head = document.createElement('p');
+  head.className = 'game-rules-title';
+  head.textContent = title;
+  const body = document.createElement('p');
+  body.textContent = text;
+  const button = document.createElement('button');
+  button.className = 'big-button';
+  button.textContent = 'Понятно!';
+  button.addEventListener('click', function () {
+    if (!save.seenGames.includes(key)) save.seenGames.push(key);
+    saveGame(); // game.js
+    plaque.remove();
+  });
+  plaque.appendChild(head);
+  plaque.appendChild(body);
+  plaque.appendChild(button);
+  box.insertBefore(plaque, box.firstChild);
+}
+
 // Запустить одну игру по названию
 function startGame(game, options, finish) {
   const starters = { fish: startFishGame, pattern: startPatternGame, rhythm: startRhythmGame, stars: startStarsGame };

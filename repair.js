@@ -41,12 +41,10 @@ document.addEventListener('keydown', function (event) {
 function openRepair() {
   repairWindow.classList.remove('hidden');
   showRepairMain();
-  // Первое знакомство с ремонтом — плашка-подсказка
-  if (!save.seenGames.includes('repair')) {
-    save.seenGames.push('repair');
-    saveGame();
-    showToast('Ремонт: детали находятся на прогулке, а устанавливаются здесь. Собери картинку — и деталь на месте!');
-  }
+  // Первое знакомство с ремонтом — плашка-подсказка (minigames.js)
+  showHintPlaque('repair', repairMain, 'Ремонт корабля',
+    'Детали находятся на прогулке, а устанавливаются здесь. Нажми «Установить деталь» ' +
+    'и поверни кусочки картинки, чтобы она стала целой.');
 }
 
 function closeRepair() {

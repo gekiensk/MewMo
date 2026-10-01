@@ -825,21 +825,21 @@ function tutorialPicture(index) {
       '<rect x="240" y="170" width="120" height="50" rx="25" fill="#F4A7B9"/>' +
       '<text x="300" y="203" text-anchor="middle" font-size="22" font-weight="800" font-family="sans-serif" fill="#34375F">Поймать!</text>';
   } else if (index === 4) {
-    // 5. Лапка, Коготь, Клубок: кто кого бьёт (стрелки по кругу)
-    const circle = function (x, y, icon, label) {
-      return '<circle cx="' + x + '" cy="' + y + '" r="42" fill="#F4A7B9" stroke="#FAF7F2" stroke-width="4"/>' +
-        '<text x="' + x + '" y="' + (y + 13) + '" text-anchor="middle" font-size="38">' + icon + '</text>' +
-        '<text x="' + x + '" y="' + (y + 66) + '" text-anchor="middle" font-size="20" font-weight="800" font-family="sans-serif" fill="#FAF7F2">' + label + '</text>';
+    // 5. У каждого кота своя игра: 4 плитки с иконками игр
+    const tile = function (x, y, color, picture, label) {
+      return '<rect x="' + x + '" y="' + y + '" width="170" height="120" rx="20" fill="' + color + '" stroke="#FAF7F2" stroke-width="3"/>' +
+        picture +
+        '<text x="' + (x + 85) + '" y="' + (y + 108) + '" text-anchor="middle" font-size="15" font-weight="800" font-family="sans-serif" fill="#34375F">' + label + '</text>';
     };
-    const arrow = function (x1, y1, x2, y2) {
-      return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="#F5D88E" stroke-width="5" stroke-linecap="round" marker-end="url(#tut-arrow)"/>';
-    };
-    body = '<defs><marker id="tut-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto">' +
-      '<path d="M0 0 L10 5 L0 10 Z" fill="#F5D88E"/></marker></defs>' +
-      '<rect width="400" height="300" rx="24" fill="#4A4E7E"/>' +
-      circle(200, 62, '🐾', 'Лапка') + circle(90, 200, '✂️', 'Коготь') + circle(310, 200, '🧶', 'Клубок') +
-      // стрелка «кто бьёт → кого»: Лапка → Коготь → Клубок → Лапка
-      arrow(165, 95, 118, 150) + arrow(140, 205, 255, 205) + arrow(285, 150, 238, 95);
+    // «Ритм»: кольцо вокруг круга
+    const rhythmIcon = '<circle cx="285" cy="72" r="34" fill="none" stroke="#9FD8C8" stroke-width="5"/>' +
+      '<circle cx="285" cy="72" r="18" fill="#F4A7B9" stroke="#34375F" stroke-width="2"/>';
+    body = '<rect width="400" height="300" rx="24" fill="#4A4E7E"/>' +
+      tile(20, 15, '#DCEBF6', placeSvg(fishSprite(), 70, 30, 70, 50), 'Водные: рыбки') +
+      tile(210, 15, '#F9EDC9', rhythmIcon, 'Городские: ритм') +
+      tile(20, 160, '#DDF0DA', placeSvg(fireflySprite('#F5D88E'), 75, 170, 60, 60), 'Лесные: узор') +
+      tile(210, 160, '#E3DAF5', placeSvg(starSprite(), 245, 175, 40, 40) + placeSvg(starSprite(), 290, 195, 30, 30) +
+        placeSvg(starSprite(), 320, 170, 26, 26), 'Сумеречные: звёзды');
   } else {
     // 6. Альбом и ремонт корабля + безопасность: гуляем со взрослым
     body = tutorialSky() +

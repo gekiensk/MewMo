@@ -26,6 +26,14 @@ const GAME_RULES = {
   stars: 'Нажимай звёзды по порядку номеров: 1, 2, 3… Звёзды медленно гаснут — успей!'
 };
 
+// Как помогает помощник (коротко, для строки под игрой)
+const HELPER_SHORT = {
+  fish: 'корзинка шире',
+  pattern: 'узор покажут ещё раз',
+  rhythm: 'музыка медленнее',
+  stars: 'звёзды гаснут дольше'
+};
+
 // ----- Состояние -----
 let currentGame = null; // запущенная игра: объект с функцией stop()
 let gameTimer = null;   // пауза между играми
@@ -63,7 +71,9 @@ function runMinigames(games, options, onDone) {
     updateProgress();
     const game = games[series.index];
     showRulesIfNew(game, function () {
-      gameStatus.textContent = '';
+      // Если в этой игре помогает кот из экипажа — пишем об этом
+      const helper = options.helperNames && options.helperNames[game];
+      gameStatus.textContent = helper ? 'Помогает ' + helper + ': ' + HELPER_SHORT[game] : '';
       startGame(game, options, gameOver);
     });
   }

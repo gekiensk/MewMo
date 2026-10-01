@@ -195,6 +195,11 @@ function showHelpers() {
     name.textContent = cat.name;
     button.appendChild(face);
     button.appendChild(name);
+    // Чем поможет: в какой игре и как (logic.js)
+    const help = document.createElement('span');
+    help.className = 'helper-help';
+    help.textContent = helperHelpText(cat);
+    button.appendChild(help);
     // Коты, улетевшие домой на первом корабле, помогают по рации
     if (isOnRadio(save, cat.id)) {
       const radio = document.createElement('span');
@@ -305,10 +310,17 @@ function startGames() {
   const helperCats = activeEncounter.helpers.map(function (id) { return findCat(id) || findCaptain(id); });
   showScreen('screen-game');
   document.getElementById('game-title').textContent = activeEncounter.cat.name;
+  // Кто в какой игре помогает — чтобы показать это во время игры
+  const helperNames = {};
+  for (let i = 0; i < helperCats.length; i++) {
+    const game = MINIGAME_BY_TYPE[helperCats[i].type];
+    if (game) helperNames[game] = helperCats[i].name;
+  }
   runMinigames(plan.games, { // minigames.js
     difficulty: minigameDifficulty(activeEncounter.cat.rarity),
     bonus: activeEncounter.bonus,
     perks: helperPerks(helperCats),
+    helperNames: helperNames,
     winsNeeded: plan.winsNeeded,
     reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches
   }, gamesFinished);

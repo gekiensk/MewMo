@@ -1619,3 +1619,16 @@ body.mode-home .toast {
 .star-button.done {
   filter: drop-shadow(0 0 8px var(--star));
 }
+
+/* Чем поможет помощник (в выборе помощников против капитана) */
+.helper-help {
+  display: block;
+  color: var(--star);
+  font-size: 13px;
+  font-weight: 700;
+}
+/* У выбранного помощника фон мятный — подписи делаем тёмными, чтобы читались */
+.helper-button[aria-pressed="true"] .helper-help,
+.helper-button[aria-pressed="true"] .helper-radio {
+  color: var(--space);
+}

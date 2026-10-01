@@ -621,6 +621,33 @@ async function minigameScenario(browser) {
   await playEncounter(page, 'iskra', '«Ритм» (городской кот)');
   await playEncounter(page, 'sumrak', '«Созвездие» (сумеречный кот)');
   await playEncounter(page, 'kometa', 'две игры подряд (легендарная Комета)');
+
+  // Капитан: три мини-игры подряд, нужно выиграть 2 из 3, с двумя помощниками
+  await page.evaluate(function () {
+    save.crew = Object.assign(save.crew, { bul: 1, moh: 1 });
+    openCaptainEncounter(makeCaptain('zvezdous', 'smoke', Date.now()), findCaptain('zvezdous'));
+  });
+  await page.click('#intro-next');
+  const helpText = await page.textContent('#helper-list');
+  expect(helpText.includes('корзинка шире'), name + ': в выборе помощников не написано, где кот поможет');
+  await page.click('.helper-button >> nth=0');
+  await page.click('.helper-button >> nth=1');
+  await page.click('#helpers-go');
+  await page.click('#signal-button');
+  await page.click('#signal-next');
+  await page.evaluate(function () {
+    window.__robotTimer = setInterval(function () {
+      window.__robots.forEach(function (robot) { robot(); });
+      const rulesButton = document.querySelector('.game-rules .big-button');
+      if (rulesButton) rulesButton.click();
+    }, 50);
+  });
+  const captainWon = await waitFor(page, function () {
+    return !document.getElementById('screen-win').classList.contains('hidden');
+  }, null, 120000);
+  await page.evaluate(function () { clearInterval(window.__robotTimer); });
+  expect(captainWon, name + ': не удалось победить капитана (2 из 3 мини-игр)');
+  if (captainWon) await page.click('#win-take');
   await context.close();
 }
 

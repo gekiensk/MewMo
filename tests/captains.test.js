@@ -1,5 +1,5 @@
 // =============================================================
-// Тесты капитанов: каталог, правила появления, бой с помощниками
+// Тесты капитанов: каталог, правила появления, помощники
 // Запуск из папки проекта: node --test
 // =============================================================
 const test = require('node:test');
@@ -11,7 +11,7 @@ const FIELDS = ['id', 'name', 'type', 'rarity', 'character', 'favoriteGesture', 
 const MINUTE = 60 * 1000;
 
 // ----- Каталог -----
-test('по два капитана в каждой главе, все поля заполнены, жесты правильные', function () {
+test('по два капитана в каждой главе, все поля заполнены', function () {
   assert.strictEqual(CAPTAINS.length, 4);
   assert.strictEqual(CAPTAINS.filter(function (c) { return c.chapter === 1; }).length, 2);
   assert.strictEqual(CAPTAINS.filter(function (c) { return c.chapter === 2; }).length, 2);
@@ -20,7 +20,6 @@ test('по два капитана в каждой главе, все поля �
       assert.strictEqual(typeof captain[field], 'string', captain.name + ': ' + field);
       assert.ok(captain[field].trim().length > 0, captain.name + ': пустое ' + field);
     }
-    assert.ok(logic.GESTURES.includes(captain.favoriteGesture));
     assert.strictEqual(captain.rarity, 'капитан');
   }
 });
@@ -134,67 +133,3 @@ test('в помощники — только коты из экипажа', func
   assert.deepStrictEqual(ids2.sort(), ['bul', 'moh', 'zvezdous']);
 });
 
-// ----- Бой до трёх побед и «вторая попытка» -----
-test('бой с капитаном — до трёх побед игрока', function () {
-  let battle = logic.createBattle(3, []);
-  battle = logic.battleRound(battle, 'победа');
-  battle = logic.battleRound(battle, 'ничья');
-  battle = logic.battleRound(battle, 'победа');
-  assert.strictEqual(battle.finished, '');
-  battle = logic.battleRound(battle, 'поражение');
-  assert.strictEqual(battle.catWins, 1);
-  battle = logic.battleRound(battle, 'победа');
-  assert.strictEqual(battle.playerWins, 3);
-  assert.strictEqual(battle.finished, 'победа');
-  // после конца боя счёт не меняется
-  assert.strictEqual(logic.battleRound(battle, 'победа').playerWins, 3);
-});
-
-test('три поражения без помощников — бой проигран', function () {
-  let battle = logic.createBattle(3, []);
-  for (let i = 0; i < 3; i++) battle = logic.battleRound(battle, 'поражение');
-  assert.strictEqual(battle.catWins, 3);
-  assert.strictEqual(battle.finished, 'поражение');
-});
-
-test('помощник даёт одну вторую попытку: проигранный раунд не считается', function () {
-  let battle = logic.createBattle(3, ['bul', 'moh']);
-  battle = logic.battleRound(battle, 'поражение');
-  assert.strictEqual(battle.pendingLoss, true);
-  assert.strictEqual(battle.catWins, 0); // очко пока не засчитано
-  // пока ждём решения, новые раунды не играются
-  assert.strictEqual(logic.battleRound(battle, 'победа').playerWins, 0);
-
-  battle = logic.battleUseHelper(battle, 'bul');
-  assert.strictEqual(battle.pendingLoss, false);
-  assert.strictEqual(battle.catWins, 0);
-  assert.deepStrictEqual(battle.helpersLeft, ['moh']);
-
-  // Буль уже помог — второй раз нельзя
-  battle = logic.battleRound(battle, 'поражение');
-  const again = logic.battleUseHelper(battle, 'bul');
-  assert.strictEqual(again.pendingLoss, true);
-
-  // отказываемся от помощи Мха — очко капитану, Мох остаётся в запасе
-  battle = logic.battleAcceptLoss(battle);
-  assert.strictEqual(battle.catWins, 1);
-  assert.deepStrictEqual(battle.helpersLeft, ['moh']);
-
-  // Мох помогает позже
-  battle = logic.battleRound(battle, 'поражение');
-  battle = logic.battleUseHelper(battle, 'moh');
-  assert.strictEqual(battle.catWins, 1);
-  assert.deepStrictEqual(battle.helpersLeft, []);
-
-  // помощников больше нет — поражение засчитывается сразу
-  battle = logic.battleRound(battle, 'поражение');
-  assert.strictEqual(battle.pendingLoss, false);
-  assert.strictEqual(battle.catWins, 2);
-});
-
-test('обычный кот — бой до двух побед', function () {
-  let battle = logic.createBattle(2, []);
-  battle = logic.battleRound(battle, 'поражение');
-  battle = logic.battleRound(battle, 'поражение');
-  assert.strictEqual(battle.finished, 'поражение');
-});

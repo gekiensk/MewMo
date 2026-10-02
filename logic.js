@@ -98,36 +98,6 @@ function rarityStars(rarity) {
 }
 
 // =============================================================
-// «Лапка, Коготь, Клубок»
-// =============================================================
-const GESTURES = ['Лапка', 'Коготь', 'Клубок'];
-
-// Кого бьёт каждый жест:
-// Лапка прижимает Коготь, Коготь режет нитку Клубка, Клубок запутывает Лапку
-const BEATS = {
-  'Лапка': 'Коготь',
-  'Коготь': 'Клубок',
-  'Клубок': 'Лапка'
-};
-
-// Результат раунда с точки зрения игрока: 'победа', 'поражение' или 'ничья'
-function roundResult(playerGesture, catGesture) {
-  if (playerGesture === catGesture) return 'ничья';
-  if (BEATS[playerGesture] === catGesture) return 'победа';
-  return 'поражение';
-}
-
-// Кот выбирает жест: в половине случаев — любимый,
-// иначе — случайный из трёх (случайный тоже может оказаться любимым,
-// поэтому всего любимый выпадает примерно в 2/3 случаев).
-function catChooseGesture(favoriteGesture, random) {
-  if (random() < 0.5) {
-    return favoriteGesture;
-  }
-  return GESTURES[Math.floor(random() * GESTURES.length)];
-}
-
-// =============================================================
 // «Поймай сигнал»
 // =============================================================
 // Сложность зависит от редкости кота (у капитанов rarity = 'капитан'):
@@ -1127,80 +1097,12 @@ function pickCatForPlace(allCats, options, random) {
 }
 
 // =============================================================
-// Бой «Лапка, Коготь, Клубок» (для обычных котов и для капитанов)
-// =============================================================
-// Состояние боя — объект:
-//   winsNeeded  — до скольких побед играем (коты — 2, капитаны — 3);
-//   playerWins, catWins — счёт;
-//   helpersLeft — id помощников, которые ещё могут дать «вторую попытку»;
-//   pendingLoss — true, если раунд проигран и игрок решает, позвать ли
-//                 помощника (очко сопернику пока не засчитано);
-//   finished    — '' (идёт), 'победа' или 'поражение'.
-// Функции ниже не меняют старый объект, а возвращают новый.
-
-function createBattle(winsNeeded, helperIds) {
-  return {
-    winsNeeded: winsNeeded,
-    playerWins: 0,
-    catWins: 0,
-    helpersLeft: (helperIds || []).slice(), // копия списка
-    pendingLoss: false,
-    finished: ''
-  };
-}
-
-// Проверяет, не закончился ли бой
-function battleCheckFinished(battle) {
-  if (battle.playerWins >= battle.winsNeeded) battle.finished = 'победа';
-  else if (battle.catWins >= battle.winsNeeded) battle.finished = 'поражение';
-  return battle;
-}
-
-// Итог раунда: result — 'победа', 'поражение' или 'ничья' (из roundResult)
-function battleRound(state, result) {
-  const battle = Object.assign({}, state, { helpersLeft: state.helpersLeft.slice() });
-  if (battle.finished || battle.pendingLoss) return battle; // бой уже кончился или ждём решения
-  if (result === 'победа') {
-    battle.playerWins = battle.playerWins + 1;
-  } else if (result === 'поражение') {
-    if (battle.helpersLeft.length > 0) {
-      // Есть помощник — очко пока не засчитываем, игрок решит сам
-      battle.pendingLoss = true;
-    } else {
-      battle.catWins = battle.catWins + 1;
-    }
-  }
-  return battleCheckFinished(battle);
-}
-
-// «Помоги, <имя>!» — помощник тратит свою вторую попытку,
-// проигранный раунд не считается и переигрывается
-function battleUseHelper(state, helperId) {
-  const battle = Object.assign({}, state, { helpersLeft: state.helpersLeft.slice() });
-  const index = battle.helpersLeft.indexOf(helperId);
-  if (!battle.pendingLoss || index === -1) return battle;
-  battle.helpersLeft.splice(index, 1);
-  battle.pendingLoss = false;
-  return battle;
-}
-
-// Игрок решил не звать помощника — очко сопернику
-function battleAcceptLoss(state) {
-  const battle = Object.assign({}, state, { helpersLeft: state.helpersLeft.slice() });
-  if (!battle.pendingLoss) return battle;
-  battle.pendingLoss = false;
-  battle.catWins = battle.catWins + 1;
-  return battleCheckFinished(battle);
-}
-
-// =============================================================
 // Потерявшиеся капитаны (боссы)
 // =============================================================
 const CAPTAIN_MIN_CREW = 5;                  // капитаны приходят, когда в экипаже главы 5+ котов
 const CAPTAIN_LIFETIME = 60 * 60 * 1000;     // капитан ждёт у маяка 1 час
 const CAPTAIN_NEXT_DELAY = 30 * 60 * 1000;   // после победы следующий — через 30 минут
 const CAPTAIN_RETRY_DELAY = 2 * 60 * 1000;   // после проигрыша — ещё раз через 2 минуты
-const CAPTAIN_WINS_NEEDED = 3;               // бой с капитаном — до трёх побед
 const MAX_HELPERS = 2;                       // помощников — не больше двух
 const CAPTAIN_PARTS = 3;                     // награда за капитана — 3 детали
 
@@ -1816,7 +1718,7 @@ function commonOnly(cats) {
 }
 
 // =============================================================
-// Мини-игры (вместо «Лапка, Коготь, Клубок»)
+// Мини-игры знакомства (у каждого типа кота своя)
 // =============================================================
 // У каждого типа кота своя мини-игра. Сначала, как и раньше, «Поймай
 // сигнал»: попадание в зелёную зону даёт поблажку — +1 жизнь (или +3 секунды
@@ -2449,7 +2351,6 @@ if (typeof module !== 'undefined') {
   module.exports = {
     distanceMeters, offsetPosition, randomCapsulePosition,
     RARITY_CHANCES, pickRarity, pickCat, rarityStars,
-    GESTURES, BEATS, roundResult, catChooseGesture,
     signalSettings, signalPosition, isInGreenZone,
     gpsErrorAction, GPS_WATCHDOG_TIME, GPS_DEMO_WAIT, shouldRestartGps, gpsSearchState,
     SAVE_KEY, SHIP_PARTS_NEEDED, NEW_CAT_PARTS, REPEAT_CAT_FISH,
@@ -2463,9 +2364,8 @@ if (typeof module !== 'undefined') {
     TERRAIN_RADIUS, PLACE_TYPE_CHANCE, TERRAIN_CAT_TYPE, terrainKind,
     distanceToGeometry, terrainNear, pickCatForPlace,
     DAY_MS, TWILIGHT_TIME, TWILIGHT_CHANCE, sunPosition, sunsetTime, isTwilightTime,
-    createBattle, battleRound, battleUseHelper, battleAcceptLoss,
     CAPTAIN_MIN_CREW, CAPTAIN_LIFETIME, CAPTAIN_NEXT_DELAY, CAPTAIN_RETRY_DELAY,
-    CAPTAIN_WINS_NEEDED, MAX_HELPERS, CAPTAIN_PARTS,
+    MAX_HELPERS, CAPTAIN_PARTS,
     isCaptainActive, canSpawnCaptain, chooseCaptain, makeCaptain, captainAfterLoss,
     captainRetryLeft, applyCaptainWin, availableHelpers, toggleHelper,
     DEFAULT_SETTINGS, DAILY_LIMIT_CHOICES, SOUND_LEVELS, LIMIT_WARNING_SECONDS, BONUS_MINUTES,

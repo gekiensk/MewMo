@@ -113,37 +113,6 @@ test('звёздочки редкости: 1, 2, 3', function () {
   assert.strictEqual(logic.rarityStars('легендарный'), 3);
 });
 
-// ----- «Лапка, Коготь, Клубок» -----
-test('все 9 сочетаний жестов дают правильный результат', function () {
-  const expected = [
-    ['Лапка', 'Лапка', 'ничья'],
-    ['Лапка', 'Коготь', 'победа'],    // лапка прижимает коготь
-    ['Лапка', 'Клубок', 'поражение'], // лапка запуталась
-    ['Коготь', 'Лапка', 'поражение'],
-    ['Коготь', 'Коготь', 'ничья'],
-    ['Коготь', 'Клубок', 'победа'],   // коготь режет нитку
-    ['Клубок', 'Лапка', 'победа'],
-    ['Клубок', 'Коготь', 'поражение'],
-    ['Клубок', 'Клубок', 'ничья']
-  ];
-  for (const row of expected) {
-    assert.strictEqual(logic.roundResult(row[0], row[1]), row[2],
-      'игрок: ' + row[0] + ', кот: ' + row[1]);
-  }
-});
-
-test('кот выбирает любимый жест примерно в 2/3 случаев', function () {
-  const random = seededRandom(123);
-  const total = 10000;
-  let favorite = 0;
-  for (let i = 0; i < total; i++) {
-    const gesture = logic.catChooseGesture('Клубок', random);
-    assert.ok(logic.GESTURES.includes(gesture));
-    if (gesture === 'Клубок') favorite = favorite + 1;
-  }
-  assert.ok(Math.abs(favorite / total - 2 / 3) < 0.03, 'доля: ' + favorite / total);
-});
-
 // ----- «Поймай сигнал» -----
 test('попадание в зелёную зону считается правильно на краях', function () {
   // зона от 0.4 до 0.6

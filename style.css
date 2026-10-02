@@ -585,18 +585,7 @@ button:focus-visible {
   line-height: 1.4;
 }
 
-/* ----- «Лапка, Коготь, Клубок» ----- */
-.hint {
-  margin: 8px 0;
-  padding: 8px 12px;
-  border: 2px dashed var(--mint);
-  border-radius: 14px;
-  font-size: 18px;
-}
-.hint.hidden {
-  display: none;
-}
-
+/* Крупная жёлтая строка: счёт, шаг готовки и т. п. */
 .score {
   margin: 8px 0;
   color: var(--star);
@@ -606,7 +595,7 @@ button:focus-visible {
 
 
 
-/* ----- Помощники в бою с капитаном ----- */
+/* ----- Помощники в испытании капитана ----- */
 .helper-list {
   display: flex;
   flex-wrap: wrap;
@@ -633,18 +622,9 @@ button:focus-visible {
   border-color: var(--star);
 }
 
-/* Кнопки «Помоги, <имя>!» после проигранного раунда */
-.rps-helpers.hidden,
+/* Спрятанный текст на экране знакомства (например, вступление) */
 .screen-text.hidden {
   display: none;
-}
-.helper-call {
-  background: var(--mint);
-}
-.helper-refuse {
-  background: var(--space);
-  color: var(--fur);
-  border: 3px solid var(--fur);
 }
 
 /* ----- «Кот найден!» ----- */

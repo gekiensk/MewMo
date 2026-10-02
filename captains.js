@@ -27,12 +27,12 @@ let captainWatchStart = 0; // когда игра начала следить з
 // позвать нового, если можно, и обновить его вид
 function updateCaptain() {
   const now = Date.now();
-  const inBattle = activeEncounter && activeEncounter.kind === 'captain';
-  // Первый вызов — сразу после «Начать поиск»: запоминаем время
+  const inChallenge = activeEncounter && activeEncounter.kind === 'captain';
+  // Первый вызов — сразу после «Гулять»: запоминаем время
   if (captainWatchStart === 0) captainWatchStart = now;
 
-  // Час прошёл — капитан улетает (но не посреди боя)
-  if (captainState && !isCaptainActive(captainState, now) && !inBattle) {
+  // Час прошёл — капитан улетает (но не посреди испытания)
+  if (captainState && !isCaptainActive(captainState, now) && !inChallenge) {
     removeCaptain();
   }
 
@@ -89,7 +89,7 @@ function removeCaptain() {
   captainPosition = null;
 }
 
-// captain-near    — игрок ближе 40 м, можно начинать бой;
+// captain-near    — игрок ближе 40 м, можно начинать испытание;
 // captain-resting — после проигрыша капитан отдыхает 2 минуты (виден таймер).
 function updateCaptainLook(now) {
   if (!captainState || !playerMarker) return;

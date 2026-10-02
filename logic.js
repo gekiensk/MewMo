@@ -601,7 +601,7 @@ function shelterCats(allCats, save, max) {
 }
 
 // Кот «на связи по рации»: улетел домой на первом корабле, но может
-// помочь советом в бою с капитаном
+// помочь советом в испытании капитана
 function isOnRadio(save, catId) {
   return save.flewHome.includes(catId);
 }
@@ -1161,7 +1161,7 @@ function applyCaptainWin(save, captainId, now) {
 }
 
 // Кого можно взять в помощники: все из экипажа (коты и капитаны),
-// кроме самого капитана, с которым идёт бой. list — каталог(и).
+// кроме самого капитана, чьё испытание идёт. list — каталог(и).
 function availableHelpers(save, list, exceptId) {
   return list.filter(function (cat) {
     const met = (save.crew[cat.id] || 0) + (save.captains[cat.id] || 0);
@@ -1787,7 +1787,7 @@ function signalBonus(hit) {
   return hit ? { extraLives: 1, extraSeconds: 3 } : { extraLives: 0, extraSeconds: 0 };
 }
 
-// Помощники (в бою с капитаном) помогают в игре своего типа:
+// Помощники (в испытании капитана) помогают в игре своего типа:
 // водный — корзинка шире, лесной — узор показывают ещё раз,
 // городской — ритм медленнее, сумеречный — звёзды гаснут дольше.
 // helperCats — коты-помощники. Возвращает { fish, pattern, rhythm, stars }.

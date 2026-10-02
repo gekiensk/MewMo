@@ -475,10 +475,6 @@ button:focus-visible {
   line-height: 1.4;
 }
 
-.rules {
-  font-size: 17px;
-}
-
 /* Все большие кнопки — не ниже 64 px */
 .big-button {
   min-height: 64px;

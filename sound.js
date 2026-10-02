@@ -141,8 +141,6 @@ const SOUNDS = {
       playNote(melody[i], 3.1 + i * 0.18, i === melody.length - 1 ? 0.6 : 0.22, 'triangle', 0.45);
     }
   },
-  // Короткая мягкая нота для мини-игр (светлячки, ритм и т. п.).
-  // Вызывается через playTone(частота), а не через playSound.
   // Мягкий «не получилось» — одна тихая низкая нота
   oops: function () {
     playNote(NOTE.E4, 0, 0.3, 'sine', 0.35, NOTE.C4);

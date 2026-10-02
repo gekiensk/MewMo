@@ -519,19 +519,105 @@ async function contrastScenario(browser) {
 // которая каждые 50 мс делает то, что сделал бы игрок (двигает корзинку
 // под рыбку и т. п.). Так проверяем, что игру можно пройти до победы.
 const ROBOTS = {
-  // «Поймай рыбок»: корзинка — под самую нижнюю рыбку, подальше от пузырей
+  // «Поймай рыбок»: «робот» двигает корзинку, как палец ребёнка, — не быстрее
+  // 2 ширин поля в секунду. Каждые 50 мс он:
+  //   1) узнаёт, где рыбки и пузыри, и считает скорость падения (по тому,
+  //      насколько предмет опустился с прошлого раза);
+  //   2) если скоро на корзинку упадёт пузырь — отъезжает в безопасное место;
+  //   3) иначе едет к рыбке, которая раньше всех долетит до корзинки,
+  //      но только к той, до которой корзинка успеет доехать;
+  //   4) никогда не встаёт туда, куда сейчас упадёт пузырь.
+  // Саму игру робот не меняет — он только «водит пальцем» по полю.
   fish: function () {
     const field = document.querySelector('.fish-field');
-    if (!field) return;
+    if (!field) { window.__fish = null; return; }
+    // Новая игра — забываем всё, что помнили о прошлой
+    if (!window.__fish || window.__fish.field !== field) {
+      window.__fish = { field: field, seen: new WeakMap(), speed: 0 };
+    }
+    const memory = window.__fish;
+    const SPEED = 2;         // ширин поля в секунду — скорость «пальца»
+    const TICK = 0.05;       // робот думает раз в 50 мс
+    const LOOK_AHEAD = 0.5;  // за сколько секунд заранее уходить от пузыря
+    const CATCH_TOP = 0.88;  // предмет ловится, когда он ниже этой линии…
+    const CATCH_BOTTOM = 1.02; // …и пока не упал ниже этой (как в minigames.js)
+    const now = performance.now() / 1000;
     const rect = field.getBoundingClientRect();
-    let target = null;
-    let lowest = -1;
-    document.querySelectorAll('.fish-item[data-kind="рыбка"]').forEach(function (el) {
-      const r = el.getBoundingClientRect();
-      if (r.top > lowest) { lowest = r.top; target = r.left + r.width / 2; }
+    if (rect.width === 0) return; // поле спрятано (игра закончилась) — не трогаем
+    const basketRect = field.querySelector('.fish-basket').getBoundingClientRect();
+    const width = basketRect.width / rect.width;                                   // ширина корзинки
+    const basketX = (basketRect.left + basketRect.width / 2 - rect.left) / rect.width; // её середина
+
+    // 1) Где предметы: x — по ширине (0…1), y — по высоте (0 — верх, 1 — низ;
+    //    игра ставит top = y × 88%)
+    const items = [];
+    field.querySelectorAll('.fish-item').forEach(function (el) {
+      const x = parseFloat(el.style.left) / 100;
+      const y = parseFloat(el.style.top) / 88;
+      if (isNaN(x) || isNaN(y)) return; // предмет ещё не нарисован
+      const before = memory.seen.get(el);
+      if (before && now > before.time && y > before.y) {
+        memory.speed = (y - before.y) / (now - before.time); // все падают с одной скоростью
+      }
+      memory.seen.set(el, { y: y, time: now });
+      items.push({ kind: el.dataset.kind, x: x, y: y });
     });
-    if (target === null) return;
-    field.dispatchEvent(new PointerEvent('pointermove', { clientX: target, clientY: rect.top + 10, bubbles: true }));
+    if (!memory.speed) return; // скорость ещё не знаем — ждём следующего раза
+    const speed = memory.speed;
+
+    // 2) Опасные места: полосы, где корзинка поймала бы пузырь.
+    //    dangerNow — пузырь долетит прямо сейчас, туда вставать нельзя;
+    //    dangerSoon — долетит в ближайшие полсекунды, оттуда лучше уехать.
+    const dangerNow = [];
+    const dangerSoon = [];
+    items.forEach(function (item) {
+      if (item.kind !== 'пузырь' || item.y > CATCH_BOTTOM + 0.01) return;
+      const band = [item.x - width / 2 - 0.02, item.x + width / 2 + 0.02];
+      if (item.y + speed * TICK * 2 >= CATCH_TOP) dangerNow.push(band);
+      if (item.y + speed * LOOK_AHEAD >= CATCH_TOP) dangerSoon.push(band);
+    });
+    function inside(x, bands) {
+      return bands.some(function (band) { return x >= band[0] && x <= band[1]; });
+    }
+    const leftmost = width / 2;      // дальше корзинка не уедет
+    const rightmost = 1 - width / 2;
+    const escaping = inside(basketX, dangerSoon);
+
+    // 3) Куда ехать
+    let goal = null;
+    if (escaping) {
+      // ближайшее место, куда пузырь не упадёт
+      for (let x = leftmost; x <= rightmost + 1e-9; x = x + 0.005) {
+        if (!inside(x, dangerSoon) && (goal === null || Math.abs(x - basketX) < Math.abs(goal - basketX))) goal = x;
+      }
+    } else {
+      // рыбка, которая раньше всех долетит, — если до неё успеваем доехать
+      let bestArrive = Infinity;
+      items.forEach(function (item) {
+        if (item.kind !== 'рыбка') return;
+        const timeToLeave = (CATCH_BOTTOM - item.y) / speed - TICK; // сколько ещё можно поймать
+        if (timeToLeave <= 0) return;
+        const timeToArrive = Math.max(0, (CATCH_TOP - item.y) / speed);
+        const timeToDrive = Math.max(0, Math.abs(item.x - basketX) - width / 2 + 0.03) / SPEED;
+        if (timeToDrive > timeToLeave) return; // не успеем — эту пропускаем
+        if (timeToArrive < bestArrive) { bestArrive = timeToArrive; goal = item.x; }
+      });
+    }
+    if (goal === null) goal = basketX; // ехать некуда — стоим
+    if (!isFinite(goal) || !isFinite(basketX)) return; // на всякий случай: не посылаем «странных» чисел
+
+    // 4) Шаг к цели: не дальше, чем «палец» успеет за 50 мс,
+    //    и только туда, где сейчас не упадёт пузырь
+    const step = SPEED * TICK;
+    let choice = basketX;
+    for (let x = Math.max(leftmost, basketX - step); x <= Math.min(rightmost, basketX + step) + 1e-9; x = x + 0.005) {
+      if (inside(x, dangerNow)) continue;
+      if (!escaping && inside(x, dangerSoon)) continue;
+      if (Math.abs(x - goal) < Math.abs(choice - goal)) choice = x;
+    }
+    field.dispatchEvent(new PointerEvent('pointermove', {
+      clientX: rect.left + choice * rect.width, clientY: rect.top + 10, bubbles: true
+    }));
   },
   // «Повтори узор»: запоминаем, какие светлячки мигали, пока игра
   // показывала узор («Смотри…»), и нажимаем их, когда «Повтори!»

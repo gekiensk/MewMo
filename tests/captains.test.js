@@ -7,7 +7,7 @@ const assert = require('node:assert');
 const logic = require('../logic.js');
 const { CATS, CAPTAINS, findCaptain } = require('../cats.js');
 
-const FIELDS = ['id', 'name', 'type', 'rarity', 'character', 'favoriteGesture', 'fact'];
+const FIELDS = ['id', 'name', 'type', 'rarity', 'character', 'fact'];
 const MINUTE = 60 * 1000;
 
 // ----- Каталог -----

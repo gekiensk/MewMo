@@ -7,7 +7,7 @@ const assert = require('node:assert');
 const { CATS, findCat } = require('../cats.js');
 const { RARITY_CHANCES } = require('../logic.js');
 
-const FIELDS = ['id', 'name', 'type', 'rarity', 'character', 'favoriteGesture', 'fact'];
+const FIELDS = ['id', 'name', 'type', 'rarity', 'character', 'fact'];
 
 test('в каталоге 22 кота: 10 в главе 1 и 12 в главе 2', function () {
   assert.strictEqual(CATS.length, 22);

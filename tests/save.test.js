@@ -51,7 +51,8 @@ test('записанное сохранение читается обратно 
     captainDay: '2026-10-01',
     walkToday: { day: '2026-10-01', meters: 340 },
     playToday: { day: '2026-10-01', cats: ['bul'] },
-    decor: { owned: ['rug', 'aquarium'], placed: [null, 'aquarium', null, null, 'rug', null] }
+    decor: { owned: ['rug', 'aquarium'], placed: [null, 'aquarium', null, null, 'rug', null] },
+    walkDays: ['2026-09-30', '2026-10-01']
   };
   assert.strictEqual(logic.writeSave(storage, save), true);
   assert.ok(logic.SAVE_KEY in storage.data, 'ключ ' + logic.SAVE_KEY);

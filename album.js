@@ -140,6 +140,9 @@ function renderAlbum() {
   // Задания на сегодня (quests.js)
   renderQuests(document.getElementById('album-quests'));
 
+  // Наклейки прогулок: календарь этого месяца
+  renderWalkCalendar();
+
   // Кладовая: ингредиенты с прогулки
   renderPantry(document.getElementById('album-pantry'));
 
@@ -274,4 +277,55 @@ function showAlbumCat(cat, timesMet) {
   document.getElementById('album-cat-fact').textContent = cat.fact;
   showAlbumView(albumCatView);
   document.getElementById('album-back').focus();
+}
+
+// =============================================================
+// Наклейки прогулок
+// =============================================================
+// Календарь текущего месяца: в дни с прогулкой — наклейка.
+// Какие дни считаются прогулкой — в logic.js (WALK_DAY_METERS).
+const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
+function renderWalkCalendar() {
+  const now = new Date();
+  const calendar = monthCalendar(now.getFullYear(), now.getMonth(), save.walkDays, localDayKey(now)); // logic.js
+  const box = document.getElementById('album-walks');
+  box.textContent = '';
+
+  // Название месяца — во всю ширину сетки
+  const title = document.createElement('p');
+  title.className = 'walk-month';
+  title.textContent = calendar.title;
+  box.appendChild(title);
+
+  // Дни недели
+  for (let i = 0; i < WEEKDAYS.length; i++) {
+    const head = document.createElement('span');
+    head.className = 'walk-weekday';
+    head.textContent = WEEKDAYS[i];
+    box.appendChild(head);
+  }
+  // Пустые клетки до 1-го числа
+  for (let i = 0; i < calendar.blanks; i++) {
+    box.appendChild(document.createElement('span'));
+  }
+  // Сами дни: с прогулкой — наклейка (цвет по очереди: розовый, мятный, жёлтый)
+  let sticker = 0;
+  for (let i = 0; i < calendar.days.length; i++) {
+    const day = calendar.days[i];
+    const cell = document.createElement('span');
+    cell.className = 'walk-day';
+    if (day.walked) {
+      cell.classList.add('walk-sticker', 'walk-sticker-' + (sticker % 3));
+      sticker = sticker + 1;
+    }
+    if (day.today) cell.classList.add('walk-today');
+    cell.textContent = day.day;
+    cell.setAttribute('aria-label', day.day + (day.walked ? ' — была прогулка' : ''));
+    box.appendChild(cell);
+  }
+
+  document.getElementById('album-walks-note').textContent = calendar.count > 0
+    ? 'Прогулок в этом месяце: ' + calendar.count + '. Наклейка — за прогулку от ' + WALK_DAY_METERS + ' м или пойманного кота.'
+    : 'Погуляй ' + WALK_DAY_METERS + ' м или поймай кота на прогулке — и здесь появится наклейка!';
 }

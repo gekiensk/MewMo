@@ -222,6 +222,9 @@ async function walkScenario(browser) {
   expect(await page.isVisible('#album'), name + ': альбом не открылся');
   const pantryItems = await page.locator('#album-pantry .pantry-item').count();
   expect(pantryItems === 5, name + ': в кладовой не 5 ингредиентов (' + pantryItems + ')');
+  // Календарь наклеек прогулок: все дни месяца (28–31)
+  const walkDays = await page.locator('#album-walks .walk-day').count();
+  expect(walkDays >= 28 && walkDays <= 31, name + ': в календаре прогулок ' + walkDays + ' дней');
   await page.click('#album-close');
   expect(await page.isHidden('#album'), name + ': альбом не закрылся');
 
@@ -690,6 +693,9 @@ async function minigameScenario(browser) {
   await page.click('#start-button');
   await moveTo(page, context, ROUTE[1], 'первую точку');
   await playEncounter(page, 'bul', '«Поймай рыбок» (водный кот)');
+  // Кот пойман на прогулке — сегодня есть наклейка прогулки
+  const sticker = await page.evaluate(function () { return save.walkDays.includes(localDayKey(new Date())); });
+  expect(sticker, name + ': после пойманного кота нет наклейки прогулки за сегодня');
   await playEncounter(page, 'moh', '«Повтори узор» (лесной кот)');
   await playEncounter(page, 'iskra', '«Ритм» (городской кот)');
   await playEncounter(page, 'sumrak', '«Созвездие» (сумеречный кот)');

@@ -2731,3 +2731,64 @@ body.mode-home .toast {
   100% { rotate: 0deg;   scale: 1.9; opacity: 0;
          filter: drop-shadow(0 0 10px var(--star)) drop-shadow(0 0 28px var(--nose)) brightness(1.6); }
 }
+
+/* ===== Наклейки прогулок (календарь в альбоме) ===== */
+.walk-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  padding: 12px;
+  border-radius: 18px;
+  background: var(--space);
+}
+.walk-month {
+  grid-column: 1 / -1; /* название месяца — во всю ширину */
+  margin: 0 0 2px;
+  color: var(--star);
+  font-size: 18px;
+  font-weight: 800;
+}
+.walk-weekday {
+  color: var(--fur);
+  font-size: 13px;
+  font-weight: 700;
+}
+/* Обычный день — просто число в кружке */
+.walk-day {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  color: var(--fur);
+  font-size: 14px;
+  font-weight: 700;
+}
+/* Сегодня — пунктирная рамка: «тут может быть наклейка» */
+.walk-today {
+  border: 2px dashed var(--star);
+}
+/* День с прогулкой — наклейка: цветной кружок, белая рамка, кромка,
+   чуть повёрнута; лапка нарисована в ::after (там нет текста) */
+.walk-sticker {
+  border: 2px solid var(--fur);
+  color: var(--space);
+  font-weight: 800;
+  box-shadow: 0 3px 0 var(--space-deep);
+  rotate: -6deg;
+}
+.walk-sticker:nth-child(odd) { rotate: 5deg; }
+.walk-sticker-0 { background: var(--nose); }
+.walk-sticker-1 { background: var(--mint); }
+.walk-sticker-2 { background: var(--star); }
+.walk-sticker::after {
+  content: '';
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--fur) center / 10px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='%2334375F'%3E%3Cellipse cx='10' cy='13' rx='5' ry='4.2'/%3E%3Ccircle cx='4' cy='8' r='2.2'/%3E%3Ccircle cx='8' cy='4.5' r='2.2'/%3E%3Ccircle cx='12' cy='4.5' r='2.2'/%3E%3Ccircle cx='16' cy='8' r='2.2'/%3E%3C/g%3E%3C/svg%3E");
+}

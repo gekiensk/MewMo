@@ -56,6 +56,42 @@ function randomCapsulePosition(center, minDistance, maxDistance, random) {
 }
 
 // =============================================================
+// Компас к ближайшей капсуле
+// =============================================================
+// Направление от точки from к точке to — как на компасе, в градусах:
+// 0 — на север, 90 — на восток, 180 — на юг, 270 — на запад.
+// Точки — [долгота, широта]. Расстояния у нас маленькие (сотни метров),
+// поэтому считаем на «плоской» карте, только сжимаем долготу косинусом
+// широты (как в offsetPosition).
+function bearingDegrees(from, to) {
+  const east = (to[0] - from[0]) * Math.cos(from[1] * Math.PI / 180); // сдвиг на восток
+  const north = to[1] - from[1];                                     // сдвиг на север
+  const degrees = Math.atan2(east, north) * 180 / Math.PI;           // от −180 до 180
+  return (degrees + 360) % 360;                                      // от 0 до 360
+}
+
+// «Горячо — холодно»: насколько игрок близко к капсуле.
+//   'рядом'   — можно открыть (не дальше openDistance);
+//   'горячо'  — до 100 м;
+//   'тепло'   — до 180 м;
+//   'холодно' — дальше.
+const WARM_HOT = 100;
+const WARM_WARM = 180;
+function warmth(distance, openDistance) {
+  if (distance <= openDistance) return 'рядом';
+  if (distance <= WARM_HOT) return 'горячо';
+  if (distance <= WARM_WARM) return 'тепло';
+  return 'холодно';
+}
+
+// Расстояние для подсказки — круглое число, чтобы не мелькало
+// от дрожания GPS: до 100 м — с точностью до 5 м, дальше — до 10 м.
+function roundDistance(distance) {
+  const step = distance < 100 ? 5 : 10;
+  return Math.max(step, Math.round(distance / step) * step);
+}
+
+// =============================================================
 // Выбор кота по редкости
 // =============================================================
 // Шансы редкостей. В сумме — 1 (то есть 100%).
@@ -2350,6 +2386,7 @@ function attractedGuests(cats, save) {
 if (typeof module !== 'undefined') {
   module.exports = {
     distanceMeters, offsetPosition, randomCapsulePosition,
+    bearingDegrees, WARM_HOT, WARM_WARM, warmth, roundDistance,
     RARITY_CHANCES, pickRarity, pickCat, rarityStars,
     signalSettings, signalPosition, isInGreenZone,
     gpsErrorAction, GPS_WATCHDOG_TIME, GPS_DEMO_WAIT, shouldRestartGps, gpsSearchState,

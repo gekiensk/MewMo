@@ -28,6 +28,8 @@ const DESPAWN_DISTANCE = 400;     // если игрок ушёл дальше (
 const OPEN_DISTANCE = 40;         // с какого расстояния (в метрах) можно открыть капсулу
 const TOAST_TIME = 3000;          // сколько миллисекунд висит подсказка (3 секунды)
 const SHY_TIME = 60000;           // сколько миллисекунд кот смущается после проигрыша (1 минута)
+const CAPSULE_OPEN_TIME = 450;    // сколько миллисекунд капсула «раскрывается» перед окном знакомства
+const FLOAT_TIME = 1200;          // сколько миллисекунд висит «+3» над значком
 
 // Цвет круга точности GPS. Это тот же розовый, что --nose в style.css.
 // Круг рисует сама карта, а она не умеет читать переменные из CSS,
@@ -47,6 +49,8 @@ let statusMessage = '';  // текст строки состояния (без �
 let toastTimer = null;   // таймер, который прячет подсказку
 let wasTwilight = false; // были ли сумерки при прошлой проверке
 let gameMode = '';       // '' — стартовый экран, 'walk' — прогулка, 'home' — режим «Дом»
+let shownCounts = null;  // числа, которые сейчас на значках (чтобы заметить, что выросло)
+let pointerWasNear = false; // была ли капсула «рядом» при прошлой проверке компаса
 
 // ----- Сохранение -----
 // Хранилище браузера (localStorage). В некоторых браузерах (например,
@@ -64,7 +68,8 @@ let lastAccuracy = { center: DEFAULT_POSITION, radius: 0 };
 // ----- Находим элементы страницы по их id -----
 const startScreen = document.getElementById('start-screen');
 const startButton = document.getElementById('start-button');
-const statusText = document.getElementById('status');
+const statusText = document.getElementById('status-message');
+const capsulePointer = document.getElementById('capsule-pointer');
 const centerButton = document.getElementById('center-button');
 const toast = document.getElementById('toast');
 
@@ -170,6 +175,11 @@ function createMap(position) {
   });
 
   // Если игрок сам двигает карту пальцем — перестаём за ним следить
+  // Карту повернули — стрелка компаса должна повернуться вместе с ней
+  map.on('rotate', function () {
+    safely('компас', updatePointer);
+  });
+
   map.on('dragstart', function () {
     followPlayer = false;
   });
@@ -299,7 +309,9 @@ function onPosition(pos) {
   // Сначала самое важное: точка игрока и строка состояния.
   // Остальное (капсулы, маяки, камера) — в movePlayer, «со страховкой».
   const lngLat = [pos.coords.longitude, pos.coords.latitude]; // сначала долгота!
-  setStatus('Ты здесь. Точность: ' + Math.round(pos.coords.accuracy) + ' м.');
+  // GPS работает — сообщение не нужно, остаются только значки.
+  // Точность GPS можно посмотреть в ⚙️ → «Проверить GPS».
+  setStatus('');
   if (firstFix) {
     safely('убрать демо-капсулы', removeAllCapsules); // gps.js
   }
@@ -495,6 +507,48 @@ function updateCapsuleLooks() {
     capsule.element.classList.toggle('capsule-near', isNear);
     capsule.element.classList.toggle('capsule-shy', shy);
   }
+  updatePointer();
+}
+
+// =============================================================
+// Компас к ближайшей капсуле
+// =============================================================
+// Внизу экрана — плашка со стрелкой: куда идти и сколько метров.
+// Цвет плашки — «горячо — холодно» (warmth из logic.js). Когда капсула
+// становится «рядом», телефон коротко вибрирует (один раз).
+function updatePointer() {
+  const nearest = nearestCapsule();
+  if (gameMode !== 'walk' || !map || !nearest) {
+    capsulePointer.classList.add('hidden');
+    pointerWasNear = false;
+    return;
+  }
+  const level = warmth(nearest.distance, OPEN_DISTANCE); // logic.js
+  // Стрелка: направление на капсулу минус поворот карты.
+  // Если карту повернули, «вверх» на экране — уже не север.
+  const angle = bearingDegrees(playerPosition(), capsulePosition(nearest.capsule)) - map.getBearing();
+  document.getElementById('pointer-arrow').style.rotate = Math.round(angle) + 'deg';
+  document.getElementById('pointer-text').textContent = level === 'рядом'
+    ? 'Нажми на капсулу!'
+    : 'Капсула: ' + roundDistance(nearest.distance) + ' м'; // logic.js
+  capsulePointer.dataset.warmth = level; // цвет — в style.css
+  capsulePointer.classList.remove('hidden');
+
+  if (level === 'рядом' && !pointerWasNear) vibrate(80); // settings.js
+  pointerWasNear = level === 'рядом';
+}
+
+// Ближайшая капсула, которую можно открыть (смутившиеся не считаются).
+// Возвращает { capsule, distance } или null, если таких нет.
+function nearestCapsule() {
+  if (!playerMarker) return null;
+  let best = null;
+  for (let i = 0; i < capsules.length; i++) {
+    if (isShy(capsules[i])) continue;
+    const distance = distanceToCapsule(capsules[i]);
+    if (!best || distance < best.distance) best = { capsule: capsules[i], distance: distance };
+  }
+  return best;
 }
 
 function openCapsule(capsule) {
@@ -511,8 +565,21 @@ function openCapsule(capsule) {
     return;
   }
 
-  // Капсула рядом — открываем окно знакомства (encounter.js)
-  openEncounter(capsule);
+  // Капсула рядом — она раскрывается (покачивается и вспыхивает),
+  // и открывается окно знакомства (encounter.js).
+  // При «уменьшить движение» — сразу окно, без покачивания.
+  if (capsule.opening) return; // уже раскрывается — второе нажатие не считаем
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    openEncounter(capsule);
+    return;
+  }
+  capsule.opening = true;
+  capsule.element.classList.add('capsule-opening');
+  setTimeout(function () {
+    capsule.opening = false;
+    capsule.element.classList.remove('capsule-opening');
+    openEncounter(capsule);
+  }, CAPSULE_OPEN_TIME);
 }
 
 // Игрок выиграл и нажал «Забрать в экипаж» (вызывается из encounter.js)
@@ -634,6 +701,8 @@ function browserStorage() {
 // Записывает текущий прогресс в память браузера
 function saveGame() {
   writeSave(storage, save); // функция из logic.js
+  // Рыбки, экипаж или метры могли измениться — обновляем значки сверху
+  updateStatus();
 }
 
 // «Начать заново» из альбома: весь прогресс стирается
@@ -681,15 +750,36 @@ function setStatus(text) {
 }
 
 function updateStatus() {
-  // Счётчик берётся из сохранения: сколько котов каталога в экипаже
-  // Считаем котов текущей главы
+  statusText.textContent = statusMessage; // пустое сообщение CSS прячет
+
+  // Значки: экипаж текущей главы, рыбки и (на прогулке) метры за сегодня
   const cats = chapterCats(CATS, save.chapter);
-  let text = statusMessage + ' Экипаж: ' + crewCount(save, cats) + ' из ' + cats.length + '.';
-  // На прогулке — сколько пройдено сегодня
-  if (gameMode === 'walk') {
-    text = text + ' Пройдено сегодня: ' + walkedToday(save.walkToday, localDayKey(new Date())) + ' м.';
-  }
-  statusText.textContent = text;
+  const crew = crewCount(save, cats);
+  const walked = walkedToday(save.walkToday, localDayKey(new Date()));
+  setChip('chip-crew', crew + '/' + cats.length, shownCounts ? crew - shownCounts.crew : 0);
+  setChip('chip-fish', String(save.fish), shownCounts ? save.fish - shownCounts.fish : 0);
+  setChip('chip-walk', walked + ' м', 0);
+  document.getElementById('chip-walk').classList.toggle('hidden', gameMode !== 'walk');
+  shownCounts = { crew: crew, fish: save.fish };
+}
+
+// Записать число в значок. gained > 0 — число выросло: над значком
+// всплывает «+N», а сам значок подпрыгивает (анимация — в style.css).
+function setChip(id, value, gained) {
+  const chip = document.getElementById(id);
+  chip.querySelector('.chip-value').textContent = value;
+  if (gained <= 0) return;
+  // Подпрыгивание: снимаем класс и ставим снова, чтобы анимация
+  // запустилась заново, даже если прошлая ещё не кончилась
+  chip.classList.remove('chip-bump');
+  void chip.offsetWidth;
+  chip.classList.add('chip-bump');
+  const float = document.createElement('span');
+  float.className = 'chip-float';
+  float.setAttribute('aria-hidden', 'true'); // диктору хватит подсказки внизу
+  float.textContent = '+' + gained;
+  chip.appendChild(float);
+  setTimeout(function () { float.remove(); }, FLOAT_TIME);
 }
 
 // Всплывающая подсказка внизу экрана. Держится TOAST_TIME и исчезает.

@@ -31,8 +31,27 @@
   <!-- Карта. MapLibre сам нарисует её внутри этого блока -->
   <div id="map"></div>
 
-  <!-- Строка состояния сверху -->
-  <div id="status" class="status">Загрузка…</div>
+  <!-- Строка состояния сверху: короткое сообщение (только когда есть
+       что сказать, например «Ищем спутники…») и значки-счётчики.
+       Слова для экранного диктора спрятаны в sr-only — их не видно,
+       но диктор их прочитает. Значки заполняет game.js (updateStatus). -->
+  <div id="status" class="status">
+    <p id="status-message" class="status-message">Загрузка…</p>
+    <div class="status-chips">
+      <span id="chip-crew" class="chip"><span class="sr-only">Экипаж: </span><span aria-hidden="true">🐱</span> <b class="chip-value"></b></span>
+      <span id="chip-fish" class="chip"><span class="sr-only">Космические рыбки: </span><span aria-hidden="true">🐟</span> <b class="chip-value"></b></span>
+      <span id="chip-walk" class="chip hidden"><span class="sr-only">Пройдено сегодня: </span><span aria-hidden="true">👣</span> <b class="chip-value"></b></span>
+    </div>
+  </div>
+
+  <!-- Компас к ближайшей капсуле (только на прогулке): стрелка
+       показывает, куда идти, а цвет — «горячо» или «холодно» -->
+  <div id="capsule-pointer" class="capsule-pointer hidden">
+    <span id="pointer-arrow" class="pointer-arrow" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 2 L20 20 L12 15.5 L4 20 Z"/></svg>
+    </span>
+    <span id="pointer-text" class="pointer-text"></span>
+  </div>
 
   <!-- Всплывающая подсказка («Подойди ближе!» и т. п.).
        aria-live — чтобы экранный диктор прочитал её вслух -->

@@ -108,12 +108,146 @@ html, body {
   z-index: 900;
   top: calc(12px + env(safe-area-inset-top, 0px));
   left: 12px;
-  right: 12px;
-  padding: 8px 14px;
-  border-radius: 14px;
+  /* ширина — по содержимому, но не шире экрана */
+  max-width: calc(100% - 24px);
+  padding: 6px;
+  border-radius: 16px;
   background: var(--space);
   font-size: 15px;
   line-height: 1.3;
+  box-sizing: border-box;
+}
+
+/* Сообщение («Ищем спутники…»). Пустое — не занимает места. */
+.status-message {
+  margin: 0 8px 6px;
+}
+.status-message:empty {
+  display: none;
+}
+
+/* Значки-счётчики: 🐱 экипаж, 🐟 рыбки, 👣 метры */
+.status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  position: relative; /* «+3» всплывает от значка */
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--space-2);
+  color: var(--fur);
+  font-size: 17px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.chip.hidden {
+  display: none;
+}
+.chip-value {
+  font-weight: 800;
+}
+
+/* «+3» над значком (создаёт game.js, setChip) */
+.chip-float {
+  position: absolute;
+  left: 50%;
+  top: 100%; /* строка состояния у верхнего края — «+3» выпадает вниз */
+  margin-left: -1.2em;
+  width: 2.4em;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--space-2);
+  color: var(--star);
+  font-size: 16px;
+  font-weight: 800;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0; /* без анимации («уменьшить движение») «+3» не показываем */
+}
+
+/* Текст только для экранного диктора: на экране его нет */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ===== Компас к ближайшей капсуле ===== */
+/* Плашка внизу, между ⚙️ и круглыми кнопками справа.
+   data-warmth (game.js): холодно → тепло → горячо → рядом */
+.capsule-pointer {
+  position: absolute;
+  z-index: 900;
+  left: 76px;
+  right: 100px;
+  bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 12px;
+  border: 3px solid var(--fur);
+  border-radius: 999px;
+  background: var(--space);
+  color: var(--fur);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+  box-sizing: border-box;
+  pointer-events: none; /* плашка не мешает нажимать на карту */
+  box-shadow: 0 5px 0 var(--space-deep), 0 9px 16px rgba(20, 22, 48, 0.35);
+}
+.capsule-pointer.hidden,
+body.mode-home .capsule-pointer {
+  display: none;
+}
+.pointer-arrow {
+  display: block;
+  flex: none;
+  width: 26px;
+  height: 26px;
+}
+.pointer-arrow svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+/* Рядом стрелка не нужна — капсула прямо тут */
+.capsule-pointer[data-warmth="рядом"] .pointer-arrow {
+  display: none;
+}
+/* Тепло: жёлтая рамка */
+.capsule-pointer[data-warmth="тепло"] {
+  border-color: var(--star);
+}
+/* Горячо: жёлтая плашка */
+.capsule-pointer[data-warmth="горячо"] {
+  border-color: var(--fur);
+  background: var(--star);
+  color: var(--space);
+  box-shadow: 0 5px 0 var(--star-deep), 0 0 18px var(--star);
+}
+/* Рядом: розовая плашка — «нажми на капсулу!» */
+.capsule-pointer[data-warmth="рядом"] {
+  border-color: var(--fur);
+  background: var(--nose);
+  color: var(--space);
+  box-shadow: 0 5px 0 var(--nose-deep), 0 0 22px var(--nose);
 }
 
 .round-button {
@@ -2544,4 +2678,56 @@ body.mode-home .toast {
   40% { transform: translateX(5px); }
   60% { transform: translateX(-3px); }
   80% { transform: translateX(3px); }
+}
+
+/* ----- Значки, компас и капсула: движение ----- */
+@media (prefers-reduced-motion: no-preference) {
+  /* Значок подпрыгивает, когда число выросло */
+  .chip-bump {
+    animation: chip-bump 0.45s var(--spring);
+  }
+  /* «+3» всплывает над значком и тает */
+  .chip-float {
+    animation: chip-float 1.2s ease-out forwards;
+  }
+  /* Стрелка компаса поворачивается плавно */
+  .pointer-arrow {
+    transition: rotate 0.4s ease-out;
+  }
+  /* Капсула рядом — плашка мягко «дышит» */
+  .capsule-pointer[data-warmth="рядом"] {
+    animation: pointer-breathe 1.4s ease-in-out infinite;
+  }
+  /* Капсула раскрывается: покачивается, раздувается и вспыхивает.
+     Только rotate, scale и filter — transform у маркера занят MapLibre. */
+  .capsule.capsule-opening {
+    animation: capsule-open 0.45s ease-in forwards;
+  }
+}
+
+@keyframes chip-bump {
+  0%   { scale: 1; }
+  40%  { scale: 1.18; }
+  100% { scale: 1; }
+}
+
+@keyframes chip-float {
+  0%   { opacity: 0; translate: 0 -8px; scale: 0.6; }
+  20%  { opacity: 1; translate: 0 6px; scale: 1.15; }
+  70%  { opacity: 1; translate: 0 12px; scale: 1; }
+  100% { opacity: 0; translate: 0 22px; scale: 1; }
+}
+
+@keyframes pointer-breathe {
+  0%, 100% { scale: 1; }
+  50%      { scale: 1.05; }
+}
+
+@keyframes capsule-open {
+  0%   { rotate: 0deg;   scale: 1.2; }
+  20%  { rotate: -12deg; scale: 1.25; }
+  40%  { rotate: 12deg;  scale: 1.3; }
+  60%  { rotate: -8deg;  scale: 1.4; }
+  100% { rotate: 0deg;   scale: 1.9; opacity: 0;
+         filter: drop-shadow(0 0 10px var(--star)) drop-shadow(0 0 28px var(--nose)) brightness(1.6); }
 }

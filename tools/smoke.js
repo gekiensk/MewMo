@@ -206,7 +206,13 @@ async function walkScenario(browser) {
     await moveTo(page, context, ROUTE[i], 'точку ' + (i + 1));
   }
   const status = await page.textContent('#status');
-  expect(status.includes('Ты здесь'), name + ': в строке состояния нет «Ты здесь» (там: «' + status + '»)');
+  // GPS работает — сообщения «Ищем спутники…» нет, видны значки
+  expect(!status.includes('Ищем'), name + ': GPS работает, а в строке состояния «' + status + '»');
+  expect(status.includes('Экипаж') && status.includes('Космические рыбки'), name + ': в строке состояния нет значков (там: «' + status + '»)');
+  // Компас к ближайшей капсуле виден и пишет, сколько идти
+  const pointer = await page.textContent('#capsule-pointer');
+  expect(await page.isVisible('#capsule-pointer') && /Капсула: \d+ м|Нажми на капсулу/.test(pointer),
+    name + ': компас к капсуле не виден или пустой («' + pointer + '»)');
   const capsules = await page.evaluate(function () { return capsules.length; });
   expect(capsules > 0 && capsules <= 3, name + ': капсул вокруг игрока ' + capsules + ' (нужно 1–3)');
   expect(status.includes('Пройдено сегодня'), name + ': в строке состояния нет «Пройдено сегодня»');
@@ -502,6 +508,9 @@ async function contrastScenario(browser) {
     movePlayer(capsulePosition(capsule), 5);
     capsule.element.click();
   });
+  // Капсула сначала раскрывается (полсекунды), потом открывается окно
+  await page.waitForSelector('#encounter:not(.hidden)');
+  await page.waitForTimeout(500); // окно «выпрыгнуло» до конца
   await checkContrast(page, 'знакомство с котом');
   await page.click('#encounter-close');
   // Убежище

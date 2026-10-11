@@ -7,8 +7,8 @@
   <title>MewMo</title>
 
   <!-- Чтобы игру можно было добавить на главный экран телефона как приложение.
-       Service worker (работа без интернета) пока не добавляем — он может
-       мешать обновлениям игры. -->
+       Работу без интернета даёт sw.js (регистрирует game.js): сначала
+       сеть, кэш — только запасной вариант, поэтому обновления не застревают. -->
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#34375F">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">

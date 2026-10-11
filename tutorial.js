@@ -48,7 +48,14 @@ function openTutorial() {
 
 function showTutorialPage(index) {
   tutorialPage = index;
-  document.getElementById('tutorial-picture').innerHTML = tutorialPicture(index); // art.js
+  const picture = document.getElementById('tutorial-picture');
+  picture.innerHTML = tutorialPicture(index); // art.js
+  // Новая картинка мягко проявляется (анимация page-in — в style.css).
+  // Снимаем класс, «читаем» ширину — браузер забывает старую анимацию —
+  // и ставим класс снова, чтобы она запустилась заново.
+  picture.classList.remove('page-in');
+  void picture.offsetWidth;
+  picture.classList.add('page-in');
   document.getElementById('tutorial-text').textContent = TUTORIAL_TEXTS[index];
   document.getElementById('tutorial-count').textContent = (index + 1) + ' из ' + TUTORIAL_TEXTS.length;
   const last = index === TUTORIAL_TEXTS.length - 1;

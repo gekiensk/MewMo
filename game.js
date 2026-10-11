@@ -816,3 +816,10 @@ function showToast(text) {
 renderStartScreen(); // home.js
 // Самый первый запуск — обучение «Как играть» (tutorial.js)
 showTutorialIfNeeded();
+
+// Работа без интернета: service worker (sw.js) хранит копии файлов игры.
+// Только на https (GitHub Pages) и localhost — в проверке tools/smoke.js
+// (адрес 127.0.0.1) он не включается. Не получилось — играем как раньше.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('sw.js').catch(function () {});
+}

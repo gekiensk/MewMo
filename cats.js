@@ -11,8 +11,6 @@
 //                     сумеречные коты попадаются только в последний час до заката;
 //   rarity          — редкость: 'обычный', 'редкий' или 'легендарный';
 //   character       — характер, пара слов о коте;
-//   favoriteGesture — любимый жест: 'Лапка', 'Коготь' или 'Клубок'
-//                     (больше не показывается — игра «Лапка, Коготь, Клубок» убрана);
 //   favoriteTreat   — любимое угощение с кухни (id рецепта из logic.js, RECIPES);
 //   fact            — настоящий факт о кошках для окна «А ты знал?».
 //
@@ -26,7 +24,6 @@ const CATS = [
     type: 'водный',
     rarity: 'обычный',
     character: 'Спокойный механик',
-    favoriteGesture: 'Лапка',
     favoriteTreat: 'fish-cake',
     fact: 'Кошки мурлыкают не только от радости, но и чтобы успокоиться.'
   },
@@ -37,7 +34,6 @@ const CATS = [
     type: 'водный',
     rarity: 'редкий',
     character: 'Обожает нырять',
-    favoriteGesture: 'Клубок',
     favoriteTreat: 'moon-pudding',
     fact: 'Кошки не чувствуют сладкий вкус.'
   },
@@ -48,7 +44,6 @@ const CATS = [
     type: 'лесной',
     rarity: 'обычный',
     character: 'Любопытный ботаник',
-    favoriteGesture: 'Коготь',
     favoriteTreat: 'berry-pie',
     fact: 'Кошки могут поворачивать уши почти на 180 градусов.'
   },
@@ -59,7 +54,6 @@ const CATS = [
     type: 'лесной',
     rarity: 'обычный',
     character: 'Большой соня',
-    favoriteGesture: 'Лапка',
     favoriteTreat: 'moon-pudding',
     fact: 'Кошки спят в среднем 12–16 часов в сутки.'
   },
@@ -70,7 +64,6 @@ const CATS = [
     type: 'городской',
     rarity: 'обычный',
     character: 'Хитрый пилот',
-    favoriteGesture: 'Коготь',
     favoriteTreat: 'comet-candy',
     fact: 'Усы помогают кошке понять, пролезет ли она в щель.'
   },
@@ -81,7 +74,6 @@ const CATS = [
     type: 'городской',
     rarity: 'обычный',
     character: 'Изобретатель',
-    favoriteGesture: 'Клубок',
     favoriteTreat: 'star-cookie',
     fact: 'У каждой кошки свой узор на носу, как отпечаток пальца у человека.'
   },
@@ -92,7 +84,6 @@ const CATS = [
     type: 'городской',
     rarity: 'редкий',
     character: 'Любит светящиеся экраны',
-    favoriteGesture: 'Лапка',
     favoriteTreat: 'comet-candy',
     fact: 'В каждом ухе у кошки больше 30 мышц.'
   },
@@ -103,7 +94,6 @@ const CATS = [
     type: 'космический',
     rarity: 'легендарный',
     character: 'Может встретиться где угодно',
-    favoriteGesture: 'Клубок',
     favoriteTreat: 'star-cookie',
     fact: 'Котёнок начинает мурлыкать уже в первые дни жизни.'
   },
@@ -115,7 +105,6 @@ const CATS = [
     type: 'сумеречный',
     rarity: 'обычный',
     character: 'Тихий мечтатель, любит смотреть на закат',
-    favoriteGesture: 'Клубок',
     favoriteTreat: 'berry-pie',
     fact: 'Кошки особенно активны в сумерках — на рассвете и на закате.'
   },
@@ -126,7 +115,6 @@ const CATS = [
     type: 'сумеречный',
     rarity: 'редкий',
     character: 'Собирает последние лучи солнца',
-    favoriteGesture: 'Коготь',
     favoriteTreat: 'mint-jelly',
     fact: 'Глаза кошки светятся в темноте, потому что внутри глаза есть слой, который отражает свет.'
   },
@@ -141,7 +129,6 @@ const CATS = [
     type: 'водный',
     rarity: 'обычный',
     character: 'Весёлая сёрфингистка',
-    favoriteGesture: 'Лапка',
     favoriteTreat: 'mint-jelly',
     fact: 'Кошки потеют через подушечки лап.'
   },
@@ -152,7 +139,6 @@ const CATS = [
     type: 'водный',
     rarity: 'обычный',
     character: 'Тихоня, любит слушать дождь',
-    favoriteGesture: 'Клубок',
     favoriteTreat: 'moon-pudding',
     fact: 'У кошки на передних лапах обычно по 5 пальцев, а на задних — по 4.'
   },
@@ -163,7 +149,6 @@ const CATS = [
     type: 'водный',
     rarity: 'обычный',
     character: 'Надёжный боцман',
-    favoriteGesture: 'Коготь',
     favoriteTreat: 'fish-cake',
     fact: 'Кошки ходят на кончиках пальцев.'
   },
@@ -174,7 +159,6 @@ const CATS = [
     type: 'водный',
     rarity: 'редкий',
     character: 'Собирает ракушки',
-    favoriteGesture: 'Лапка',
     favoriteTreat: 'fish-cake',
     fact: 'Язык кошки покрыт крошечными крючками — ими она расчёсывает шерсть.'
   },
@@ -186,7 +170,6 @@ const CATS = [
     type: 'лесной',
     rarity: 'обычный',
     character: 'Смелый маленький разведчик',
-    favoriteGesture: 'Коготь',
     favoriteTreat: 'berry-pie',
     fact: 'Падая, кошка переворачивается в воздухе, чтобы приземлиться на лапы.'
   },
@@ -197,7 +180,6 @@ const CATS = [
     type: 'лесной',
     rarity: 'обычный',
     character: 'Любит играть в прятки',
-    favoriteGesture: 'Клубок',
     favoriteTreat: 'mint-jelly',
     fact: 'Хвост помогает кошке держать равновесие.'
   },
@@ -208,7 +190,6 @@ const CATS = [
     type: 'лесной',
     rarity: 'редкий',
     character: 'Освещает путь в тёмном лесу',
-    favoriteGesture: 'Лапка',
     favoriteTreat: 'berry-pie',
     fact: 'Кошке трудно спуститься с дерева головой вниз: её когти загнуты назад.'
   },
@@ -220,7 +201,6 @@ const CATS = [
     type: 'городской',
     rarity: 'обычный',
     character: 'Никогда не теряется',
-    favoriteGesture: 'Лапка',
     favoriteTreat: 'star-cookie',
     fact: 'Нос кошки чувствует запахи намного лучше, чем нос человека.'
   },
@@ -231,7 +211,6 @@ const CATS = [
     type: 'городской',
     rarity: 'обычный',
     character: 'Весёлый корабельный повар',
-    favoriteGesture: 'Коготь',
     favoriteTreat: 'star-cookie',
     fact: 'Взрослые кошки мяукают в основном для людей, а не для других кошек.'
   },
@@ -242,7 +221,6 @@ const CATS = [
     type: 'городской',
     rarity: 'редкий',
     character: 'Ловит все сигналы на свете',
-    favoriteGesture: 'Клубок',
     favoriteTreat: 'comet-candy',
     fact: 'Кошки узнают голос своего человека среди других голосов.'
   },
@@ -254,7 +232,6 @@ const CATS = [
     type: 'сумеречный',
     rarity: 'редкий',
     character: 'Художник, рисует закаты',
-    favoriteGesture: 'Коготь',
     favoriteTreat: 'berry-pie',
     fact: 'Если кошка медленно моргает, глядя на тебя, — это знак доверия.'
   },
@@ -266,7 +243,6 @@ const CATS = [
     type: 'космический',
     rarity: 'легендарный',
     character: 'Облетает Землю быстрее всех',
-    favoriteGesture: 'Клубок',
     favoriteTreat: 'comet-candy',
     fact: 'У кошек есть третье веко — тонкая плёнка, которая защищает глаз.'
   }
@@ -286,7 +262,6 @@ const CAPTAINS = [
     type: 'капитан',
     rarity: 'капитан',
     character: 'Строгий, но добрый штурман. Потерял звёздную карту',
-    favoriteGesture: 'Коготь',
     favoriteTreat: 'star-cookie',
     fact: 'Кошкам нужно примерно в 6 раз меньше света, чем человеку, чтобы видеть.'
   },
@@ -297,7 +272,6 @@ const CAPTAINS = [
     type: 'капитан',
     rarity: 'капитан',
     character: 'Весёлый командир, отдаёт команды громким «Мяу!»',
-    favoriteGesture: 'Лапка',
     favoriteTreat: 'moon-pudding',
     fact: 'Когда кошка идёт шагом, её задние лапы ступают почти точно в следы передних.'
   },
@@ -309,7 +283,6 @@ const CAPTAINS = [
     type: 'капитан',
     rarity: 'капитан',
     character: 'Громкий, но очень заботливый командир большого корабля',
-    favoriteGesture: 'Коготь',
     favoriteTreat: 'fish-cake',
     fact: 'Котята рождаются с голубыми глазами, а настоящий цвет появляется позже.'
   },
@@ -320,7 +293,6 @@ const CAPTAINS = [
     type: 'капитан',
     rarity: 'капитан',
     character: 'Мудрая и загадочная, знает все звёзды',
-    favoriteGesture: 'Лапка',
     favoriteTreat: 'mint-jelly',
     fact: 'Обычная температура тела кошки — около 38–39 градусов, выше, чем у человека.'
   }

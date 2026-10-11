@@ -98,3 +98,10 @@ test('у каждого предмета обстановки своя карт�
   pictures.forEach(function (svg) { assert.ok(looksLikeSvg(svg)); });
   assert.strictEqual(new Set(pictures).size, pictures.length);
 });
+
+test('иконки панели занятий дома — 4 разные SVG', function () {
+  const icons = art.HOME_BAR_KINDS.map(function (kind) { return art.homeBarIcon(kind); });
+  assert.strictEqual(icons.length, 4);
+  icons.forEach(function (icon, i) { assert.ok(looksLikeSvg(icon), art.HOME_BAR_KINDS[i]); });
+  assert.strictEqual(new Set(icons).size, 4);
+});

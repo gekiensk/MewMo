@@ -689,6 +689,12 @@ async function minigameScenario(browser) {
   page.setDefaultTimeout(8000);
   watchErrors(page, name);
   await page.goto(URL);
+  // Здесь проверяем, что мини-игры можно пройти, — внешний вид не важен.
+  // Анимации окон выключаем: тестовый браузер рисует 3D-карту без
+  // видеокарты, и любая анимация поверх неё делает кадр очень медленным —
+  // нажатия иногда не успевали за 8 секунд. На телефоне с видеокартой
+  // такого нет. Остальные сценарии (и «Контраст») идут с анимациями.
+  await page.addStyleTag({ content: '*, *::before, *::after { animation: none !important; transition: none !important; }' });
   await skipTutorial(page);
   await page.click('#start-button');
   await moveTo(page, context, ROUTE[1], 'первую точку');
@@ -845,7 +851,10 @@ async function homeScenario(browser) {
   await page.mouse.down();
   await page.mouse.move(ballField.x + ballField.width / 2 - 30, ballField.y + ballField.height - 180, { steps: 3 });
   await page.mouse.up();
-  const fetched = await waitFor(page, function () { return playGame && playGame.count >= 1; }, null, 8000);
+  // 15 секунд: время игры идёт кадрами (не больше 0,05 с на кадр, play.js),
+  // а тестовый браузер без видеокарты иногда даёт меньше 20 кадров
+  // в секунду — тогда кот бегает медленнее, чем на телефоне (там ~4 с)
+  const fetched = await waitFor(page, function () { return playGame && playGame.count >= 1; }, null, 15000);
   expect(fetched, name + ': кот не принёс мячик');
   await page.evaluate(function () { playGame.elapsed = PLAY_SECONDS - 0.1; });
   await waitFor(page, function () { return !document.getElementById('play-end').classList.contains('hidden'); }, null, 3000);

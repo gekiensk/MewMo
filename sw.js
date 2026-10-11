@@ -96,7 +96,9 @@ function networkFirst(request) {
       return response;
     });
 
-    return cache.match(request).then(function (cached) {
+    // ignoreSearch: ссылка с хвостом «?…» (например, присланная
+    // в мессенджере) находит в кэше тот же файл без хвоста
+    return cache.match(request, { ignoreSearch: true }).then(function (cached) {
       if (!cached) {
         return fromNetwork; // в кэше нет — ждём сеть, сколько понадобится
       }

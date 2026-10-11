@@ -519,17 +519,46 @@ async function contrastScenario(browser) {
 // которая каждые 50 мс делает то, что сделал бы игрок (двигает корзинку
 // под рыбку и т. п.). Так проверяем, что игру можно пройти до победы.
 const ROBOTS = {
-  // «Поймай рыбок»: корзинка — под самую нижнюю рыбку, подальше от пузырей
+  // «Поймай рыбок»: корзинка — под самую нижнюю рыбку, но не туда,
+  // где вот-вот упадёт пузырь. Корзинка в игре сразу прыгает за пальцем,
+  // поэтому робот проигрывал не из-за скорости, а из-за пузырей:
+  // рыбка и пузырь падали рядом, и корзинка ловила оба.
   fish: function () {
     const field = document.querySelector('.fish-field');
-    if (!field) return;
+    const basket = document.querySelector('.fish-basket');
+    if (!field || !basket) return;
     const rect = field.getBoundingClientRect();
-    let target = null;
-    let lowest = -1;
+    const half = basket.getBoundingClientRect().width / 2;
+    // Опасные места: пузыри в нижней половине поля
+    const danger = [];
+    document.querySelectorAll('.fish-item[data-kind="пузырь"]').forEach(function (el) {
+      const r = el.getBoundingClientRect();
+      if (r.top > rect.top + rect.height * 0.5) danger.push(r.left + r.width / 2);
+    });
+    function safe(x) {
+      return danger.every(function (d) { return Math.abs(d - x) > half + 12; });
+    }
+    // Рыбки — от самой нижней к верхней; берём первую безопасную
+    const fishes = [];
     document.querySelectorAll('.fish-item[data-kind="рыбка"]').forEach(function (el) {
       const r = el.getBoundingClientRect();
-      if (r.top > lowest) { lowest = r.top; target = r.left + r.width / 2; }
+      fishes.push({ top: r.top, x: r.left + r.width / 2 });
     });
+    fishes.sort(function (a, b) { return b.top - a.top; });
+    let target = null;
+    for (let i = 0; i < fishes.length && target === null; i++) {
+      if (safe(fishes[i].x)) target = fishes[i].x;
+    }
+    // Безопасной рыбки нет, а пузырь близко — уезжаем от пузырей
+    if (target === null && danger.length > 0) {
+      let best = rect.left + half;
+      for (let x = rect.left + half; x <= rect.right - half; x += 8) {
+        const far = Math.min.apply(null, danger.map(function (d) { return Math.abs(d - x); }));
+        const bestFar = Math.min.apply(null, danger.map(function (d) { return Math.abs(d - best); }));
+        if (far > bestFar) best = x;
+      }
+      target = best;
+    }
     if (target === null) return;
     field.dispatchEvent(new PointerEvent('pointermove', { clientX: target, clientY: rect.top + 10, bubbles: true }));
   },
@@ -846,7 +875,9 @@ async function main() {
     console.log('Сценарий 7: дом — кухня, ремонт, игры с котами…');
     await homeScenario(browser);
   } catch (error) {
-    problems.push('Проверка упала: ' + error.message.split('\n')[0]);
+    // Первые строки ошибки: в них Playwright пишет, какой элемент он ждал
+    // (например, «waiting for locator('#intro-next')») — так видно, где застряли
+    problems.push('Проверка упала: ' + error.message.split('\n').slice(0, 4).join(' / '));
   } finally {
     if (browser) await browser.close();
     server.kill();

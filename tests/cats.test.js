@@ -5,9 +5,9 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { CATS, findCat } = require('../cats.js');
-const { GESTURES, RARITY_CHANCES } = require('../logic.js');
+const { RARITY_CHANCES } = require('../logic.js');
 
-const FIELDS = ['id', 'name', 'type', 'rarity', 'character', 'favoriteGesture', 'fact'];
+const FIELDS = ['id', 'name', 'type', 'rarity', 'character', 'fact'];
 
 test('в каталоге 22 кота: 10 в главе 1 и 12 в главе 2', function () {
   assert.strictEqual(CATS.length, 22);
@@ -48,12 +48,6 @@ test('у всех котов заполнены все поля', function () {
 test('id котов не повторяются', function () {
   const ids = CATS.map(function (cat) { return cat.id; });
   assert.strictEqual(new Set(ids).size, ids.length);
-});
-
-test('любимый жест — один из трёх', function () {
-  for (const cat of CATS) {
-    assert.ok(GESTURES.includes(cat.favoriteGesture), cat.name + ': ' + cat.favoriteGesture);
-  }
 });
 
 test('редкость — одна из известных', function () {

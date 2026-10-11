@@ -252,7 +252,8 @@ function gpsSearchState(info) {
 //   flewHome: ['bul'],        // коты, улетевшие домой на первом корабле
 //   latecomers: ['moh'],      // «отставшие» коты главы 1, найденные в главе 2
 //   tutorialSeen: true,       // обучение «Как играть» уже показано
-//   tipEncounters: 2          // в скольких встречах уже были подсказки
+//   tipEncounters: 2,         // в скольких встречах уже были подсказки
+//   walkDays: ['2026-10-11']  // дни, когда была прогулка (наклейки в альбоме) — только даты
 // }
 //
 // Старые сохранения (без новых полей) продолжают работать: cleanSave
@@ -296,7 +297,8 @@ function emptySave() {
     captainDay: '',                    // в какой день приходил последний капитан
     walkToday: { day: '', meters: 0 }, // сколько метров пройдено сегодня (только число!)
     playToday: { day: '', cats: [] },  // с какими котами сегодня уже играли (дружба +2 — раз в день)
-    decor: { owned: [], placed: [null, null, null, null, null, null] } // обстановка: купленное и что где стоит
+    decor: { owned: [], placed: [null, null, null, null, null, null] }, // обстановка: купленное и что где стоит
+    walkDays: []                       // дни с прогулкой ('2026-10-11') — наклейки в альбоме
   };
 }
 
@@ -429,6 +431,7 @@ function cleanSave(data) {
   save.playToday = (play && typeof play.day === 'string')
     ? { day: play.day, cats: cleanStringList(play.cats) } : { day: '', cats: [] };
   save.decor = cleanDecor(data.decor);
+  save.walkDays = cleanWalkDays(data.walkDays);
   return save;
 }
 
@@ -1760,6 +1763,54 @@ function walkedToday(walkToday, dayKey) {
   return walkToday.day === dayKey ? walkToday.meters : 0;
 }
 
+// =============================================================
+// Наклейки прогулок (календарь в альбоме)
+// =============================================================
+// За каждый день с прогулкой — наклейка. Прогулка засчитывается, если
+// за день пройдено WALK_DAY_METERS метров или на прогулке пойман кот.
+// Пропущенный день ничего не отнимает: это коллекция, а не «серия»,
+// которая сгорает (чтобы игра не давила на ребёнка).
+// Хранятся только даты — без мест и времени.
+const WALK_DAY_METERS = 100;
+const WALK_DAYS_MAX = 400; // больше года — старые даты забываем
+const DAY_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+// Проверка списка дней из сохранения: только даты вида '2026-10-11',
+// без повторов, по порядку, не больше WALK_DAYS_MAX последних
+function cleanWalkDays(data) {
+  const days = cleanStringList(data).filter(function (day) { return DAY_KEY_PATTERN.test(day); });
+  days.sort();
+  return days.slice(-WALK_DAYS_MAX);
+}
+
+// Отметить день dayKey. Возвращает новый список (старый не меняется).
+function addWalkDay(walkDays, dayKey) {
+  if (walkDays.includes(dayKey)) return walkDays;
+  return cleanWalkDays(walkDays.concat([dayKey]));
+}
+
+// Календарь месяца для альбома. year — год, month — номер месяца с 0.
+// Неделя начинается с понедельника, как в России.
+// Возвращает { title: 'Октябрь 2026', blanks: сколько пустых клеток
+// перед 1-м числом, days: [{ day: 1, key, walked, today }], count:
+// сколько прогулок в этом месяце }.
+function monthCalendar(year, month, walkDays, todayKey) {
+  const first = new Date(year, month, 1);
+  const total = new Date(year, month + 1, 0).getDate(); // число дней в месяце
+  const blanks = (first.getDay() + 6) % 7;             // воскресенье (0) — последний
+  const days = [];
+  let count = 0;
+  for (let day = 1; day <= total; day++) {
+    const key = localDayKey(new Date(year, month, day));
+    const walked = walkDays.includes(key);
+    if (walked) count = count + 1;
+    days.push({ day: day, key: key, walked: walked, today: key === todayKey });
+  }
+  return { title: MONTH_NAMES[month] + ' ' + year, blanks: blanks, days: days, count: count };
+}
+
 // Гости дома — только обычные коты (и сумеречные вечером).
 // Редкие и легендарные встречаются только на прогулке.
 function commonOnly(cats) {
@@ -2434,7 +2485,8 @@ if (typeof module !== 'undefined') {
     RECIPES, MIX_TURNS, SHAPE_TAPS, BAKE_SECONDS, findRecipe, canCook, cookRecipe, mixAdd, mixProgress,
     QUEST_TYPES, QUESTS_PER_DAY, chooseDailyQuests, refreshQuests, applyQuestEvent, questRewardText,
     LAST_CHAPTER, CHAPTER_PARTS, LAUNCHABLE_CHAPTERS, partsNeeded, catChapter, chapterCats,
-    canLaunchShip, allChaptersDone, launchShip, badgeName, LATECOMER_CHANCE, latecomerCats, pickCatForChapter,
+    canLaunchShip, allChaptersDone, launchShip, badgeName,
+    WALK_DAY_METERS, WALK_DAYS_MAX, cleanWalkDays, addWalkDay, monthCalendar, LATECOMER_CHANCE, latecomerCats, pickCatForChapter,
     shelterCats, isOnRadio, TIP_ENCOUNTERS, shouldShowTutorial, needsEncounterTips,
     MAP_COLORS, mutedPaint,
     INGREDIENTS, CAPSULE_INGREDIENT_CHANCE, findIngredient, randomIngredient, beaconIngredients,

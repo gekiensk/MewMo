@@ -336,6 +336,9 @@ function countWalk(lngLat, accuracy) {
   if (counted > 0) {
     save.walkToday = addWalkMeters(save.walkToday, localDayKey(new Date()), counted);
     questEvent('walk', counted); // задание «Пройди 500 м» (quests.js), заодно сохраняет игру
+    if (walkedToday(save.walkToday, localDayKey(new Date())) >= WALK_DAY_METERS) {
+      markWalkDay(0); // прошли 100 м — наклейка дня
+    }
     updateStatus();
   }
 }
@@ -601,6 +604,8 @@ function catchCat(capsule) {
     // Подсказку об ингредиенте показываем чуть позже, после подсказки о коте
     setTimeout(function () { showToast('В капсуле нашлось: ' + ingredientsText(found) + '!'); }, TOAST_TIME + 200);
   }
+  // Кот пойман на прогулке — наклейка дня (подсказка — после всех остальных)
+  markWalkDay(found.length > 0 ? 2 * (TOAST_TIME + 200) : TOAST_TIME + 200);
 
   if (result.reward.isNew && isLatecomer) {
     playSound('crew');
@@ -613,6 +618,16 @@ function catchCat(capsule) {
     showToast(capsule.cat.name + ' рад встрече! +' + result.reward.fish + ' 🐟');
   }
   updateStatus();
+}
+
+// Наклейка прогулки за сегодня (календарь в альбоме). Один раз в день.
+// delay — через сколько мс показать подсказку (чтобы не перебить другие).
+function markWalkDay(delay) {
+  const today = localDayKey(new Date());
+  if (save.walkDays.includes(today)) return;
+  save.walkDays = addWalkDay(save.walkDays, today); // logic.js
+  saveGame();
+  setTimeout(function () { showToast('🌟 Наклейка прогулки за сегодня — в альбоме «Экипаж»!'); }, delay);
 }
 
 // Игрок проиграл: кот смущается, капсула минуту тусклая (вызывается из encounter.js)

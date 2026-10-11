@@ -530,7 +530,7 @@ function shipRepairShare(parts, chapter) {
 // улетает домой, и начинается глава 2 — большой корабль (30 деталей).
 const LAST_CHAPTER = 2;                  // сколько глав уже есть в игре
 const CHAPTER_PARTS = { 1: 20, 2: 30 };  // сколько деталей нужно в каждой главе
-const LAUNCHABLE_CHAPTERS = [1];         // у каких глав уже есть финал со взлётом
+const LAUNCHABLE_CHAPTERS = [1, 2];      // у каких глав уже есть финал со взлётом
 
 // Сколько деталей нужно для ремонта корабля главы chapter
 function partsNeeded(chapter) {
@@ -550,16 +550,28 @@ function chapterCats(cats, chapter) {
   return cats.filter(function (cat) { return catChapter(cat) === 1; });
 }
 
-// Можно ли запустить корабль: установлено достаточно деталей, и у главы есть финал.
+// Можно ли запустить корабль: установлено достаточно деталей, у главы есть
+// финал, и корабль этой главы ещё не улетал (последняя глава после финала
+// остаётся открытой — второй раз её корабль не взлетает).
 // Считаются только УСТАНОВЛЕННЫЕ детали (найденные ещё надо поставить в «Ремонте»).
 function canLaunchShip(save) {
-  return LAUNCHABLE_CHAPTERS.includes(save.chapter) && save.partsInstalled >= partsNeeded(save.chapter);
+  return LAUNCHABLE_CHAPTERS.includes(save.chapter) &&
+    !save.chaptersDone.includes(save.chapter) &&
+    save.partsInstalled >= partsNeeded(save.chapter);
+}
+
+// Пройдены ли все главы, которые уже есть в игре
+// (тогда в альбоме и ремонте — «Продолжение следует»)
+function allChaptersDone(save) {
+  return save.chaptersDone.includes(LAST_CHAPTER);
 }
 
 // Запуск корабля: экипаж главы улетает домой, игрок получает значок
 // «Спасатель N ранга», начинается следующая глава.
 // allCats — все коты и капитаны (чтобы узнать, кто из этой главы).
 // Лишние детали (сверх нужных) переходят в новую главу.
+// Последняя глава (LAST_CHAPTER): новой главы ещё нет — игрок остаётся
+// в ней, корабль остаётся починенным, а коты прилетают в гости.
 function launchShip(save, allCats) {
   if (!canLaunchShip(save)) return save;
   const result = copySave(save);
@@ -574,6 +586,7 @@ function launchShip(save, allCats) {
   if (!result.chaptersDone.includes(chapter)) result.chaptersDone.push(chapter);
   const badge = 'rescuer-' + chapter;
   if (!result.badges.includes(badge)) result.badges.push(badge);
+  if (chapter === LAST_CHAPTER) return result; // детали и глава не меняются
   result.parts = save.parts - partsNeeded(chapter);
   result.partsInstalled = 0; // у нового корабля пока ничего не установлено
   result.chapter = chapter + 1;
@@ -2421,7 +2434,7 @@ if (typeof module !== 'undefined') {
     RECIPES, MIX_TURNS, SHAPE_TAPS, BAKE_SECONDS, findRecipe, canCook, cookRecipe, mixAdd, mixProgress,
     QUEST_TYPES, QUESTS_PER_DAY, chooseDailyQuests, refreshQuests, applyQuestEvent, questRewardText,
     LAST_CHAPTER, CHAPTER_PARTS, LAUNCHABLE_CHAPTERS, partsNeeded, catChapter, chapterCats,
-    canLaunchShip, launchShip, badgeName, LATECOMER_CHANCE, latecomerCats, pickCatForChapter,
+    canLaunchShip, allChaptersDone, launchShip, badgeName, LATECOMER_CHANCE, latecomerCats, pickCatForChapter,
     shelterCats, isOnRadio, TIP_ENCOUNTERS, shouldShowTutorial, needsEncounterTips,
     MAP_COLORS, mutedPaint,
     INGREDIENTS, CAPSULE_INGREDIENT_CHANCE, findIngredient, randomIngredient, beaconIngredients,

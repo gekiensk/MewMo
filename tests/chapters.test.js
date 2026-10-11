@@ -66,13 +66,38 @@ test('запуск корабля: экипаж главы 1 улетает, з�
   assert.strictEqual(after.parts, 3); // лишние детали переходят в главу 2
   assert.strictEqual(after.partsInstalled, 0); // их ещё надо установить в новый корабль
   assert.strictEqual(logic.badgeName('rescuer-1'), 'Спасатель 1 ранга');
-  // в главе 2 финала пока нет — второй запуск не происходит
-  after.parts = 99;
-  after.partsInstalled = 99;
+  // в главе 2 корабль ещё не починен — запуска нет
   assert.strictEqual(logic.canLaunchShip(after), false);
   assert.strictEqual(logic.launchShip(after, cats), after);
   // исходное сохранение не изменилось
   assert.strictEqual(save.chapter, 1);
+});
+
+test('финал главы 2: экипаж улетает, значок, глава и детали остаются', function () {
+  let save = logic.emptySave();
+  save.chapter = 2;
+  save.chaptersDone = [1];
+  save.badges = ['rescuer-1'];
+  save.parts = 34;
+  save.partsInstalled = 29;
+  save.crew = { x: 1, a: 1 }; // x — кот главы 2, a — главы 1
+  const cats = TEST_CATS;
+  assert.strictEqual(logic.canLaunchShip(save), false); // 29 из 30
+  save.partsInstalled = 30;
+  assert.strictEqual(logic.canLaunchShip(save), true);
+  assert.strictEqual(logic.allChaptersDone(save), false);
+
+  const after = logic.launchShip(save, cats);
+  assert.strictEqual(after.chapter, 2);              // глава 3 ещё не написана
+  assert.deepStrictEqual(after.chaptersDone, [1, 2]);
+  assert.deepStrictEqual(after.badges, ['rescuer-1', 'rescuer-2']);
+  assert.deepStrictEqual(after.flewHome, ['x']);     // улетают только коты главы 2
+  assert.strictEqual(after.parts, 34);               // детали не списываются
+  assert.strictEqual(after.partsInstalled, 30);      // корабль остаётся починенным
+  assert.strictEqual(logic.allChaptersDone(after), true);
+  // второй раз корабль главы 2 не взлетает
+  assert.strictEqual(logic.canLaunchShip(after), false);
+  assert.strictEqual(logic.launchShip(after, cats), after);
 });
 
 test('шкала ремонта: 20 деталей в главе 1, 30 в главе 2', function () {

@@ -348,6 +348,33 @@ async function launchScenario(browser) {
   await page.click('#toggle-mode');
   const home = await waitFor(page, function () { return gameMode === 'home'; }, null, 5000);
   expect(home, name + ': не открылось убежище в главе 2');
+
+  // Финал главы 2: корабль на 30 деталей починен → взлёт → «Продолжение следует»
+  await page.evaluate(function () {
+    save.parts = 30;
+    save.partsInstalled = 30;
+    saveGame();
+  });
+  await page.click('#crew-button');
+  expect(await page.isVisible('#album-launch'), name + ': нет кнопки «Запустить корабль» в главе 2');
+  await page.click('#album-launch');
+  await page.click('#album-launch-yes');
+  await page.click('#launch-skip');
+  await page.click('#launch-next');
+  const finale = await page.textContent('#launch-intro-title');
+  expect(finale.includes('Продолжение следует'), name + ': после главы 2 нет «Продолжение следует» (там: «' + finale + '»)');
+  await page.click('#launch-start-chapter');
+  const final = await page.evaluate(function () {
+    return { chapter: save.chapter, badges: save.badges, installed: save.partsInstalled };
+  });
+  expect(final.chapter === 2 && final.badges.includes('rescuer-2') && final.installed === 30,
+    name + ': после финала главы 2 сохранение неверное (' + JSON.stringify(final) + ')');
+  // Второй раз корабль не взлетает, в альбоме — «Продолжение следует»
+  await page.click('#crew-button');
+  expect(await page.isHidden('#album-launch'), name + ': после финала снова есть «Запустить корабль»');
+  const after = await page.textContent('#album-repair-text');
+  expect(after.includes('Продолжение следует'), name + ': в альбоме после финала нет «Продолжение следует»');
+  await page.click('#album-close');
   await context.close();
 }
 

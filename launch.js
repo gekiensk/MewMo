@@ -27,8 +27,17 @@ const CHAPTER_INTROS = {
   }
 };
 
+// После последней главы (новой ещё нет) — «Продолжение следует»
+const FINALE_INTRO = {
+  title: 'Продолжение следует!',
+  text: 'Оба корабля летят домой. Коты будут прилетать в гости — ищи их ' +
+    'на прогулках и в убежище. А скоро придёт новый сигнал с орбиты…',
+  button: 'Ура!'
+};
+
 // ----- Состояние -----
 let launchTimer = null;
+let launchedChapter = 0; // корабль какой главы сейчас взлетел
 
 // ----- Элементы -----
 const launchWindow = document.getElementById('launch');
@@ -69,6 +78,7 @@ function startNewChapterOnMap() {
 
 // Сцена взлёта
 function showLaunchScene(chapter, flyingIds) {
+  launchedChapter = chapter;
   document.getElementById('launch-scene').innerHTML = launchScene(flyingIds); // art.js
   document.getElementById('launch-badge').textContent =
     '🏅 Новый значок: «' + badgeName('rescuer-' + chapter) + '»';
@@ -106,13 +116,17 @@ function finishLaunchScene() {
 
 // Вступление к новой главе
 function showChapterIntro() {
-  const intro = CHAPTER_INTROS[save.chapter];
+  // Взлетел корабль последней главы — новой главы нет, показываем
+  // «Продолжение следует». Иначе — вступление к новой главе.
+  const finale = launchedChapter === LAST_CHAPTER; // logic.js
+  const intro = finale ? FINALE_INTRO : CHAPTER_INTROS[save.chapter];
   if (!intro) {
     closeLaunch();
     return;
   }
   document.getElementById('launch-intro-title').textContent = intro.title;
   document.getElementById('launch-intro-text').textContent = intro.text;
+  document.getElementById('launch-start-chapter').textContent = intro.button || 'Помочь!';
   document.getElementById('launch-thanks').classList.add('hidden');
   document.getElementById('launch-next').classList.add('hidden');
   document.getElementById('launch-intro').classList.remove('hidden');

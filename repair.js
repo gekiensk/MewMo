@@ -71,7 +71,9 @@ function showRepairMain() {
   const install = document.getElementById('repair-install');
   const text = document.getElementById('repair-spare');
   install.disabled = !canInstallPart(save);
-  if (save.partsInstalled >= needed) {
+  if (allChaptersDone(save)) { // logic.js
+    text.textContent = 'Корабль уже слетал домой и вернулся в гости. Продолжение следует!';
+  } else if (save.partsInstalled >= needed) {
     text.textContent = canLaunchShip(save)
       ? 'Корабль починен! Запусти его в альбоме «Экипаж» 🚀'
       : 'Корабль починен! Скоро он сможет взлететь.';

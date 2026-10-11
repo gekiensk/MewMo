@@ -122,9 +122,10 @@ function renderAlbum() {
   // Шкала ремонта корабля текущей главы (в главе 1 — 20 деталей, в главе 2 — 30).
   // Считаются только установленные детали; найденные ставят дома в «Ремонте».
   const spare = spareParts(save); // logic.js
-  document.getElementById('album-repair-text').textContent =
-    'Ремонт корабля: установлено ' + save.partsInstalled + ' из ' + partsNeeded(save.chapter) +
-    (spare > 0 ? '. Ждут установки: ' + spare + ' — их ставят дома в «Ремонте» 🔧' : '');
+  document.getElementById('album-repair-text').textContent = allChaptersDone(save) // logic.js
+    ? 'Все корабли улетели домой! 🚀 Продолжение следует — коты прилетают в гости.'
+    : 'Ремонт корабля: установлено ' + save.partsInstalled + ' из ' + partsNeeded(save.chapter) +
+      (spare > 0 ? '. Ждут установки: ' + spare + ' — их ставят дома в «Ремонте» 🔧' : '');
   document.getElementById('album-repair-fill').style.width =
     (shipRepairShare(save.partsInstalled, save.chapter) * 100) + '%';
 

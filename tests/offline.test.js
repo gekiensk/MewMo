@@ -42,3 +42,7 @@ test('все файлы из списка кэша существуют', functi
 test('кусочки карты не кэшируются (их слишком много)', function () {
   assert.ok(!sw.includes("'tiles.openfreemap.org'"), 'карты OpenFreeMap не должно быть в CACHED_HOSTS');
 });
+
+test('ссылка с хвостом «?…» без интернета находит файл в кэше', function () {
+  assert.ok(sw.includes('ignoreSearch: true'), 'в cache.match нужен ignoreSearch');
+});

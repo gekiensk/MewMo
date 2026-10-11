@@ -2149,3 +2149,399 @@ body.mode-home .toast {
   opacity: 0.45;
   cursor: default;
 }
+
+/* =============================================================
+   ===== Объём и анимации: стиль «наклейки» =====
+   =============================================================
+   Идея: кнопки, окна и круги с котами похожи на толстые наклейки
+   из альбома. Снизу у них тёмная «кромка» (тень без размытия),
+   а при нажатии кнопка проседает вниз — как настоящая.
+
+   Правила этого раздела:
+   • фон кнопок и окон остаётся сплошным цветом — так проверка
+     контраста в tools/smoke.js по-прежнему видит фон под текстом;
+     украшения рисуем в ::before / ::after, где нет текста;
+   • маркеры карты (игрок, капсула, маяк, капитан) здесь не трогаем:
+     их transform занят MapLibre;
+   • всё, что двигается само или плавно, — только внутри
+     @media (prefers-reduced-motion: no-preference). Если в телефоне
+     включено «уменьшить движение», остаются только цвета и тени. */
+
+/* Тёмные оттенки для кромок наклеек */
+:root {
+  --space-deep: #23264A; /* кромка тёмных кнопок и тень окон */
+  --nose-deep: #CC7F93;  /* кромка розовых кнопок */
+  --star-deep: #C9A65A;  /* кромка жёлтых кнопок */
+  --mint-deep: #69AA98;  /* кромка мятных кнопок */
+  /* «Пружинка»: движение чуть перелетает цель и возвращается */
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ----- Кнопки-наклейки -----
+   --edge — цвет кромки. Каждый вид кнопки задаёт свой (ниже). */
+.big-button,
+.round-button,
+.settings-button,
+.home-bar-button,
+.limit-button,
+.helper-button,
+.album-tab,
+.album-cell,
+.care-treat,
+.play-choice {
+  --edge: var(--space-deep);
+  box-shadow: 0 5px 0 var(--edge), 0 9px 16px rgba(20, 22, 48, 0.35);
+}
+
+/* Цвет кромки под цвет кнопки. Порядок важен: правило ниже
+   побеждает правило выше, если у кнопки оба класса. */
+.big-button                              { --edge: var(--nose-deep); }
+.round-button                            { --edge: var(--star-deep); }
+.crew-button                             { --edge: var(--nose-deep); }
+.home-start,
+.helper-call                             { --edge: var(--mint-deep); }
+.launch-button                           { --edge: var(--star-deep); }
+.toggle-button[aria-pressed="false"],
+.danger-button,
+.helper-refuse                           { --edge: var(--space-deep); }
+.toggle-button[aria-pressed="true"],
+.limit-button[aria-pressed="true"],
+.helper-button[aria-pressed="true"]      { --edge: var(--mint-deep); }
+.album-tab[aria-pressed="true"]          { --edge: var(--star-deep); }
+
+/* Нажатие: кнопка опускается на высоту кромки, кромка «прячется».
+   translate — отдельное свойство, оно не мешает другим трансформациям. */
+.big-button:active:not(:disabled),
+.round-button:active,
+.settings-button:active,
+.home-bar-button:active,
+.limit-button:active,
+.helper-button:active,
+.album-tab:active,
+.album-cell:not(.album-unknown):active,
+.care-treat:active,
+.play-choice:active {
+  translate: 0 4px;
+  box-shadow: 0 1px 0 var(--edge), 0 3px 6px rgba(20, 22, 48, 0.3);
+}
+
+/* Неактивная кнопка (не хватает ингредиентов и т. п.) — плоская */
+.big-button:disabled {
+  box-shadow: none;
+}
+
+/* На компьютере с мышкой кнопка чуть светлеет под курсором */
+@media (hover: hover) {
+  .big-button:hover:not(:disabled),
+  .round-button:hover,
+  .home-bar-button:hover,
+  .limit-button:hover,
+  .album-cell:not(.album-unknown):hover,
+  .play-choice:hover {
+    filter: brightness(1.06);
+  }
+}
+
+/* Кнопка ✕: при нажатии — светлый кружок под пальцем */
+.close-button:active {
+  background: rgba(250, 247, 242, 0.14);
+}
+
+/* ----- Окна-карточки ----- */
+/* Тёмная кромка снизу, мягкая тень и тонкий блик сверху внутри рамки */
+.encounter-card,
+.overlay-card {
+  box-shadow:
+    inset 0 2px 0 rgba(250, 247, 242, 0.1),
+    0 10px 0 var(--space-deep),
+    0 24px 48px rgba(15, 16, 40, 0.5);
+}
+
+/* Заголовки окон «выдавлены» — тёмная тень снизу */
+.screen-title {
+  text-shadow: 0 3px 0 var(--space-deep);
+}
+
+/* Строка состояния на карте — тоже наклейка */
+.status {
+  box-shadow: 0 4px 0 var(--space-deep), 0 8px 18px rgba(20, 22, 48, 0.3);
+}
+
+/* Круг с котом: полупрозрачное кольцо вокруг белой рамки и кромка снизу */
+.cat-circle {
+  box-shadow:
+    0 0 0 6px rgba(250, 247, 242, 0.14),
+    0 9px 0 6px var(--space-deep);
+  margin-bottom: 20px; /* место под кромку, чтобы она не касалась имени */
+}
+.mini-circle,
+.home-cat-circle {
+  box-shadow: 0 4px 0 var(--space-deep);
+}
+
+/* Шкалы (ремонт, время игры, готовка): блик сверху и мягкие полоски */
+.repair-fill {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 55%),
+    repeating-linear-gradient(-45deg,
+      rgba(255, 255, 255, 0.16) 0 8px, rgba(255, 255, 255, 0) 8px 16px);
+}
+
+/* ----- Логотип-наклейка ----- */
+/* Тёмная обводка из теней со всех сторон и толстая кромка снизу */
+.logo {
+  text-shadow:
+    -3px -3px 0 var(--space-deep), 3px -3px 0 var(--space-deep),
+    -3px 3px 0 var(--space-deep), 3px 3px 0 var(--space-deep),
+    0 8px 0 var(--space-deep),
+    0 14px 24px rgba(15, 16, 40, 0.5);
+}
+.logo::before,
+.logo::after {
+  transform-origin: 50% 100%; /* ушко качается от основания */
+}
+
+/* ----- Звёздное небо стартового экрана -----
+   Звёзды — маленькие круглые градиенты в псевдоэлементах, узор
+   повторяется плиткой. Текста в них нет. */
+.start-screen {
+  overflow: hidden;
+  isolation: isolate; /* звёзды (z-index: -1) остаются позади текста */
+}
+.start-screen::before,
+.start-screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: repeat;
+}
+/* Мелкие звёзды */
+.start-screen::before {
+  background-image:
+    radial-gradient(1.5px 1.5px at 20px 30px, var(--fur), transparent),
+    radial-gradient(1.5px 1.5px at 90px 110px, var(--fur), transparent),
+    radial-gradient(1px 1px at 150px 60px, var(--fur), transparent),
+    radial-gradient(1.5px 1.5px at 60px 170px, var(--star), transparent),
+    radial-gradient(1px 1px at 170px 150px, var(--fur), transparent);
+  background-size: 200px 200px;
+  opacity: 0.7;
+}
+/* Крупные цветные звёзды */
+.start-screen::after {
+  background-image:
+    radial-gradient(2.5px 2.5px at 50px 80px, var(--star), transparent),
+    radial-gradient(2px 2px at 230px 40px, var(--fur), transparent),
+    radial-gradient(3px 3px at 300px 230px, var(--nose), transparent),
+    radial-gradient(2px 2px at 140px 260px, var(--mint), transparent);
+  background-size: 340px 320px;
+  opacity: 0.9;
+}
+
+/* ----- Победа: звёздные лучи за котом -----
+   Лучи — конический градиент в ::before, позади круга с котом.
+   isolation не даёт лучам (z-index: -1) уйти под карточку окна. */
+#win-celebrate {
+  isolation: isolate;
+}
+#win-celebrate::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  width: 300px;
+  height: 300px;
+  margin: -150px 0 0 -150px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    rgba(245, 216, 142, 0.32) 0 9deg,
+    rgba(245, 216, 142, 0) 9deg 24deg);
+  /* края лучей растворяются */
+  -webkit-mask-image: radial-gradient(circle, #000 30%, transparent 70%);
+  mask-image: radial-gradient(circle, #000 30%, transparent 70%);
+  pointer-events: none;
+}
+
+/* =============================================================
+   Движение — только если «уменьшить движение» выключено
+   ============================================================= */
+@media (prefers-reduced-motion: no-preference) {
+
+  /* Кнопки проседают и поднимаются плавно */
+  .big-button,
+  .round-button,
+  .settings-button,
+  .home-bar-button,
+  .limit-button,
+  .helper-button,
+  .album-tab,
+  .album-cell,
+  .care-treat,
+  .play-choice {
+    transition: translate 0.08s ease-out, box-shadow 0.08s ease-out,
+      background-color 0.2s, filter 0.15s;
+  }
+
+  /* Окно появляется: подложка проявляется, карточка выпрыгивает.
+     Анимация срабатывает каждый раз, когда окну снимают класс hidden
+     (display: none → flex запускает её заново). */
+  .overlay:not(.hidden),
+  .encounter:not(.hidden) {
+    animation: fade-in 0.2s ease-out;
+  }
+  .overlay:not(.hidden) > .overlay-card,
+  .encounter:not(.hidden) > .encounter-card {
+    animation: card-pop 0.42s var(--spring);
+  }
+
+  /* Смена экрана внутри окна — мягкое проявление. Только прозрачность,
+     без сдвига: мини-игры меряют, где стоят их элементы. */
+  .screen:not(.hidden),
+  #album-main:not(.hidden), #album-cat:not(.hidden),
+  #album-confirm:not(.hidden), #album-launch-confirm:not(.hidden),
+  #settings-main:not(.hidden), #settings-lock:not(.hidden),
+  #settings-adult:not(.hidden), #settings-gps:not(.hidden),
+  #kitchen-list:not(.hidden), #kitchen-cook:not(.hidden),
+  #repair-main:not(.hidden), #repair-puzzle-view:not(.hidden),
+  #play-pick:not(.hidden), #play-choose:not(.hidden),
+  #play-game:not(.hidden), #play-end:not(.hidden) {
+    animation: fade-in 0.25s ease-out;
+  }
+
+  /* Подсказка выезжает снизу с пружинкой */
+  .toast {
+    translate: 0 16px;
+    scale: 0.96;
+    transition: opacity 0.2s, visibility 0.2s,
+      translate 0.35s var(--spring), scale 0.35s var(--spring);
+  }
+  .toast.visible {
+    translate: 0 0;
+    scale: 1;
+  }
+
+  /* Шкалы заполняются плавно, а не прыжком */
+  .repair-fill {
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Стартовый экран: всё появляется по очереди, один раз */
+  .start-screen:not(.hidden) .logo {
+    animation: logo-drop 0.7s var(--spring) both;
+  }
+  .start-screen:not(.hidden) .logo::before {
+    animation: ear-twitch 6s ease-in-out 1.2s infinite;
+  }
+  .start-screen:not(.hidden) .logo::after {
+    animation: ear-twitch 6s ease-in-out 1.35s infinite;
+  }
+  .start-screen:not(.hidden) .story,
+  .start-screen:not(.hidden) .safety,
+  .start-screen:not(.hidden) .start-buttons {
+    animation: rise-in 0.5s ease-out both;
+  }
+  .start-screen:not(.hidden) .story         { animation-delay: 0.25s; }
+  .start-screen:not(.hidden) .safety        { animation-delay: 0.4s; }
+  .start-screen:not(.hidden) .start-buttons { animation-delay: 0.55s; }
+
+  /* Звёзды мерцают: два слоя гаснут и вспыхивают не в такт */
+  .start-screen::before { animation: twinkle 3.2s ease-in-out infinite alternate; }
+  .start-screen::after  { animation: twinkle 4.5s ease-in-out 1s infinite alternate; }
+
+  /* Обучение: новая картинка проявляется (класс ставит tutorial.js) */
+  .tutorial-picture.page-in {
+    animation: rise-in 0.35s ease-out;
+  }
+
+  /* Победа: кот «шлёпается» в кадр, как наклейка, потом прыгает */
+  .celebrate-go .cat-circle {
+    animation:
+      sticker-slap 0.5s var(--spring),
+      jump 0.7s ease-out 0.5s 2;
+  }
+  /* Лучи раскрываются и медленно вращаются, пока открыт экран победы */
+  #win-celebrate.celebrate-go::before {
+    animation:
+      rays-open 0.6s ease-out,
+      rays-spin 24s linear 0.6s infinite;
+  }
+
+  /* Кот смутился: короткая дрожь, один раз */
+  .screen:not(.hidden) .cat-circle.shy {
+    animation: shiver 0.5s ease-in-out 0.15s;
+  }
+
+  /* Кот в убежище при нажатии чуть сжимается.
+     scale, а не transform: translate у него уже занят (центровка). */
+  .home-cat {
+    transition: scale 0.12s ease-out;
+  }
+  .home-cat:active {
+    scale: 0.92;
+  }
+}
+
+/* ----- Ключевые кадры ----- */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Окно выпрыгивает снизу */
+@keyframes card-pop {
+  from { opacity: 0; transform: translateY(24px) scale(0.9); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Появление с небольшим подъёмом */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Логотип падает сверху и пружинит, чуть сплющиваясь */
+@keyframes logo-drop {
+  0%   { opacity: 0; transform: translateY(-40px) scale(0.8); }
+  60%  { opacity: 1; transform: translateY(4px) scale(1.04, 0.96); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* Ушко дёргается раз в 6 секунд, остальное время стоит */
+@keyframes ear-twitch {
+  0%, 88%, 100% { transform: rotate(0); }
+  91% { transform: rotate(-14deg); }
+  94% { transform: rotate(8deg); }
+  97% { transform: rotate(-4deg); }
+}
+
+@keyframes twinkle {
+  from { opacity: 0.25; }
+  to   { opacity: 0.95; }
+}
+
+/* Наклейку прихлопнули: большая и повёрнутая → на место */
+@keyframes sticker-slap {
+  0%   { opacity: 0; transform: scale(1.7) rotate(-14deg); }
+  60%  { opacity: 1; transform: scale(0.94) rotate(3deg); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes rays-open {
+  from { opacity: 0; transform: scale(0.3); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes rays-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Дрожь смутившегося кота */
+@keyframes shiver {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}

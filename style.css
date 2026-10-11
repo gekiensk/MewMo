@@ -209,7 +209,7 @@ html, body {
   text-align: center;
   box-sizing: border-box;
   pointer-events: none; /* плашка не мешает нажимать на карту */
-  box-shadow: 0 5px 0 var(--space-deep), 0 9px 16px rgba(20, 22, 48, 0.35);
+  box-shadow: 0 5px 0 var(--space-deep);
 }
 .capsule-pointer.hidden,
 body.mode-home .capsule-pointer {
@@ -240,14 +240,14 @@ body.mode-home .capsule-pointer {
   border-color: var(--fur);
   background: var(--star);
   color: var(--space);
-  box-shadow: 0 5px 0 var(--star-deep), 0 0 18px var(--star);
+  box-shadow: 0 5px 0 var(--star-deep);
 }
 /* Рядом: розовая плашка — «нажми на капсулу!» */
 .capsule-pointer[data-warmth="рядом"] {
   border-color: var(--fur);
   background: var(--nose);
   color: var(--space);
-  box-shadow: 0 5px 0 var(--nose-deep), 0 0 22px var(--nose);
+  box-shadow: 0 5px 0 var(--nose-deep);
 }
 
 .round-button {
@@ -2324,7 +2324,7 @@ body.mode-home .toast {
 .care-treat,
 .play-choice {
   --edge: var(--space-deep);
-  box-shadow: 0 5px 0 var(--edge), 0 9px 16px rgba(20, 22, 48, 0.35);
+  box-shadow: 0 5px 0 var(--edge);
 }
 
 /* Цвет кромки под цвет кнопки. Порядок важен: правило ниже
@@ -2356,24 +2356,12 @@ body.mode-home .toast {
 .care-treat:active,
 .play-choice:active {
   translate: 0 4px;
-  box-shadow: 0 1px 0 var(--edge), 0 3px 6px rgba(20, 22, 48, 0.3);
+  box-shadow: 0 1px 0 var(--edge);
 }
 
 /* Неактивная кнопка (не хватает ингредиентов и т. п.) — плоская */
 .big-button:disabled {
   box-shadow: none;
-}
-
-/* На компьютере с мышкой кнопка чуть светлеет под курсором */
-@media (hover: hover) {
-  .big-button:hover:not(:disabled),
-  .round-button:hover,
-  .home-bar-button:hover,
-  .limit-button:hover,
-  .album-cell:not(.album-unknown):hover,
-  .play-choice:hover {
-    filter: brightness(1.06);
-  }
 }
 
 /* Кнопка ✕: при нажатии — светлый кружок под пальцем */
@@ -2382,13 +2370,15 @@ body.mode-home .toast {
 }
 
 /* ----- Окна-карточки ----- */
-/* Тёмная кромка снизу, мягкая тень и тонкий блик сверху внутри рамки */
+/* Тёмная кромка снизу и тонкий блик сверху внутри рамки.
+   Только чёткие тени, без размытия: размытую тень браузер перерисовывает
+   каждый раз, когда внутри окна что-то движется (огонёк, мини-игры), —
+   на слабом телефоне от этого всё начинает тормозить. */
 .encounter-card,
 .overlay-card {
   box-shadow:
     inset 0 2px 0 rgba(250, 247, 242, 0.1),
-    0 10px 0 var(--space-deep),
-    0 24px 48px rgba(15, 16, 40, 0.5);
+    0 10px 0 var(--space-deep);
 }
 
 /* Заголовки окон «выдавлены» — тёмная тень снизу */
@@ -2398,7 +2388,7 @@ body.mode-home .toast {
 
 /* Строка состояния на карте — тоже наклейка */
 .status {
-  box-shadow: 0 4px 0 var(--space-deep), 0 8px 18px rgba(20, 22, 48, 0.3);
+  box-shadow: 0 4px 0 var(--space-deep);
 }
 
 /* Круг с котом: полупрозрачное кольцо вокруг белой рамки и кромка снизу */
@@ -2515,7 +2505,7 @@ body.mode-home .toast {
   .care-treat,
   .play-choice {
     transition: translate 0.08s ease-out, box-shadow 0.08s ease-out,
-      background-color 0.2s, filter 0.15s;
+      background-color 0.2s;
   }
 
   /* Окно появляется: подложка проявляется, карточка выпрыгивает.
@@ -2595,11 +2585,12 @@ body.mode-home .toast {
       sticker-slap 0.5s var(--spring),
       jump 0.7s ease-out 0.5s 2;
   }
-  /* Лучи раскрываются и медленно вращаются, пока открыт экран победы */
+  /* Лучи раскрываются, плавно поворачиваются и останавливаются.
+     Один раз, а не бесконечно: вечное вращение нагружает слабые телефоны. */
   #win-celebrate.celebrate-go::before {
     animation:
       rays-open 0.6s ease-out,
-      rays-spin 24s linear 0.6s infinite;
+      rays-spin 5s cubic-bezier(0.22, 1, 0.36, 1) 0.6s 1 forwards;
   }
 
   /* Кот смутился: короткая дрожь, один раз */
@@ -2668,7 +2659,7 @@ body.mode-home .toast {
 }
 
 @keyframes rays-spin {
-  to { transform: rotate(360deg); }
+  to { transform: rotate(60deg); }
 }
 
 /* Дрожь смутившегося кота */
@@ -2694,10 +2685,6 @@ body.mode-home .toast {
   .pointer-arrow {
     transition: rotate 0.4s ease-out;
   }
-  /* Капсула рядом — плашка мягко «дышит» */
-  .capsule-pointer[data-warmth="рядом"] {
-    animation: pointer-breathe 1.4s ease-in-out infinite;
-  }
   /* Капсула раскрывается: покачивается, раздувается и вспыхивает.
      Только rotate, scale и filter — transform у маркера занят MapLibre. */
   .capsule.capsule-opening {
@@ -2716,11 +2703,6 @@ body.mode-home .toast {
   20%  { opacity: 1; translate: 0 6px; scale: 1.15; }
   70%  { opacity: 1; translate: 0 12px; scale: 1; }
   100% { opacity: 0; translate: 0 22px; scale: 1; }
-}
-
-@keyframes pointer-breathe {
-  0%, 100% { scale: 1; }
-  50%      { scale: 1.05; }
 }
 
 @keyframes capsule-open {

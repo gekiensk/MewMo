@@ -129,6 +129,9 @@ function scheduleIdleMove() {
 }
 
 function doIdleMove() {
+  // Открыто окно (кухня, игра, карточка кота…) — котов под ним не видно,
+  // и лишняя анимация только замедлила бы игру в окне
+  if (document.querySelector('.overlay:not(.hidden), .encounter:not(.hidden)')) return;
   // Гости и так покачиваются — выбираем из котов экипажа
   const cats = homeCats.querySelectorAll('.home-cat:not(.home-guest) .home-cat-circle');
   if (cats.length === 0) return;

@@ -82,7 +82,7 @@ function startHome() {
   startScreen.classList.add('hidden');
   document.body.classList.add('mode-home');
   homeScreen.classList.remove('hidden');
-  setStatus('Ты в убежище корабля.');
+  setStatus(''); // в убежище сообщение не нужно — остаются значки сверху
 
   checkGuests(false);
   renderHome();

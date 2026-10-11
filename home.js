@@ -17,6 +17,11 @@
 
 // ----- Настройки -----
 const HOME_CHECK_TIME = 30000; // раз в 30 секунд проверяем, не прилетел ли гость
+// Коты в убежище иногда сами что-то делают: подпрыгивают, наклоняют
+// голову или потягиваются. Раз в 3–6 секунд — один случайный кот.
+const IDLE_MIN_TIME = 3000;
+const IDLE_MAX_TIME = 6000;
+const IDLE_MOVES = ['idle-hop', 'idle-tilt', 'idle-stretch']; // анимации — в style.css
 
 // Места котов на полу: [слева в %, сверху в %] — 3 ряда по 4 кота
 const CREW_SLOTS = [
@@ -31,6 +36,7 @@ const GUEST_SLOTS = [[27, 43], [50, 45], [73, 43]];
 let homeTimer = null;      // таймер проверки гостей
 let guestShyUntil = {};    // гость смутился после проигрыша: id → до какого времени (мс)
 let careCat = null;        // кот, чья карточка заботы открыта
+let idleTimer = null;      // таймер «котик что-то делает»
 
 // ----- Находим элементы -----
 const homeScreen = document.getElementById('home');
@@ -39,6 +45,11 @@ const careWindow = document.getElementById('care');
 
 // Картинка убежища рисуется один раз
 document.getElementById('home-scene').innerHTML = shelterScene();
+
+// Иконки на кнопках занятий (art.js)
+document.querySelectorAll('.home-bar-icon').forEach(function (icon) {
+  icon.innerHTML = homeBarIcon(icon.dataset.icon);
+});
 
 // ----- Кнопки -----
 document.getElementById('home-button').addEventListener('click', startHome);
@@ -86,6 +97,7 @@ function startHome() {
 
   checkGuests(false);
   renderHome();
+  scheduleIdleMove();
   if (!homeTimer) {
     homeTimer = setInterval(function () {
       if (gameMode === 'home') checkGuests(true);
@@ -99,6 +111,36 @@ function hideHome() {
   homeScreen.classList.add('hidden');
   document.body.classList.remove('mode-home');
   closeCare();
+}
+
+// =============================================================
+// Коты «живут»: иногда один из них что-то делает
+// =============================================================
+// Только дома и только если в телефоне не включено «уменьшить движение».
+function scheduleIdleMove() {
+  clearTimeout(idleTimer);
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const wait = IDLE_MIN_TIME + Math.random() * (IDLE_MAX_TIME - IDLE_MIN_TIME);
+  idleTimer = setTimeout(function () {
+    if (gameMode !== 'home') return; // ушли гулять — больше не планируем
+    doIdleMove();
+    scheduleIdleMove();
+  }, wait);
+}
+
+function doIdleMove() {
+  // Гости и так покачиваются — выбираем из котов экипажа
+  const cats = homeCats.querySelectorAll('.home-cat:not(.home-guest) .home-cat-circle');
+  if (cats.length === 0) return;
+  const circle = cats[Math.floor(Math.random() * cats.length)];
+  const move = IDLE_MOVES[Math.floor(Math.random() * IDLE_MOVES.length)];
+  circle.classList.remove.apply(circle.classList, IDLE_MOVES);
+  void circle.offsetWidth; // чтобы та же анимация могла запуститься снова
+  circle.classList.add(move);
+  // Анимация кончилась — убираем класс
+  circle.addEventListener('animationend', function () {
+    circle.classList.remove(move);
+  }, { once: true });
 }
 
 // Прилетел ли кто-нибудь. announce — показать подсказку о новом госте.

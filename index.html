@@ -76,10 +76,11 @@
     <p id="home-more" class="home-more hidden"></p>
     <!-- Занятия дома: большие кнопки внизу убежища -->
     <div id="home-bar" class="home-bar">
-      <button id="home-kitchen" class="home-bar-button">🍳<br>Кухня</button>
-      <button id="home-repair" class="home-bar-button">🔧<br>Ремонт</button>
-      <button id="home-play" class="home-bar-button">🎾<br>Игры</button>
-      <button id="home-decor-button" class="home-bar-button">🛋️<br>Обстановка</button>
+      <!-- Иконки рисует art.js (homeBarIcon), вставляет home.js -->
+      <button id="home-kitchen" class="home-bar-button"><span class="home-bar-icon" data-icon="kitchen"></span>Кухня</button>
+      <button id="home-repair" class="home-bar-button"><span class="home-bar-icon" data-icon="repair"></span>Ремонт</button>
+      <button id="home-play" class="home-bar-button"><span class="home-bar-icon" data-icon="play"></span>Игры</button>
+      <button id="home-decor-button" class="home-bar-button"><span class="home-bar-icon" data-icon="decor"></span>Обстановка</button>
     </div>
     <!-- Режим расстановки предметов: подсказка и «Готово» -->
     <div id="decor-edit-bar" class="decor-edit-bar hidden">

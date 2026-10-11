@@ -1167,6 +1167,52 @@ function tutorialPicture(index) {
   return open + body + '</svg>';
 }
 
+// =============================================================
+// Иконки панели занятий дома: кухня, ремонт, игры, обстановка
+// =============================================================
+// Холст 40×40. Кнопки тёмные, поэтому контур светлый (FUR_LIGHT).
+const HOME_BAR_KINDS = ['kitchen', 'repair', 'play', 'decor'];
+function homeBarIcon(kind) {
+  const open = '<svg class="home-bar-svg" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">';
+  const line = ' stroke="' + FUR_LIGHT + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"';
+  let body = '';
+  if (kind === 'kitchen') {
+    // Миска с тестом, над ней печенье-звёздочка и пар
+    body =
+      '<path d="M9 16 Q12 11 16 15 M24 13 Q27 9 30 13" fill="none"' + line + '/>' +
+      '<path d="M5 21 L35 21 Q34 34 20 34 Q6 34 5 21 Z" fill="' + PINK + '"' + line + '/>' +
+      '<path d="M9 21 Q14 17 20 20 Q26 17 31 21 Z" fill="' + FUR_LIGHT + '"/>' +
+      star(20, 10, 6, GOLD);
+  } else if (kind === 'repair') {
+    // Гаечный ключ (наклонён) и болтик. Вырез в головке ключа — цвета
+    // кнопки (INK), чтобы казался дыркой.
+    body =
+      '<g transform="rotate(45 20 20)">' +
+      '<rect x="16.5" y="15" width="7" height="22" rx="3.5" fill="' + GOLD + '"' + line + '/>' +
+      '<circle cx="20" cy="10" r="8" fill="' + GOLD + '"' + line + '/>' +
+      '<rect x="17" y="0" width="6" height="9" rx="1" fill="' + INK + '"/>' +
+      '</g>' +
+      '<circle cx="9" cy="31" r="5" fill="' + MINT + '"' + line + '/>' +
+      '<path d="M9 28.5 L9 33.5 M6.5 31 L11.5 31" stroke="' + INK + '" stroke-width="1.8" stroke-linecap="round"/>';
+  } else if (kind === 'play') {
+    // Клубок-мячик с хвостиком нитки
+    body =
+      '<path d="M30 30 Q36 34 34 38" fill="none" stroke="' + MINT + '" stroke-width="2.5" stroke-linecap="round"/>' +
+      '<circle cx="19" cy="19" r="13" fill="' + MINT + '"' + line + '/>' +
+      '<path d="M8 14 Q19 21 30 13 M8 24 Q19 17 31 25 M14 7 Q20 19 15 31" fill="none" stroke="' + FUR_LIGHT + '" stroke-width="2" stroke-linecap="round"/>';
+  } else if (kind === 'decor') {
+    // Мягкое кресло с подушкой-звездой
+    body =
+      '<path d="M9 18 Q9 8 20 8 Q31 8 31 18 L31 24 L9 24 Z" fill="' + PINK + '"' + line + '/>' +
+      '<rect x="4" y="19" width="8" height="13" rx="4" fill="' + PINK + '"' + line + '/>' +
+      '<rect x="28" y="19" width="8" height="13" rx="4" fill="' + PINK + '"' + line + '/>' +
+      '<rect x="11" y="23" width="18" height="9" rx="3" fill="' + GOLD + '"' + line + '/>' +
+      '<path d="M8 32 L8 36 M32 32 L32 36" stroke="' + FUR_LIGHT + '" stroke-width="2.5" stroke-linecap="round"/>' +
+      star(20, 15, 4, MINT);
+  }
+  return open + body + '</svg>';
+}
+
 // ----- Для тестов в Node: отдаём функции наружу -----
 if (typeof module !== 'undefined') {
   module.exports = {
@@ -1174,6 +1220,6 @@ if (typeof module !== 'undefined') {
     TUTORIAL_PICTURE_COUNT, tutorialPicture, fishSprite, bubbleSprite, basketSprite,
     fireflySprite, starSprite, ingredientIcon, treatIcon, bowlPicture, doughPicture, ovenPicture,
     COMPARTMENT_NAMES, compartmentPicture, repairShipPicture, laserDotSprite, toyBallSprite,
-    decorIcon
+    decorIcon, HOME_BAR_KINDS, homeBarIcon
   };
 }
